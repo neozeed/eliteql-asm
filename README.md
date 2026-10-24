@@ -1,5 +1,7 @@
 # EliteQL — Acorn Electron Elite for the Sinclair QL
 
+<img width="1024" height="544" alt="ql-elite" src="https://github.com/user-attachments/assets/1dd69050-a571-4b13-898a-e6ca0aec76d8" />
+
 **Player guide, controls and project notes for EliteQL 1.0 RC5b**  
 Documentation revision: 24 October 2026
 
