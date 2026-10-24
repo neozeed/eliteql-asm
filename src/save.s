@@ -6,7 +6,7 @@ _commander_io:
  movem.l d2-d7/a2-a6,-(sp)
  move.l 48(sp),a4
  move.l 52(sp),d4
- lea save_name,a0
+ lea _commander_filename,a0
  moveq #-1,d1
  moveq #1,d3
  tst.w d4
@@ -65,5 +65,7 @@ save_return:
  rts
 .sect .data
 .align 2
-save_name: .data2 14
+ .globl _commander_filename
+_commander_filename: .data2 14
  .ascii "WIN1_ELITESAVE"
+ .space 4

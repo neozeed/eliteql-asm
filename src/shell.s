@@ -11,7 +11,7 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
+__prog_name: .ascii "EliteQL 1.0 RC3\0"
 .align 2
 asm_stats:
  .data4 0x45514248,0x36383030
@@ -87,6 +87,9 @@ asm_chart_cursor_debug: .data4 asm_chart_cursor
 asm_sound_debug: .data4 asm_sound
 release_debug: .data4 _release_mode
 local_debug: .data4 asm_local_chart
+flow_debug: .data4 flow_state
+config_debug: .data4 flow_config
+name_debug: .data4 flow_name
 asm_snapshot_size: .data4 32768
 asm_snapshot_rle: .data2 0
 asm_tunnel_phase: .data2 0
@@ -315,6 +318,8 @@ asm_clear_screen:
  tst.w _release_mode
  beq startup_ready
  bsr release_commander
+ bsr flow_remember
+ bsr flow_title_load
 startup_ready:
  lea asm_poll,a0
  moveq #0x1c,d0
@@ -335,11 +340,45 @@ asm_loop:
  addq.l #5,d0
  move.l d0,asm_nextkeys
  jsr _keyboard_drain
+ tst.w _release_mode
+ beq flow_normal
+ tst.w flow_state
+ bne flow_dispatch
+ tst.w asm_dead
+ beq flow_normal
+ bsr flow_death
+ bra flow_dispatch
+flow_normal:
+ tst.w flow_release_gate
+ beq flow_release_clear
+ bsr flow_read_key
+ tst.w flow_held
+ bne asm_update_stats
+ clr.w flow_release_gate
+flow_release_clear:
  ; Modal commander page: freezes simulation, preserves the pre-existing pause.
  moveq #1,d0
  bsr asm_keyrow
  btst #3,d0
- bne asm_finish
+ beq flow_not_escape
+ tst.w asm_paused
+ beq asm_finish
+ tst.w _release_mode
+ beq asm_finish
+ bsr flow_title_load
+ bra asm_update_stats
+flow_not_escape:
+ tst.w asm_paused
+ beq flow_not_config
+ tst.w _release_mode
+ beq flow_not_config
+ bsr flow_pause
+ bra asm_update_stats
+flow_not_config:
+ tst.w _release_mode
+ beq flow_cargo_done
+ bsr flow_cargo_keys
+flow_cargo_done:
  bsr asm_navigation_keys
  tst.w d0
  bne asm_update_stats
@@ -406,6 +445,10 @@ asm_warp_key_done:
  move.w d0,asm_page_key
  and.w d0,d1
  beq asm_page_key_done
+ cmp.w #2,asm_page
+ bne flow_page_toggle_0
+ move.w #1,asm_page
+flow_page_toggle_0:
  eor.w #1,asm_page
  bsr asm_clear_view
  tst.w asm_page
@@ -452,6 +495,7 @@ release_pause_key:
  and.w d0,d1
  beq asm_pause_done
  eor.w #1,asm_paused
+ move.w #1,flow_held
 asm_pause_done:
  move.w asm_row1,asm_old1
  moveq #7,d0
@@ -669,6 +713,8 @@ release_fire:
  beq asm_draw_begin
  move.b #255,asm_fire_key
 asm_draw_begin:
+ tst.w flow_state
+ bne asm_wait
  tst.w asm_nav
  bne asm_update_stats
  tst.w asm_docked
@@ -2029,6 +2075,7 @@ asm_reset_vectors:
  clr.b asm_params
  clr.b asm_params+1
  move.b #1,asm_params+2
+ move.w asm_controls+2,-(sp)
  lea asm_controls,a0
  moveq #12,d0
 asm_clear_controls:
@@ -2037,6 +2084,7 @@ asm_clear_controls:
  move.b #128,(a0)
  move.b #128,1(a0)
  move.b #1,12(a0)
+ move.w (sp)+,asm_controls+2
  lea asm_vectors,a0
  lea asm_ships,a1
  moveq #11,d0
@@ -2616,9 +2664,25 @@ asm_decimal_loop:
  movem.l (sp)+,d2-d5
  rts
 asm_commander_page:
+ tst.w _release_mode
+ beq flow_cargo_page
+ cmp.w #2,asm_page
+ bne flow_status
+flow_cargo_page:
  lea asm_page_title,a4
+ tst.w _release_mode
+ beq flow_cargo_title
+ lea flow_status_title,a4
+flow_cargo_title:
  moveq #4,d6
  bsr asm_text
+ tst.w _release_mode
+ beq flow_cargo_cash
+ lea flow_name,a4
+ moveq #4,d6
+ moveq #98,d7
+ bsr asm_text_at
+flow_cargo_cash:
  move.l asm_commander,d0
  lea asm_cash_digits,a0
  moveq #10,d1
@@ -2733,6 +2797,10 @@ asm_text:
  move.w #32,d7
 asm_text_at:
 text_character:
+ cmp.w #251,d7
+ bhi text_done
+ cmp.w #185,d6
+ bhi text_done
  moveq #0,d0
  move.b (a4)+,d0
  beq text_done
@@ -3589,6 +3657,11 @@ shop_absent: .ascii "NOT IMPLEMENTED - NO CHARGE\0"
 
 .sect .text
 asm_save_commander:
+ tst.w _release_mode
+ beq flow_save_actual
+ move.w #4,flow_state
+ bra flow_name_start
+flow_save_actual:
  lea save_buffer,a0
  moveq #36,d0
 save_zero:
@@ -3606,10 +3679,18 @@ save_zero:
  addq.l #8,sp
  move.w #5,asm_market_result
  tst.l d0
- beq dock_page_refresh
+ bne flow_save_failed
+ bsr flow_remember
+ bra dock_page_refresh
+flow_save_failed:
  move.w #7,asm_market_result
  bra dock_page_refresh
 asm_load_commander:
+ tst.w _release_mode
+ beq flow_load_actual
+ move.w #3,flow_state
+ bra flow_name_start
+flow_load_actual:
  clr.l save_buffer+144
  clr.l -(sp)
  pea save_buffer
@@ -3667,6 +3748,7 @@ save_side_next:
  move.b #255,asm_player+2
  bsr asm_draw_dials
  move.w #6,asm_market_result
+ bsr flow_remember
  bra dock_page_refresh
 save_bad_load:
  move.w #8,asm_market_result
@@ -4358,6 +4440,8 @@ asm_message:
  move.b #22,asm_commander+7
  rts
 asm_sound_event:
+ tst.b flow_config
+ bne flow_sound_muted
  movem.l d0-d7/a0-a6,-(sp)
  move.l asm_ticks,-(sp)
  move.l d0,-(sp)
@@ -4367,6 +4451,9 @@ asm_sound_event:
  move.w d0,asm_sound_carry
  bsr asm_sound_poll
  movem.l (sp)+,d0-d7/a0-a6
+ rts
+flow_sound_muted:
+ clr.w asm_sound_carry
  rts
 asm_sound_poll:
  movem.l d0-d7/a0-a6,-(sp)
@@ -4456,6 +4543,10 @@ dock_status_keys:
  move.w d0,asm_page_key
  and.w d0,d1
  beq dock_status_done
+ cmp.w #2,asm_page
+ bne flow_page_toggle_1
+ move.w #1,asm_page
+flow_page_toggle_1:
  eor.w #1,asm_page
  bsr asm_clear_view
  tst.w asm_page
@@ -4855,3 +4946,867 @@ system_animal_words7: .ascii "INSECTS\0"
 .sect .data
 .align 2
 release_pause_old: .data2 0
+
+; RC3: Electron BR1/QU5/TITLE/DEATH2 and QDOS filename/keyboard adapters.
+; flow_state: 0 flight/bay, 1 Cobra question, 2 Mamba ready,
+; 3 load name, 4 save name, 5 DEATH animation.
+.sect .data
+.align 2
+flow_state: .data2 0
+flow_config: .data1 0,0,0,0
+; DNOIZ, PATG, FLH, reserved. DAMP/DJD live in asm_controls+2/+3.
+flow_name: .ascii "JAMESON\0"
+flow_saved_name: .ascii "JAMESON\0"
+flow_edit: .space 8
+flow_saved: .space 148
+flow_held: .data2 0
+flow_key: .data2 0
+flow_row: .data2 0
+flow_bits: .data2 0
+flow_from_title: .data2 0
+flow_name_len: .data2 0
+flow_death_count: .data2 0
+flow_index: .data2 0
+flow_death_flags: .data2 0
+flow_random_carry: .data2 0
+flow_cargo_held: .data2 0
+flow_release_gate: .data2 0
+flow_title_params: .data1 3,0,0,0
+flow_title_text: .ascii "---- E L I T E ----\0"
+flow_credit: .ascii "BY D.BRABEN & I.BELL\0"
+flow_copyright: .ascii "(C) ACORNSOFT 1984\0"
+flow_question: .ascii "LOAD NEW COMMANDER (Y/N)?\0"
+flow_ready_text: .ascii "PRESS FIRE OR SPACE, COMMANDER\0"
+flow_game_over: .ascii "GAME OVER\0"
+flow_load_text: .ascii "LOAD COMMANDER NAME:\0"
+flow_save_text: .ascii "SAVE COMMANDER NAME:\0"
+flow_edit_help: .ascii "ENTER ACCEPTS / LEFT DELETES\0"
+flow_edit_cancel: .ascii "ESC CANCELS - 7 LETTERS OR DIGITS\0"
+flow_edit_legacy: .ascii "EMPTY ENTER LOADS OLD ELITESAVE\0"
+flow_legacy_file: .ascii "WIN1_ELITESAVE"
+ .align 2
+flow_default_name: .ascii "JAMESON\0"
+.align 2
+.sect .text
+flow_remember:
+ movem.l d0-d7/a0-a6,-(sp)
+ moveq #0,d6
+ bsr save_copy
+ move.l _ship_fit+4,save_buffer+144
+ lea save_buffer,a0
+ lea flow_saved,a1
+ moveq #36,d0
+flow_remember_loop:
+ move.l (a0)+,(a1)+
+ dbra d0,flow_remember_loop
+ move.l flow_name,flow_saved_name
+ move.l flow_name+4,flow_saved_name+4
+ movem.l (sp)+,d0-d7/a0-a6
+ rts
+flow_restore:
+ bsr asm_setup
+ bsr release_commander
+ lea flow_saved,a0
+ lea save_buffer,a1
+ moveq #36,d0
+flow_restore_loop:
+ move.l (a0)+,(a1)+
+ dbra d0,flow_restore_loop
+ moveq #1,d6
+ bsr save_copy
+ move.l save_buffer+144,_ship_fit+4
+ move.l flow_saved_name,flow_name
+ move.l flow_saved_name+4,flow_name+4
+ clr.b asm_commander+7
+ clr.b asm_commander+8
+ clr.b asm_player+1
+ move.b #255,asm_player+2
+ clr.w asm_dead
+ clr.w asm_paused
+ clr.w asm_nav
+ clr.w asm_chart
+ clr.w asm_local_chart
+ clr.w asm_shop
+ move.b asm_travel+7,asm_travel+8
+ lea asm_travel+16,a0
+ lea asm_travel+40,a1
+ moveq #5,d0
+flow_ping:
+ move.l (a0)+,(a1)+
+ dbra d0,flow_ping
+ rts
+flow_title_load:
+ move.w #1,flow_state
+ move.w #1,flow_from_title
+ move.l _models+16,d0
+ bra flow_title_init
+flow_title_ready:
+ bsr flow_restore
+ move.w #2,flow_state
+ move.l _models+8,d0
+flow_title_init:
+ move.l d0,-(sp)
+ clr.w asm_paused
+ clr.w asm_dead
+ clr.b asm_sound_dead
+ clr.w asm_dust_valid
+ bsr asm_clear_view
+ lea asm_ships,a0
+ move.w #815,d0
+flow_zero_cache:
+ clr.l (a0)+
+ dbra d0,flow_zero_cache
+ lea asm_vectors,a0
+ move.w #107,d0
+flow_zero_vectors:
+ clr.l (a0)+
+ dbra d0,flow_zero_vectors
+ move.l (sp)+,asm_ships
+ move.b #96,asm_vectors+14
+ move.b #96,asm_vectors+18
+ move.b #96,asm_vectors+22
+ move.b #96,asm_vectors+7
+ move.b #127,asm_vectors+29
+ move.b #127,asm_vectors+30
+ clr.b asm_mcnt
+ move.w #1,flow_held
+ rts
+; Scan all QL IPC matrix rows, returning one ASCII key on a fresh press.
+; Modifiers do not change the Electron command meaning.
+flow_read_key:
+ clr.w flow_row
+ move.w #-1,flow_key
+flow_read_row:
+ move.w flow_row,d0
+ bsr asm_keyrow
+ move.w d0,flow_bits
+ moveq #0,d2
+flow_read_bit:
+ btst d2,d0
+ beq flow_read_next
+ moveq #7,d1
+ sub.w flow_row,d1
+ lsl.w #3,d1
+ add.w d2,d1
+ lea flow_keymap,a0
+ move.b 0(a0,d1.w),d1
+ and.w #255,d1
+ beq flow_read_next
+ move.w d1,flow_key
+flow_read_next:
+ addq.w #1,d2
+ cmp.w #8,d2
+ blo flow_read_bit
+ addq.w #1,flow_row
+ cmp.w #8,flow_row
+ blo flow_read_row
+ move.w flow_key,d0
+ cmp.w #-1,d0
+ bne flow_key_down
+ clr.w flow_held
+ rts
+flow_key_down:
+ tst.w flow_held
+ bne flow_key_repeat
+ move.w #1,flow_held
+ rts
+flow_key_repeat:
+ moveq #-1,d0
+ rts
+flow_dispatch:
+ bsr flow_read_key
+ move.w d0,flow_key
+ cmp.w #5,flow_state
+ beq flow_death_frame
+ cmp.w #3,flow_state
+ bhs flow_name_frame
+ cmp.w #1,flow_state
+ bne flow_ready_keys
+ cmp.w #89,d0
+ beq flow_title_yes
+ cmp.w #-1,d0
+ beq flow_title_frame
+ cmp.w #27,d0
+ beq asm_finish
+ bsr flow_title_ready
+ bra asm_wait
+flow_title_yes:
+ move.w #3,flow_state
+ bsr flow_name_start
+ bra asm_wait
+flow_ready_keys:
+ cmp.w #-1,d0
+ beq flow_title_frame
+ cmp.w #27,d0
+ beq asm_finish
+ ; TITLE returns on any key in the actual Electron instructions.
+ bsr flow_restore
+ move.w #1,flow_release_gate
+ clr.w flow_state
+ clr.w flow_from_title
+ move.w #1,asm_page
+ move.w #1,asm_docked
+ bsr asm_clear_view
+ bsr asm_draw_dials
+ bsr asm_commander_page
+ bra asm_wait
+flow_title_frame:
+ cmp.b #1,asm_vectors+7
+ beq flow_title_near
+ subq.b #1,asm_vectors+7
+flow_title_near:
+ move.b asm_mcnt,d0
+ and.w #15,d0
+ bne flow_title_tidy_done
+ pea asm_vectors
+ jsr _tidy_ship
+ addq.l #4,sp
+flow_title_tidy_done:
+ pea flow_title_params
+ pea asm_vectors
+ jsr _move_ship
+ addq.l #8,sp
+ subq.b #1,asm_mcnt
+ move.b #128,asm_vectors+6
+ clr.b asm_vectors
+ clr.b asm_vectors+3
+ lea asm_vectors,a4
+ lea asm_ships,a5
+ bsr flow_render
+ ; Repainting text uses OR pixels, so repeated text is harmless.
+ lea flow_title_text,a4
+ moveq #16,d6
+ bsr asm_text
+ tst.b flow_config+1
+ beq flow_no_credit
+ lea flow_credit,a4
+ moveq #32,d6
+ bsr asm_text
+flow_no_credit:
+ lea flow_question,a4
+ cmp.w #1,flow_state
+ beq flow_prompt
+ lea flow_ready_text,a4
+flow_prompt:
+ move.w #160,d6
+ bsr asm_text
+ lea flow_copyright,a4
+ move.w #176,d6
+ bsr asm_text
+ bra asm_wait
+flow_render:
+ pea 4(a5)
+ move.l a4,-(sp)
+ jsr _motion_position
+ addq.l #8,sp
+ eor.w #1,d0
+ move.w d0,14(a5)
+ pea asm_matrix
+ move.l a4,-(sp)
+ jsr _motion_matrix
+ addq.l #8,sp
+ move.l #asm_matrix,_live_matrix
+ move.l a4,_render_inwk
+ move.l a5,-(sp)
+ pea 0x20000
+ jsr _render_ship
+ addq.l #8,sp
+ clr.l _live_matrix
+ clr.l _render_inwk
+ rts
+flow_name_start:
+ move.w #1,flow_held
+ move.l flow_name,flow_edit
+ move.l flow_name+4,flow_edit+4
+ clr.w flow_name_len
+ lea flow_edit,a0
+flow_name_length:
+ move.w flow_name_len,d0
+ tst.b 0(a0,d0.w)
+ beq flow_name_paint
+ addq.w #1,flow_name_len
+ cmp.w #7,flow_name_len
+ blo flow_name_length
+flow_name_paint:
+ bsr asm_clear_view
+ lea flow_load_text,a4
+ cmp.w #4,flow_state
+ bne flow_name_prompt
+ lea flow_save_text,a4
+flow_name_prompt:
+ moveq #32,d6
+ bsr asm_text
+ lea flow_edit,a4
+ moveq #64,d6
+ bsr asm_text
+ lea flow_edit_help,a4
+ move.w #128,d6
+ bsr asm_text
+ lea flow_edit_cancel,a4
+ move.w #144,d6
+ bsr asm_text
+ lea flow_edit_legacy,a4
+ move.w #160,d6
+ bsr asm_text
+ rts
+flow_name_frame:
+ cmp.w #-1,d0
+ beq asm_wait
+ cmp.w #27,d0
+ beq flow_name_cancel
+ cmp.w #13,d0
+ beq flow_name_accept
+ cmp.w #8,d0
+ beq flow_name_delete
+ cmp.w #48,d0
+ blo asm_wait
+ cmp.w #57,d0
+ bls flow_name_append
+ cmp.w #65,d0
+ blo asm_wait
+ cmp.w #90,d0
+ bhi asm_wait
+flow_name_append:
+ move.w flow_name_len,d1
+ cmp.w #7,d1
+ bhs asm_wait
+ lea flow_edit,a0
+ move.b d0,0(a0,d1.w)
+ addq.w #1,flow_name_len
+ clr.b 1(a0,d1.w)
+ bra flow_name_redraw
+flow_name_delete:
+ tst.w flow_name_len
+ beq asm_wait
+ subq.w #1,flow_name_len
+ move.w flow_name_len,d1
+ lea flow_edit,a0
+ clr.b 0(a0,d1.w)
+flow_name_redraw:
+ bsr flow_name_paint
+ bra asm_wait
+flow_name_accept:
+ tst.w flow_name_len
+ bne flow_named_file
+ cmp.w #3,flow_state
+ bne asm_wait
+ move.w #14,_commander_filename
+ lea flow_legacy_file,a0
+ lea _commander_filename+2,a1
+ moveq #13,d0
+flow_legacy_copy:
+ move.b (a0)+,(a1)+
+ dbra d0,flow_legacy_copy
+ move.l flow_default_name,flow_edit
+ move.l flow_default_name+4,flow_edit+4
+ bra flow_named_load
+flow_named_file:
+ ; Empty name imports legacy WIN1_ELITESAVE; named files use WIN1_<name>.
+ lea flow_edit,a0
+ lea _commander_filename+7,a1
+ move.w flow_name_len,d0
+ move.w d0,d1
+ addq.w #5,d1
+ move.w d1,_commander_filename
+ subq.w #1,d0
+flow_filename_loop:
+ move.b (a0)+,(a1)+
+ dbra d0,flow_filename_loop
+ cmp.w #4,flow_state
+ beq flow_name_save
+flow_named_load:
+ bsr flow_load_actual
+ cmp.w #6,asm_market_result
+ bne flow_load_error
+ move.l flow_edit,flow_name
+ move.l flow_edit+4,flow_name+4
+ bsr flow_remember
+ tst.w flow_from_title
+ beq flow_name_bay
+ bsr flow_title_ready
+ bra asm_wait
+flow_load_error:
+ bsr flow_name_paint
+ lea load_error,a4
+ moveq #96,d6
+ bsr asm_text
+ bra asm_wait
+flow_name_save:
+ move.l flow_name,-(sp)
+ move.l flow_name+4,-(sp)
+ move.l flow_edit,flow_name
+ move.l flow_edit+4,flow_name+4
+ bsr flow_save_actual
+ cmp.w #5,asm_market_result
+ beq flow_save_name_ok
+ move.l (sp)+,flow_name+4
+ move.l (sp)+,flow_name
+ bra flow_name_bay
+flow_save_name_ok:
+ addq.l #8,sp
+flow_name_bay:
+ move.w #1,flow_release_gate
+ clr.w flow_state
+ bsr asm_clear_view
+ tst.w asm_page
+ beq flow_name_market
+ bsr asm_commander_page
+ bra asm_wait
+flow_name_market:
+ tst.w asm_shop
+ beq flow_name_market_only
+ bsr asm_shop_page
+ bra asm_wait
+flow_name_market_only:
+ bsr asm_market_page
+ bra asm_wait
+flow_name_cancel:
+ tst.w flow_from_title
+ beq flow_name_bay
+ bsr flow_title_load
+ bra asm_wait
+; FREEZE/DKS3 options: configuration bytes persist across death/restart.
+; FLH has no readers in the Electron source: preserve its inert flag.
+flow_pause:
+ bsr flow_read_key
+ cmp.w #1,d0
+ beq flow_resume
+ cmp.w #83,d0
+ beq flow_sound_on
+ cmp.w #81,d0
+ beq flow_sound_off
+ cmp.w #2,d0
+ beq flow_toggle_damp
+ cmp.w #65,d0
+ beq flow_toggle_centre
+ cmp.w #88,d0
+ beq flow_toggle_author
+ cmp.w #70,d0
+ bne flow_pause_done
+ not.b flow_config+2
+ bra flow_config_beep
+flow_toggle_author:
+ not.b flow_config+1
+ bra flow_config_beep
+flow_toggle_damp:
+ not.b asm_controls+2
+ bra flow_config_beep
+flow_toggle_centre:
+ not.b asm_controls+3
+ bra flow_config_beep
+flow_sound_on:
+ clr.b flow_config
+ bra flow_pause_done
+flow_sound_off:
+ move.b #255,flow_config
+ pea asm_sound
+ jsr _sound_stop
+ addq.l #4,sp
+ bra flow_pause_done
+flow_resume:
+ clr.w asm_paused
+ move.w #32,release_pause_old
+ rts
+flow_config_beep:
+ moveq #32,d0
+ bsr asm_sound_event
+flow_pause_done:
+ rts
+
+.sect .data
+flow_keymap: .data1 0,0,0,88,86,0,78,0,56,50,54,81,69,48,84,85,57,87,73,0,82,0,89,79,76,51,72,49,65,80,68,74,0,2,75,83,70,0,71,0,0,90,0,67,66,0,77,0,13,8,0,27,0,0,32,0,0,0,53,0,0,1,52,55
+.align 2
+.sect .text
+; DEATH D1: four canisters, Ze random signs, ROR pitch and killed flag,
+; fq1 reversed side vector and ROL DELTA. ASL twice makes DELTA=12,
+; despite the contradictory source comment saying divide by four.
+flow_death:
+ moveq #24,d0
+ bsr asm_sound_event
+ move.l _models+32,d0
+ bsr flow_title_init
+ move.w #5,flow_state
+ move.w #50,flow_death_count
+ move.b #146,asm_mcnt
+ clr.w flow_index
+ lea asm_clouds,a0
+ move.w #1343,d0
+flow_death_zero:
+ clr.l (a0)+
+ dbra d0,flow_death_zero
+ move.b #3,asm_params
+ clr.b asm_params+1
+ clr.b asm_params+2
+ clr.w asm_view
+ moveq #0,d0
+ bsr asm_dust_run
+flow_death_spawn:
+ move.w flow_index,d0
+ mulu.w #36,d0
+ lea asm_vectors,a4
+ adda.l d0,a4
+ moveq #35,d0
+flow_death_inwk:
+ clr.b 0(a4,d0.w)
+ dbra d0,flow_death_inwk
+ clr.l -(sp)
+ pea asm_laser+5
+ jsr _elite_random
+ addq.l #8,sp
+ and.b #128,d0
+ move.b d0,2(a4)
+ swap d0
+ and.b #128,d0
+ move.b d0,5(a4)
+ ; Ze falls through DORND2 (CLC).
+ clr.l -(sp)
+ pea asm_laser+5
+ jsr _elite_random
+ addq.l #8,sp
+ move.w d0,flow_random_carry
+ move.b #32,(a4)
+ eor.b #42,d0
+ move.b d0,3(a4)
+ or.b #80,d0
+ move.b d0,6(a4)
+ swap d0
+ and.b #143,d0
+ move.b d0,29(a4)
+ move.b d0,d1
+ and.w #1,d1
+ move.w d1,flow_death_flags
+ lsr.b #1,d0
+ ; ROR inserts DORND2's carry into bit7, then AND #87.
+ btst #0,flow_random_carry
+ beq flow_death_pitch
+ or.b #128,d0
+flow_death_pitch:
+ and.b #135,d0
+ move.b d0,30(a4)
+ move.b #96,14(a4)
+ move.b #96,18(a4)
+ move.b #224,22(a4)
+ move.b #24,27(a4)
+ add.b d1,27(a4)
+ move.b #1,33(a4)
+ move.w flow_index,d0
+ mulu.w #272,d0
+ lea asm_ships,a5
+ adda.l d0,a5
+ move.l _models+32,(a5)
+ tst.w flow_death_flags
+ beq flow_death_not_killed
+ move.w flow_index,d0
+ mulu.w #448,d0
+ lea asm_clouds,a0
+ adda.l d0,a0
+ move.b #128,31(a4)
+ pea asm_laser+5
+ move.l (a5),-(sp)
+ move.l a0,-(sp)
+ move.l a4,-(sp)
+ jsr _explosion_start
+ lea 16(sp),sp
+flow_death_not_killed:
+ addq.w #1,flow_index
+ cmp.w #4,flow_index
+ blo flow_death_spawn
+ lea asm_keys,a0
+ moveq #5,d0
+flow_death_keys_zero:
+ clr.b 0(a0,d0.w)
+ dbra d0,flow_death_keys_zero
+ move.b #128,asm_controls+1
+ clr.b asm_controls+12
+ move.b #3,asm_params
+ clr.b asm_params+1
+ clr.b asm_params+2
+ clr.b asm_params+3
+ clr.w asm_view
+ rts
+flow_death_frame:
+ move.b asm_vectors,asm_laser+5
+ pea asm_sound
+ jsr _sound_tick
+ addq.l #4,sp
+ pea asm_keys
+ pea asm_controls
+ jsr _control_step
+ addq.l #8,sp
+ move.b asm_controls+4,asm_params
+ move.b asm_controls+5,asm_params+1
+ clr.w flow_index
+flow_death_ship:
+ move.w flow_index,d0
+ mulu.w #36,d0
+ lea asm_vectors,a4
+ adda.l d0,a4
+ move.w flow_index,d0
+ mulu.w #272,d0
+ lea asm_ships,a5
+ adda.l d0,a5
+ move.b 31(a4),d0
+ and.w #160,d0
+ bne flow_death_tidy_done
+ move.b asm_mcnt,d0
+ move.w flow_index,d1
+ eor.w d1,d0
+ and.w #15,d0
+ bne flow_death_tidy_done
+ move.l a4,-(sp)
+ jsr _tidy_ship
+ addq.l #4,sp
+flow_death_tidy_done:
+ move.b #15,asm_params+3
+ pea asm_params
+ move.l a4,-(sp)
+ jsr _move_ship
+ addq.l #8,sp
+ clr.w _render_exploding
+ btst #5,31(a4)
+ beq flow_death_render
+ move.w #1,_render_exploding
+flow_death_render:
+ bsr flow_render
+ clr.w _render_exploding
+ btst #5,31(a4)
+ beq flow_death_ship_next
+ move.w flow_index,d0
+ mulu.w #448,d0
+ lea asm_clouds,a0
+ adda.l d0,a0
+ pea asm_laser+5
+ move.l a0,-(sp)
+ move.l a4,-(sp)
+ pea 0x20000
+ jsr _explosion_frame
+ lea 16(sp),sp
+flow_death_ship_next:
+ addq.w #1,flow_index
+ cmp.w #4,flow_index
+ blo flow_death_ship
+ moveq #1,d0
+ bsr asm_dust_run
+ lea flow_game_over,a4
+ moveq #96,d6
+ moveq #96,d7
+ bsr asm_text_at
+ ; MA23 saturating LASCT-4, then D2 DEC. From50 exactly10 updates.
+ subq.b #1,asm_mcnt
+ subq.w #5,flow_death_count
+ bne asm_wait
+ bsr flow_title_load
+ bra asm_wait
+
+; STATUS fields derive from STATUS/st6/st5/st3/stqv/st, with native QL layout.
+; Cargo remains on its own page (7); equipment includes all four laser views.
+flow_status:
+ lea flow_status_title,a4
+ moveq #4,d6
+ bsr asm_text
+ lea flow_name,a4
+ moveq #4,d6
+ move.w #98,d7
+ bsr asm_text_at
+ lea flow_present,a4
+ moveq #20,d6
+ bsr asm_text
+ lea asm_travel+25,a4
+ moveq #20,d6
+ move.w #152,d7
+ bsr asm_text_at
+ lea flow_target,a4
+ moveq #32,d6
+ bsr asm_text
+ lea asm_travel+49,a4
+ moveq #32,d6
+ move.w #152,d7
+ bsr asm_text_at
+ lea flow_docked,a4
+ tst.w asm_docked
+ bne flow_condition
+ lea flow_green,a4
+ lea asm_vectors,a0
+ lea asm_ships,a1
+ moveq #11,d0
+flow_condition_scan:
+ btst #7,31(a0)
+ bne flow_condition_next
+ move.l (a1),a2
+ cmp.w #7,28(a2)
+ beq flow_condition_next
+ cmp.w #9,28(a2)
+ beq flow_condition_next
+ lea flow_yellow,a4
+ cmp.b #128,asm_status+2
+ bhs flow_condition
+ lea flow_red,a4
+ bra flow_condition
+flow_condition_next:
+ lea 36(a0),a0
+ lea 272(a1),a1
+ dbra d0,flow_condition_scan
+flow_condition:
+ moveq #44,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+9,d0
+ divu.w #10,d0
+ add.b #48,d0
+ move.b d0,flow_fuel_digits
+ swap d0
+ add.b #48,d0
+ move.b d0,flow_fuel_digits+2
+ lea flow_fuel,a4
+ moveq #56,d6
+ bsr asm_text
+ move.l asm_commander,d0
+ lea asm_cash_digits,a0
+ moveq #10,d1
+ bsr asm_decimal
+ move.b asm_cash_digits+9,asm_cash_digits+10
+ move.b #46,asm_cash_digits+9
+ lea asm_cash_digits,a0
+ moveq #7,d0
+flow_cash_trim:
+ cmp.b #48,(a0)
+ bne flow_cash_ready
+ move.b #32,(a0)+
+ dbra d0,flow_cash_trim
+flow_cash_ready:
+ lea asm_cash_line,a4
+ moveq #68,d6
+ bsr asm_text
+ lea asm_clean,a4
+ tst.b asm_commander+6
+ beq flow_legal
+ lea asm_offender,a4
+ cmp.b #50,asm_commander+6
+ blo flow_legal
+ lea asm_fugitive,a4
+flow_legal:
+ moveq #80,d6
+ bsr asm_text
+ pea asm_commander
+ jsr _commander_rank
+ addq.l #4,sp
+ subq.w #1,d0
+ lsl.w #2,d0
+ lea asm_rank_names,a0
+ move.l 0(a0,d0.w),a4
+ moveq #92,d6
+ bsr asm_text
+ ; Equipment: two columns of up to six lines, preserving Electron order.
+ clr.w flow_index
+ clr.w flow_equipment_count
+flow_equipment_loop:
+ move.w flow_index,d0
+ lsl.w #2,d0
+ lea flow_equipment_flags,a0
+ move.l 0(a0,d0.w),a0
+ tst.b (a0)
+ beq flow_equipment_next
+ lea flow_equipment_names,a0
+ move.l 0(a0,d0.w),a4
+ bsr flow_equipment_print
+flow_equipment_next:
+ addq.w #1,flow_index
+ cmp.w #7,flow_index
+ blo flow_equipment_loop
+ clr.w flow_index
+flow_laser_loop:
+ lea flow_laser_offsets,a0
+ move.w flow_index,d0
+ moveq #0,d1
+ move.b 0(a0,d0.w),d1
+ lea _ship_fit,a0
+ move.b 0(a0,d1.w),d1
+ beq flow_laser_next
+ lea flow_pulse,a4
+ tst.b d1
+ bpl flow_laser_type
+ lea flow_beam,a4
+flow_laser_type:
+ lea flow_laser_line,a0
+ moveq #11,d1
+flow_laser_copy:
+ move.b (a4)+,(a0)+
+ dbra d1,flow_laser_copy
+ move.w flow_index,d0
+ mulu.w #5,d0
+ lea asm_view_names,a0
+ adda.w d0,a0
+ lea flow_laser_line+12,a1
+ moveq #4,d0
+flow_laser_view:
+ move.b (a0)+,(a1)+
+ dbra d0,flow_laser_view
+ lea flow_laser_line,a4
+ bsr flow_equipment_print
+flow_laser_next:
+ addq.w #1,flow_index
+ cmp.w #4,flow_index
+ blo flow_laser_loop
+ lea flow_status_help,a4
+ move.w #180,d6
+ bsr asm_text
+ rts
+flow_equipment_print:
+ move.w flow_equipment_count,d6
+ moveq #8,d7
+ cmp.w #6,d6
+ blo flow_equipment_row
+ subq.w #6,d6
+ move.w #136,d7
+flow_equipment_row:
+ mulu.w #11,d6
+ add.w #110,d6
+ bsr asm_text_at
+ addq.w #1,flow_equipment_count
+ rts
+.sect .data
+.align 2
+flow_equipment_count: .data2 0
+flow_equipment_flags: .data4 _ship_fit+2,asm_equipment+1,asm_equipment,asm_equipment+2,asm_equipment+3,asm_equipment+4,asm_travel+10
+flow_equipment_names: .data4 flow_escape,flow_scoops,flow_ecm,flow_bomb,flow_energy,flow_computer,flow_galactic
+flow_status_title: .ascii "COMMANDER\0"
+flow_present: .ascii "PRESENT SYSTEM:\0"
+flow_target: .ascii "HYPERSPACE SYSTEM:\0"
+flow_docked: .ascii "CONDITION: DOCKED\0"
+flow_green: .ascii "CONDITION: GREEN\0"
+flow_yellow: .ascii "CONDITION: YELLOW\0"
+flow_red: .ascii "CONDITION: RED\0"
+flow_fuel: .ascii "FUEL: "
+flow_fuel_digits: .ascii "7.0 LIGHT YEARS\0"
+flow_escape: .ascii "ESCAPE CAPSULE\0"
+flow_scoops: .ascii "FUEL SCOOPS\0"
+flow_ecm: .ascii "E.C.M. SYSTEM\0"
+flow_bomb: .ascii "ENERGY BOMB\0"
+flow_energy: .ascii "ENERGY UNIT\0"
+flow_computer: .ascii "DOCKING COMPUTER\0"
+flow_galactic: .ascii "GALACTIC HYPERSPACE\0"
+flow_pulse: .ascii "PULSE LASER "
+flow_beam: .ascii "BEAM LASER  "
+flow_laser_line: .ascii "PULSE LASER FRONT\0"
+flow_laser_offsets: .data1 1,4,5,6
+flow_status_help: .ascii "6 MARKET/STATUS   7 CARGO\0"
+.align 2
+.sect .text
+flow_cargo_keys:
+ moveq #0,d0
+ bsr asm_keyrow
+ and.w #128,d0
+ move.w flow_cargo_held,d1
+ eor.w d0,d1
+ move.w d0,flow_cargo_held
+ and.w d0,d1
+ beq flow_cargo_return
+ tst.w asm_nav
+ bne flow_cargo_return
+ tst.w asm_shop
+ bne flow_cargo_return
+ move.w #2,asm_page
+ bsr asm_clear_view
+ bsr asm_commander_page
+flow_cargo_return:
+ rts

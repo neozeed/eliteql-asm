@@ -1,10 +1,53 @@
-# EliteQL 1.0 RC2
+# EliteQL 1.0 RC3
 
-A native68000 QDOS adaptation of Acorn Electron Elite. RC1 completed the current
-presentation pass and provides a normal commander startup. It is a release
-candidate, not a claim of complete instruction-for-instruction Electron behavior.
-A27 remains an independent fallback. See docs/RELEASE-AUDIT.md for the remaining
-universe allocation/scheduling qualification before a strict fidelity1.0 freeze.
+A native 68000 QDOS adaptation of Acorn Electron Elite. RC3 adds the original
+start/restart flow, commander names, full status information, and working
+keyboard pause settings. All game code is assembly. RC2 remains an independent
+fallback. This is still a release candidate: the universe capacity/order and
+shared-RNG integration qualification in docs/RELEASE-AUDIT.md remains open.
+
+## RC3 start, death and load flow
+
+The rotating Cobra asks **LOAD NEW COMMANDER (Y/N)?**. Press Y for a name, or N
+to use the last saved commander held in memory (Jameson on first start). The
+rotating Mamba then shows **PRESS FIRE OR SPACE, COMMANDER** before the docking
+bay. Like the original TITLE routine, that second screen accepts any key.
+Escape on either title screen exits to QDOS.
+
+Death shows GAME OVER with the Electron DEATH routine's four-canister scene,
+then returns to the load question. N restores the last successful save/load;
+it does not award a new commander or retain unsaved progress. With no save,
+it restores the default Jameson. Paused Escape also returns to the title.
+
+Save/load accepts a commander name of 1–7 letters or digits. Left (or Backspace)
+deletes, Enter accepts, Escape cancels. The QDOS file is WIN1_<NAME>; for example,
+ALEX saves to WIN1_ALEX. To import an older WIN1_ELITESAVE, delete the entire
+load name and press Enter. Legacy EQA1 and EQA2 payload validation is retained;
+missing/corrupt files do not replace the live or last-saved commander. Named
+files still use EQA2, with the name supplied by the filename. These are native
+QDOS files, not Electron cassette images.
+
+6 opens/closes status; docked, it switches between status and market. 7 opens
+cargo, and 6 closes it. Status includes present/hyperspace systems, the original
+Docked/Green/Yellow/Red condition rule, fuel, cash, legal status, rating, all
+installed equipment, and the laser fitted to each view.
+
+While paused with F5:
+
+| Key | Electron setting |
+|---|---|
+| S / Q | Sound on / off |
+| Caps Lock | Toggle flight damping |
+| A | Toggle automatic recentring |
+| X | Toggle title author credits |
+| F | Toggle the original inert flashing-bar flag |
+| Escape | Return to the title/load question |
+| F5 | Resume |
+
+The screen stays frozen, as in Electron FREEZE. Toggle keys beep if sound is on.
+Settings persist across launch/death/restart. The source explicitly says FLH has
+no effect in this version; RC3 does not invent flashing bars. The unsupported
+joystick options remain excluded rather than adding joystick gameplay.
 
 ## RC2 keyboard update
 
@@ -15,7 +58,7 @@ Arrow keys retain traditional flight pitch/roll; F remains a fire alias and
 Z a slow-down alias. A no longer accelerates.
 
 Space never toggles pause in ELITEASM. F5 toggles pause/resume as the QL
-substitute for Electron COPY/DELETE. Escape still exits to QDOS and K uses an
+substitute for Electron COPY/DELETE. Escape during normal play exits to QDOS and K uses an
 escape capsule. Existing T/U/M, E, -, J and C match Electron's secondary flight
 commands. Docked S remains sell/save, and chart arrows remain cursor controls.
 V now correctly selects the local chart (RC1 accidentally mapped that to X).
@@ -32,12 +75,12 @@ Mount this archive's host directory in QLBox, then run:
 EXEC_W WIN1_ELITEASM
 ```
 
-You start as Jameson, docked at Lave, with100 Cr, four missiles, a full tank,
+Decline loading at the first title screen to start as Jameson, docked at Lave, with100 Cr, four missiles, a full tank,
 20-tonne cargo capacity and a front pulse laser. No ECM, scoops, energy bomb,
 energy unit, escape capsule, docking computer or galactic drive is supplied free.
 These starting values follow the original NA% default commander (Q%=FALSE).
 
-Press6 to leave the commander/inventory screen for the market. Buy with B,
+Press6 to leave the commander status screen for the market. Buy with B,
 sell with S, select with Up/Down, and launch with L. Press8 for equipment;
 S saves and O loads while in that screen. Save before launching if desired.
 The native EQA2 save format and EQA1 import are retained from A26/A27.
@@ -66,11 +109,11 @@ on the navigation page. Press9 again to close navigation.
 |J|In-system jump, subject to mass lock|
 |C in flight|Use fitted docking computer near a friendly station|
 |K|Use fitted escape capsule|
-|6|Commander and cargo; close with6|
+|6 / 7|Commander status / cargo; close with6|
 |9|Navigation/data/charts|
 |F5|Pause/resume|
-|N after destruction|New default commander|
-|Escape|Exit and restore QDOS display|
+|N at the load question|Restore the last saved commander|
+|Escape|Exit normally; when paused, return to title|
 
 The production job ignores numbered test scenes, live commander reset and
 uncapped simulation. ELITEDEV retains these development controls and the
@@ -95,9 +138,9 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is55,194 bytes with7,710 bytes of declared QDOS data space. The game is
+ELITEASM is 59,970 bytes with 7,356 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
-Only ELITEASM and optional ELITESAVE are needed on the QL's disk. Preserve QDOS
+Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not
 the runtime installation and need not fit on the5 MB disk.
 

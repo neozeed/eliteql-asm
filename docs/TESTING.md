@@ -45,3 +45,25 @@ Screenshots are regression scenes, not claims of earned commander achievements.
 Timing printed by fidelity_check measures active native flight with dust/sound
 in the emulated setup. ELITEBEN is a separate rendering benchmark; neither is a
 measurement on physical68008 hardware. See A27-RESULTS.md for this build's results.
+
+## RC3 additions
+
+run-release.sh now runs actual ELITEASM title/load/death/configuration flows
+through BASIC EXEC_W at128/640KB. ONLY_RELEASE on qlbox-keys runs the same checks
+through direct job startup. flow_check.h tests a named ALEX save, saved-state
+restart after death, missing/corrupt-load rollback, old ELITESAVE import,
+configuration persistence and paused Escape restart. Keys go through IPC;
+death is triggered using the authoritative flag written by combat/collision.
+The four-canister model check inspects native model types. Existing production
+travel and actual station-approach/docking checks remain in the same run.
+
+The retained station mass-lock fixture now initializes a complete INWK and
+explicitly chooses a type1..8 blueprint. Reusing an ambient asteroid or cargo
+canister cannot test mass lock: the original rule deliberately excludes them.
+This is a test correction, not a game-rule change.
+
+RC3 logs: RC3-BUILD.log, RC3-INTEGRATION.log, RC3-BASIC.log,
+RC3-PRODUCTION.log, RC3-PRODUCTION-DIRECT.log. Retained original arithmetic
+fixture binaries are rerun; unchanged Python fixture generation is skipped.
+The lifecycle UI excerpts are source provenance; no claim is made that every
+6502 lifecycle instruction has an executed-original differential test.

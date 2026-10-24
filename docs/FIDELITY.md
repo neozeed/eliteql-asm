@@ -70,3 +70,11 @@ scope of each port; historical notes give routine-by-routine details.
 
 The numbered demonstration scenes, commander reset key, native menus and save
 format are retained development conveniences, not original Electron mechanics.
+
+RC3 adds Electron BR1/QU5/TITLE/DEATH and STATUS/FREEZE/DKS3-derived behavior.
+See RELEASE-AUDIT.md and ARCHITECTURE.md for exact boundaries: native QDOS names
+and files, raster/font/pacing, initial death-scene RNG carry, sound integration,
+and the still-open universe capacity/compaction/processing-order difference.
+FLH is inert in the actual Electron program, so no flashing-bar effect is added.
+Unsupported joystick leftovers are documented rather than turned into new
+joystick mechanics. RC3 is not labelled a completed fidelity1.0 release.

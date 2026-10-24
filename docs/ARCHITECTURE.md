@@ -43,3 +43,39 @@ Headers are contiguous; backing state follows them. These are development
 interfaces used by the emulated QDOS launch harnesses, not a gameplay API.
 
 Historical architectural notes are in A26-ARCHITECTURE-HISTORY.md.
+
+## RC3 lifecycle, status and configuration
+
+The production shell dispatches a modal flow before normal flight key handling:
+0 normal, 1 Cobra/load question, 2 Mamba/ready, 3 load-name editor, 4 save-name
+editor, 5 DEATH. Development scene controls remain separate. TITLE uses the
+existing native MVEIT/TIDY and renderer, with original z_hi96 approaching1,
+z_lo128 and roll/pitch127. DEATH initializes four canisters from Ze/fq1/D1,
+including the actual ASL DELTA twice and ROR carry-dependent pitch/killed flag;
+then uses existing controls, movement, dust and explosion arithmetic. The
+LASCT50 countdown decreases five per update. No C game code or runtime6502
+interpreter is linked.
+
+QU5 uses a148-byte in-memory snapshot plus eight-byte commander name. Only a
+successful file save or validated load replaces that snapshot. Startup records
+the stock default. Restoring resets transient state and selects the current
+system as the hyperspace target, corresponding to ping. QDOS I/O accepts a
+mutable length-prefixed filename; EQA2 payload size/checksum and EQA1 import
+remain unchanged. Named saves use WIN1_<NAME>; empty load-name imports the old
+WIN1_ELITESAVE. The accepted name alphabet is a QDOS UI adaptation, not the
+original OSWORD RLINE alphabet. Cancel transitions wait for key release.
+
+STATUS uses the native current/target records, fuel, existing rank/legal
+routines and equipment/laser state. Its condition check excludes station and
+asteroids. The aggregate native pool interpretation remains subject to the
+known universe-order qualification. Cargo is a separate7 page, closed with6.
+FREEZE keeps the screen intact. DAMP/DJD persist through reset, DNOIZ gates new
+sound requests and stops the current sound when muted, PATG selects credits,
+and FLH is retained as an inert byte exactly as documented for Electron.
+
+Debug header additions are append-only: offsets286,290,294 point to flow_state,
+flow_config[4] and flow_name[8]. Previous offsets are unchanged. The old N/dead
+production shortcut is superseded by the modal DEATH/BR1 flow. Source excerpts
+are retained in tests/original-lifecycle-ui.asm as provenance, not executable
+fixture coverage. The initial Ze incoming carry at the text-output boundary
+is explicitly clear; whole-game bit-identical RNG sequences are not claimed.
