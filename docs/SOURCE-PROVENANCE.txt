@@ -4,4 +4,7 @@ SHA256: 93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf
 
 Bundled excerpts retain original instructions and comments.
 Test ENTRY/return scaffolding isolates the documented routines.
-Regenerate with tests/flight_reference.py or motion_reference.py SOURCE.
+Regenerate with tests/flight_reference.py, tests/motion_reference.py or
+tests/tidy_reference.py SOURCE.
+A4 adds original-tidy.asm, retaining contiguous TI2/TIS3/DVIDT fallthrough
+and the original NORM, SQUA, LL5, MULT12 and TIS1 helpers.

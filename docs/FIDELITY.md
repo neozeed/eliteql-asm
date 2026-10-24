@@ -30,7 +30,7 @@ The independent Python oracle checks this documented A1 adaptation. It is not
 an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
-Not implemented: MVEIT parts 1–2 and 9, TIDY, planet movement (MV40), original keyboard response, tactics, flight loop, combat, explosions,
+Not implemented: remaining MVEIT parts 1–2 and 9 (TACTICS/SCAN), planet movement (MV40), original keyboard response, tactics, flight loop, combat, explosions,
 laser beams, planet/sun drawing, scanner/dashboard, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
@@ -49,8 +49,8 @@ own-rotation corpus is also retained as an independent narrower regression.
 
 Input ALPHA/BETA bytes are supplied directly; deriving them from the original
 keyboard controls is not implemented. The demo's scene and control mapping are
-test scaffolding. MVEIT's TIDY/TACTICS/SCAN dispatch is not stubbed and claimed
-complete: those surrounding parts are explicitly absent.
+test scaffolding. A4 implements TIDY dispatch from MVEIT part 1; the
+TACTICS and SCAN paths are still absent.
 
 Original positions have 23 magnitude bits plus sign. The renderer adapter
 rejects magnitudes above 30000; the original position remains untouched and
@@ -59,5 +59,13 @@ object can be redrawn without stale lines. This is a renderer interface limit,
 not a new game-world boundary.
 
 The simulation runs once per drawn frame. There is no invented delta-time
-physics, collision, respawn, AI, combat or save behavior. Without the original
-periodic TIDY, prolonged turns can accumulate vector drift; reset the scene.
+physics, collision, respawn, AI, combat or save behavior.
+
+A4 TIDY uses original high-byte vectors, dominant-coordinate selection,
+normalization, roof correction and side-vector cross products. NORM uses an
+integer square root with the same floor result as LL5; byte division retains
+shift overflow and source rounding. MULT1 zero-Q sign behavior is retained.
+The Electron routine clears vector low bytes at INWK 9 through 23 (odd
+indices), but leaves INWK 25 unchanged; this port deliberately does the same.
+The independent source-instruction oracle checks all 33 bytes in 512 direct
+cases and 24 trajectories with scheduled TIDY and movement.

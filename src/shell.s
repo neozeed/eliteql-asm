@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,51,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,52,0
 .align 2
 asm_stats:
- .data4 0x45514133,0x36383030
+ .data4 0x45514134,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -34,8 +34,10 @@ asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _keyboard_drain
 .extern _models
 .extern _render_ship
+.extern _tidy_ship
 .extern _move_ship
 .extern _motion_position
 .extern _motion_matrix
@@ -93,6 +95,7 @@ asm_loop:
  blt asm_draw_begin
  addq.l #5,d0
  move.l d0,asm_nextkeys
+ jsr _keyboard_drain
  moveq #2,d0
  bsr asm_keyrow
  move.w d0,asm_row2
@@ -202,6 +205,21 @@ asm_draw_loop:
  mulu.w #34,d0
  adda.l d0,a0
  move.l a0,a4
+ ; Original MVEIT part 1 scheduling: (MCNT XOR XSAV) AND 15.
+ move.b 31(a4),d0
+ and.b #160,d0
+ bne asm_no_tidy
+ move.w asm_count,d0
+ subq.w #1,d0
+ sub.w d7,d0
+ move.l asm_frames,d1
+ eor.w d1,d0
+ and.w #15,d0
+ bne asm_no_tidy
+ move.l a4,-(sp)
+ jsr _tidy_ship
+ addq.l #4,sp
+asm_no_tidy:
  move.l (a5),a0
  move.w 22(a0),d0
  move.b d0,asm_params+3
@@ -243,6 +261,36 @@ asm_wait:
  trap #1
  bra asm_wait
 asm_finish:
+ ; Wait for release so autorepeat cannot inject the exit key into BASIC.
+ clr.w asm_release_quiet
+asm_release_wait:
+ jsr _keyboard_drain
+ clr.w asm_release_keys
+ clr.w asm_release_row
+asm_release_scan:
+ move.w asm_release_row,d0
+ bsr asm_keyrow
+ or.w d0,asm_release_keys
+ addq.w #1,asm_release_row
+ cmp.w #8,asm_release_row
+ blt asm_release_scan
+ tst.w asm_release_keys
+ beq asm_release_idle
+ clr.w asm_release_quiet
+ bra asm_release_tick
+asm_release_idle:
+ addq.w #1,asm_release_quiet
+ cmp.w #3,asm_release_quiet
+ bge asm_release_done
+asm_release_tick:
+ moveq #8,d0
+ moveq #-1,d1
+ moveq #1,d3
+ suba.l a1,a1
+ trap #1
+ bra asm_release_wait
+asm_release_done:
+ jsr _keyboard_drain
  clr.w asm_ready
  lea asm_poll,a0
  moveq #0x1d,d0
@@ -612,3 +660,9 @@ asm_font:
 .align 2
 asm_vectors: .space 408
 asm_matrix: .space 18
+
+.sect .bss
+.align 2
+asm_release_keys: .space 2
+asm_release_row: .space 2
+asm_release_quiet: .space 2

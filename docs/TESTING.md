@@ -1,18 +1,20 @@
-# A3 validation
+# A4 validation
 
-The recovered GCC driver/JAS/linker builds all executables. ELITEASM uses only
-assembly application sources; C exists in the separate test/benchmark drivers.
+The recovered GCC driver/JAS/linker builds all six executables. ELITEASM uses
+only assembly application sources; C is confined to diagnostics and benchmarks.
 
-`A3-INTEGRATION.log` contains the complete movement, renderer, keyboard,
-framebuffer, cleanup and benchmark run. Afterward, final diagnostic tests added
-explicit +/-30000 position bounds, signed zero, and hide/re-entry assertions;
-both ELITEFLT and ELITETST passed again. Only labels/speed-text formatting then
-changed in ELITEASM; `A3-FINAL-SHELL.log` records the final executable's repeated
-128/640 KB keyboard, framebuffer and cleanup passes. The performance code path
-was unchanged by these diagnostic/presentation edits.
+`A4-INTEGRATION.log` records the final build's movement, TIDY, renderer,
+keyboard, framebuffer, cleanup and benchmark passes under QLBox R9 / JS ROM.
+`A4-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
+The BASIC harness sends a burst of printable game keys, checks that BASIC is
+suspended, then verifies the QDOS character queue is empty before and after
+Escape. It also checks job cleanup and restores the poll-chain head.
 
-Two distinct instruction corpora test native routines against original 6502:
+Three instruction corpora test native routines against original 6502:
 
+- TIDY: 512 direct cases, including arbitrary bytes, axis-aligned vectors,
+  zero vectors and the retained INWK 25 low byte; 24 scheduled trajectories,
+  5,248 movement steps, including exploding/killed flags that skip TIDY.
 - Own rotation: 768 cases, 11,904 updates.
 - Complete MVEIT parts 3–8: 768 cases, 4,224 updates; random byte states,
   every ALPHA byte, opposing BETA signs, normal scene states, repeated updates,
@@ -36,7 +38,12 @@ Integration waits for actual damping completion with a bounded timeout rather
 than assuming that 32 updates fit a fixed number of emulator frames. The first
 A3 run exposed that old timing assumption as added motion reduced fleet FPS.
 
-The screenshot sheet shows actual native 128 KB output. The fleet is paused
-for stable capture; the FPS readout can therefore include paused time.
-Physical QL execution and timing are not verified. Main-loop/AI/TIDY/cockpit
+The screenshot sheet shows actual native 128 KB fleet output and BASIC after
+the printable burst and exit, with no leaked game characters. The fleet is
+paused for capture; its FPS readout can include paused time.
+Physical QL execution and timing are not verified. Main-loop/AI/cockpit
 work and the finished game's memory footprint remain outside this milestone.
+
+The BASIC harness allows BASIC to redraw after exit, so its screen is not
+compared byte-for-byte. The headless integration harness checks exact screen
+restoration. These tests do not reproduce every ROM or physical keyboard.

@@ -7,7 +7,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A3";
+char _prog_name[]="EliteQL ASM A4";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -29,6 +29,7 @@ static unsigned char vectors[12][34];
 static short matrix[9];
 extern short *live_matrix;
 extern void own_rotate(unsigned char *);
+extern void tidy_ship(unsigned char *);
 extern void move_ship(unsigned char *,const unsigned char *);
 extern int motion_position(unsigned char *,short *);
 static unsigned char flight_params[4]={1,0,0,40};
@@ -171,6 +172,7 @@ int main(int argc,char **argv) {
             for(i=0;i<n;i++) {
                 if(motion){
                     if(flight){
+                        if(!(vectors[i][31]&160)&&!((frames^(unsigned)i)&15))tidy_ship(vectors[i]);
                         flight_params[3]=(unsigned char)((const short *)ships[i].model)[11];
                         move_ship(vectors[i],flight_params);
                         ships[i].reserved=(short)!motion_position(vectors[i],&ships[i].x);
@@ -191,6 +193,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A3 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A4 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

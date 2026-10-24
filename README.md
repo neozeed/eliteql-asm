@@ -1,25 +1,24 @@
-# EliteQL ASM A3 — original movement sequence
+# EliteQL ASM A4 — original TIDY and clean keyboard exit
 
-A3 ports **Electron MVEIT parts 3 through 8** to native 68000/JAS and connects
-the original positions and orientation vectors to the QL renderer. A2 remains
-a separate baseline. No replacement flight physics is used.
+A4 ports Electron **TIDY/NORM** and schedules vector correction before the
+existing native MVEIT parts 3–8, once per ship per 16 updates when eligible.
+The arithmetic, sign-magnitude state and update order follow the original
+6502 instructions. A3 remains a separate baseline.
 
-New since A2: ship forward motion, one-shot acceleration and blueprint speed
-limits, player pitch/roll rotation of positions, player-speed subtraction, and
-MVS4 rotation of all three orientation vectors. A2's original ship pitch/roll
-and damping still run afterward, in the original order.
+It also consumes queued QDOS characters while raw held-key controls operate.
+Escape waits for all keys to be released and the queue to settle before
+restoring BASIC, preventing game keystrokes from appearing at its prompt.
 
 **This is a flight-motion test scene, not a complete playable Elite port.**
-TIDY, AI/TACTICS, scanner, cockpit, original keyboard response, and the main
-flight loop remain unfinished. Long turns can accumulate vector error until
-TIDY is ported; use N to reset the scene. Planet/sun movement is not included.
+AI/TACTICS, scanner, cockpit, original keyboard response, and the main flight
+loop remain unfinished. Planet/sun movement is not included.
 
 ## Run
 
 Extract beside QLBox:
 
 ```bat
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a3\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a4\host
 ```
 
 At BASIC, use the waiting form so BASIC does not draw over the application:
@@ -39,7 +38,7 @@ EXEC_W WIN1_ELITEASM
 | 1 / 2 | Select solo / twelve-ship scene and reset it |
 | Space | Pause / resume simulation and drawing |
 | B | Toggle uncapped updates; default cap is 10 Hz |
-| Escape | Restore screen and return to QDOS |
+| Escape | Release all keys; queued input is drained, then screen restored and job exits |
 
 Arrows are **direct test inputs** (roll magnitude 8, pitch magnitude 3), not
 the original M% keyboard acceleration/damping. Releasing them returns the
@@ -68,6 +67,7 @@ instructions**, including the arithmetic helpers, to produce expected INWK
 records. This is a documented instruction subset, not a full machine emulator.
 The native QDOS tests compare all 33 bytes, not just visible geometry:
 
+- TIDY: **512 direct cases and 24 scheduled trajectories (5,248 movement steps)**, zero mismatches.
 - MVEIT parts 3–8: **768 fixtures, 4,224 steps**, zero mismatches.
 - Existing own-rotation tests: **768 fixtures, 11,904 steps**, zero mismatches.
 - Existing renderer: **52 line and 244 renderer fixtures**, plus bounds,
@@ -76,33 +76,36 @@ The native QDOS tests compare all 33 bytes, not just visible geometry:
   scene changes, full cached-line/framebuffer comparison, roll/pitch/throttle
   input, uncapping, screen restoration, poll cleanup and successful exit.
 
+Actual BASIC `EXEC_W` launches at both RAM sizes also verify that BASIC is
+suspended and a burst of printable game keys leaves the queue empty on exit.
+
 These establish the tested movement routines and adapters. The renderer still
 uses A1's native projection/clipping/rasterization, not exact Electron pixels.
 Live vectors are adapted to Q8; source LL9 normalization remains unported.
 
 ## Performance and memory
 
-QLBox R7 / JS ROM / speed 1 / 640 KB, 300 uncapped frames:
+QLBox R9 / JS ROM / speed 1 / 640 KB, 300 uncapped frames:
 
 | Scene | 50 Hz ticks | FPS |
 | --- | ---: | ---: |
 | One Cobra, z initially 640 | 253 | 59.2 |
-| Twelve ships, z initially 2400 | 1673 | 8.9 |
+| Twelve ships, z initially 2400 | 1679 | 8.9 |
 
-The benchmark runs MVEIT parts 3–8, position/vector adapters, projection and
+The benchmark runs scheduled TIDY, MVEIT parts 3–8, position/vector adapters, projection and
 XOR erase/draw. It seeds continuous own rotation, ALPHA=1, BETA=0, DELTA=0,
-ship speed=0. TIDY, AI, keyboard polling and cockpit work are absent. Scene
+ship speed=0. AI, keyboard polling and cockpit work are absent. Scene
 trajectories differ from A2; this is not a controlled per-routine speed delta.
 
 **Physical QL timing is untested.** QLBox's 68000 budget does not reproduce
 68008 external-bus/contention and IPC timing exactly.
 
-Final `ELITEASM`: **15,166 bytes**, **3,796-byte QDOS data-space request**, plus
+Final `ELITEASM`: **15,814 bytes**, **3,790-byte QDOS data-space request**, plus
 2,048-byte stack and a 32,768-byte original-screen snapshot. Tested largest
-free block after startup at 128 KB: **35,328 bytes**. The milestone fits 128 KB;
+free block after startup at 128 KB: **34,304 bytes** (actual BASIC launch; 34,816 with the headless loader). The milestone fits 128 KB;
 the finished game's fit is still unproven. A 5 MB disk is ample for this build.
 
-For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3796**
+For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3790**
 using a QDOS-aware method. XTcc and included `.qlbox-meta` headers support
 QLBox; ordinary byte copying does not set a real QDOS executable header.
 
@@ -114,16 +117,18 @@ QLBox; ordinary byte copying does not set a real QDOS executable header.
 | `host/ELITEBEN` | C CLI shell around native routines; use 640 KB |
 | `host/ELITETST` | Renderer diagnostics; use 640 KB |
 | `host/ELITEMOT` | A2 own-rotation fixtures and matrix adapter; use 640 KB |
-| `host/ELITEFLT` | New full movement fixtures and position adapter; use 640 KB |
+| `host/ELITEFLT` | Full movement fixtures and position adapter; use 640 KB |
+| `host/ELITETDY` | Original TIDY fixtures and scheduled movement; use 640 KB |
 
 C and fixture data are excluded from ELITEASM. The recovered relocatable job
 startup is retained with C initialization bypassed.
 
 ```bat
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a3\host\ELITEFLT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a3\host\ELITEMOT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a3\host\ELITETST --args "--selftest"
-bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a3\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a4\host\ELITETDY
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a4\host\ELITEFLT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a4\host\ELITEMOT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a4\host\ELITETST --args "--selftest"
+bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a4\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
 ```
 
 `--motion` benchmarks A2 own rotation only; neither flag selects the A1 demo
@@ -133,11 +138,12 @@ Build with the recovered QDOS GCC 2.95.3 R2 signed-remainder-fix toolchain:
 
 ```sh
 make QCC=/absolute/path/to/qdos-gcc-linux-x86_64/bin/qdos-gcc
-sh tests/run-qlbox.sh /absolute/path/to/qlbox-r7
+bash tests/run-qlbox.sh /absolute/path/to/qlbox-r9
+bash tests/run-basic.sh /absolute/path/to/qlbox-r9
 ```
 
 C drivers keep `-fno-omit-frame-pointer` for the recovered compiler bug.
-The test harness needs QLBox R7 source, Linux runner, Musashi and JS ROM;
+The test harness needs QLBox R9 source, Linux runner, Musashi and JS ROM;
 those and the toolchain are not bundled. Generated sources/fixtures are included.
 
 Regenerate expected motion from the bundled original excerpts:
@@ -145,12 +151,13 @@ Regenerate expected motion from the bundled original excerpts:
 ```sh
 python3 tests/motion_reference.py
 python3 tests/flight_reference.py
+python3 tests/tidy_reference.py
 ```
 
-Pass `/path/to/elite-source.asm` as an argument to either script to re-extract
+Pass `/path/to/elite-source.asm` as an argument to any of these scripts to re-extract
 from the full supplied source. Geometry regeneration uses
 `python3 tools/extract.py /path/to/elite-source.asm`; renderer fixtures use
 `python3 tests/reference.py`.
 
-See `docs/A3-INTEGRATION.log`, `docs/A3-FINAL-SHELL.log`, `docs/TESTING.md`,
+See `docs/A4-INTEGRATION.log`, `docs/A4-BASIC-EXIT.log`, `docs/TESTING.md`,
 `docs/FIDELITY.md` and `docs/SCREENS.png`. Attribution is in `NOTICE.md`.

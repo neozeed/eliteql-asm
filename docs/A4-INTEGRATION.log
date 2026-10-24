@@ -1,0 +1,17 @@
+/tmp/tmp.80DaZHYCHG/ELITEASM: 15814 bytes, QDOS data space 3790
+/tmp/tmp.80DaZHYCHG/ELITEBEN: 32156 bytes, QDOS data space 4524
+/tmp/tmp.80DaZHYCHG/ELITETST: 42656 bytes, QDOS data space 4428
+/tmp/tmp.80DaZHYCHG/ELITEMOT: 70386 bytes, QDOS data space 652
+/tmp/tmp.80DaZHYCHG/ELITEFLT: 73600 bytes, QDOS data space 638
+/tmp/tmp.80DaZHYCHG/ELITETDY: 54032 bytes, QDOS data space 712
+6502 oracle: generated 768 cases; 11904 movement steps
+6502 flight oracle: 768 cases, 4224 steps
+TIDY oracle: 512 direct cases and 24 scheduled trajectories (5248 movement steps)
+Original TIDY: PASS (512 direct, 24 trajectories, 0 failures)
+Original MVEIT parts 3-8: PASS (768 cases, 0 failures)
+Original 6502 motion: PASS (768 cases, 0 failures)
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS ASM native: ram=128 KB, frames=278, largest free block after startup=34816 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=278, largest free block after startup=549888 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+ASM A4 mode=2: ships=1 frames=300 ticks=253 fps=59.2 vertices=3690 lines=4637
+ASM A4 mode=2: ships=12 frames=300 ticks=1679 fps=8.9 vertices=28288 lines=38436

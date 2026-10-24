@@ -1,0 +1,4 @@
+PASS BASIC EXEC_W: suspended, printable burst consumed, keyboard queue empty
+PASS ASM native: ram=128 KB, frames=278, largest free block after startup=34304 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+PASS BASIC EXEC_W: suspended, printable burst consumed, keyboard queue empty
+PASS ASM native: ram=640 KB, frames=278, largest free block after startup=549376 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit

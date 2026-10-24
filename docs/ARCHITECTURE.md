@@ -6,6 +6,8 @@
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
 | `src/flight.s` | MVEIT parts 3–7 and complete parts 3–8 dispatch; position adapter |
+| `src/keyboard.s` | Bounded QDOS character queue draining using IO.QOUT |
+| `src/tidy.s` | Original TIDY/NORM vector correction and helpers |
 | `src/motion.s` | MVEIT part 8, MVS5/ADD and Q8 adapter |
 | `src/models.s` | Expanded Electron data and demo orientation matrices |
 | `src/main.c` | Separate benchmark/diagnostic driver, excluded from ELITEASM |
@@ -54,7 +56,7 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA3` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA4` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
 pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
@@ -82,7 +84,18 @@ when all coordinates fit +/-30000, otherwise returns 0. On rejection output
 may be partially written and must not be rendered. The shell sets the ship's
 hide flag accordingly, without modifying authoritative INWK coordinates.
 
-Next: original TIDY and its scheduled dispatch, followed by the original
-keyboard response, TACTICS/main-loop integration and scanner. The current
+`tidy_ship(inwk)` preserves D2–D7/A2–A4 and updates the original vector
+bytes. Before movement, the shell calls it when `(frame ^ slot) & 15` is zero
+and `INWK[31] & 160` is zero, following MVEIT part 1 scheduling. TACTICS and
+SCAN remain absent.
+
+`keyboard_drain` reads SV.KEYQ at system variables +0x4c and consumes up to
+128 events through the IO.QOUT ROM vector at 0xe2. It does not write queue
+pointers. The foreground EXEC_W application drains at each 10 Hz input scan,
+including while paused. On exit, it waits for all eight raw key rows to clear,
+requires three clear scans separated by polling intervals, then drains again.
+The red BASIC screen is restored normally; game characters are consumed.
+
+Next: original keyboard response, TACTICS/main-loop integration and scanner. The current
 33-byte state and exact arithmetic fixtures provide those routines' boundary.
 The 128 KB test is a current budget measurement, not a finished-game promise.
