@@ -1,10 +1,28 @@
-# EliteQL 1.0 RC1
+# EliteQL 1.0 RC2
 
-A native68000 QDOS adaptation of Acorn Electron Elite. RC1 completes the current
+A native68000 QDOS adaptation of Acorn Electron Elite. RC1 completed the current
 presentation pass and provides a normal commander startup. It is a release
 candidate, not a claim of complete instruction-for-instruction Electron behavior.
 A27 remains an independent fallback. See docs/RELEASE-AUDIT.md for the remaining
 universe allocation/scheduling qualification before a strict fidelity1.0 freeze.
+
+## RC2 keyboard update
+
+The production flight keys now follow Electron KYTB: comma/less-than and
+period/greater-than roll, X pulls up, S pitches down, Space accelerates,
+slash/question-mark slows, and A fires. Shift is optional for punctuation.
+Arrow keys retain traditional flight pitch/roll; F remains a fire alias and
+Z a slow-down alias. A no longer accelerates.
+
+Space never toggles pause in ELITEASM. F5 toggles pause/resume as the QL
+substitute for Electron COPY/DELETE. Escape still exits to QDOS and K uses an
+escape capsule. Existing T/U/M, E, -, J and C match Electron's secondary flight
+commands. Docked S remains sell/save, and chart arrows remain cursor controls.
+V now correctly selects the local chart (RC1 accidentally mapped that to X).
+
+The separate ELITEDEV preserves its legacy test controls, including Space pause,
+so the full retained arithmetic and integration regression corpus still runs.
+This update does not change the universe-order qualification in RELEASE-AUDIT.md.
 
 ## Start playing
 
@@ -34,11 +52,14 @@ on the navigation page. Press9 again to close navigation.
 
 |Key|Action|
 |---|---|
-|Up / Down|Nose down / nose up|
-|Left / Right|Roll|
-|A / Z|Increase / decrease speed|
+|X / S|Pull up / pitch down|
+|Up / Down|Nose down / nose up (aliases)|
+|< / > (or comma / period)|Roll left / right|
+|Left / Right|Roll aliases|
+|Space / ? (or slash)|Increase / decrease speed|
+|Z|Slow-down alias|
 |F1 / F2 / F3 / F4|Front / rear / left / right view|
-|F|Fire the fitted laser in this view|
+|A / F|Fire the fitted laser in this view|
 |T / U / M|Arm/acquire missile / disarm / launch|
 |E|Use fitted ECM|
 |-|Use fitted energy bomb|
@@ -47,7 +68,7 @@ on the navigation page. Press9 again to close navigation.
 |K|Use fitted escape capsule|
 |6|Commander and cargo; close with6|
 |9|Navigation/data/charts|
-|Space|Pause/resume|
+|F5|Pause/resume|
 |N after destruction|New default commander|
 |Escape|Exit and restore QDOS display|
 
@@ -74,7 +95,7 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is54,952 bytes with7,726 bytes of declared QDOS data space. The game is
+ELITEASM is55,194 bytes with7,710 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
 Only ELITEASM and optional ELITESAVE are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not
@@ -101,4 +122,4 @@ sh tests/run-release.sh /absolute/path/to/qlbox-r9
 The first two full live suites mount ELITEDEV under the test job name, preserving
 all prior deterministic scene coverage. run-release.sh runs the actual ELITEASM
 via BASIC EXEC_W with stock equipment. Final logs, screenshots, source provenance
-and known differences are in docs. See RC1-RESULTS.md and RELEASE-AUDIT.md.
+and known differences are in docs. See RC2-RESULTS.md and RELEASE-AUDIT.md; RC1-RESULTS.md is historical.

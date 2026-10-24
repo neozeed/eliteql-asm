@@ -434,10 +434,23 @@ asm_bench_done:
  move.w d0,asm_row1
  btst #3,d0
  bne asm_finish
+ tst.w _release_mode
+ bne release_pause_key
  btst #6,d0
  beq asm_pause_done
  btst #6,asm_old1+1
  bne asm_pause_done
+ eor.w #1,asm_paused
+ bra asm_pause_done
+release_pause_key:
+ moveq #0,d0
+ bsr asm_keyrow
+ and.w #32,d0
+ move.w release_pause_old,d1
+ eor.w d0,d1
+ move.w d0,release_pause_old
+ and.w d0,d1
+ beq asm_pause_done
  eor.w #1,asm_paused
 asm_pause_done:
  move.w asm_row1,asm_old1
@@ -589,6 +602,8 @@ asm_ecm_key_done:
  sne 2(a0)
  btst #2,d0
  sne 3(a0)
+ tst.w _release_mode
+ bne release_flight_keys
  moveq #4,d0
  bsr asm_keyrow
  lea asm_keys,a0
@@ -603,6 +618,56 @@ asm_ecm_key_done:
  bsr asm_keyrow
  btst #4,d0
  sne asm_fire_key
+ bra asm_draw_begin
+release_flight_keys:
+ ; Electron KYTB primary keys; unshifted comma/period/slash work too.
+ ; Existing arrow pitch/roll values are aliases, OR with these held keys.
+ moveq #7,d0
+ bsr asm_keyrow
+ btst #7,d0
+ beq release_roll_right
+ move.b #255,asm_keys
+release_roll_right:
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #2,d0
+ beq release_pull_up
+ move.b #255,asm_keys+1
+release_pull_up:
+ moveq #7,d0
+ bsr asm_keyrow
+ btst #3,d0
+ beq release_pitch_down
+ move.b #255,asm_keys+2
+release_pitch_down:
+ moveq #3,d0
+ bsr asm_keyrow
+ btst #3,d0
+ beq release_speed
+ move.b #255,asm_keys+3
+release_speed:
+ move.w asm_row1,d0
+ btst #6,d0
+ sne asm_keys+4
+ moveq #7,d0
+ bsr asm_keyrow
+ btst #5,d0
+ sne asm_keys+5
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #1,d0
+ beq release_fire
+ move.b #255,asm_keys+5
+release_fire:
+ moveq #4,d0
+ bsr asm_keyrow
+ btst #4,d0
+ sne asm_fire_key
+ moveq #3,d0
+ bsr asm_keyrow
+ btst #4,d0
+ beq asm_draw_begin
+ move.b #255,asm_fire_key
 asm_draw_begin:
  tst.w asm_nav
  bne asm_update_stats
@@ -2989,7 +3054,7 @@ nav_right:
 nav_chart_key:
  moveq #7,d0
  bsr asm_keyrow
- btst #3,d0
+ btst #4,d0
  beq nav_no_local
  bset #12,d4
 nav_no_local:
@@ -4786,3 +4851,7 @@ system_animal_words4: .ascii "BIRDS\0"
 system_animal_words5: .ascii "HUMANOIDS\0"
 system_animal_words6: .ascii "FELINES\0"
 system_animal_words7: .ascii "INSECTS\0"
+
+.sect .data
+.align 2
+release_pause_old: .data2 0

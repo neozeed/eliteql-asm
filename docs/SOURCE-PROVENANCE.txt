@@ -161,3 +161,9 @@ not the width described in its prose comment. TT23 label selection tries the
 same row, then below, then above; row<3 skips the system when a row is chosen.
 Normal startup values follow NA% with Q%=FALSE. See RELEASE-AUDIT.md for the
 remaining FRIN/UNIV capacity/order qualification and corrected feature scope.
+
+RC2: original-keyboard-table.asm records Electron KYTB primary/secondary keys.
+Production IPC mapping uses KYTB's < > X S Space ? A primary controls and retains
+arrow/F/Z aliases. QL F5 is the pause/resume adapter for Electron COPY/DELETE;
+Escape exit and K escape capsule are explicit QDOS integration choices.
+No movement, pitch inversion, damping or weapon arithmetic is changed.
