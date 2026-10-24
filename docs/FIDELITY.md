@@ -31,7 +31,7 @@ an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
 Not implemented: remaining MVEIT parts 1–2 (TACTICS), planet movement (MV40), secondary keyboard controls/configuration, tactics, flight loop, combat, explosions,
-laser beams, planet/sun drawing, other dashboard instruments, markets, commander saves,
+laser beams, planet/sun drawing, fuel/altitude/cabin-temperature/compass instruments, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
 The renderer uses a shared scratch workspace and is intentionally non-reentrant.
@@ -93,7 +93,28 @@ for 512 cases, plus all visibility flag values. Separate integration tests
 compare the complete dashboard byte-for-byte. The original artwork is decoded
 from P.DIALS.bin; it is not a recreated or AI-generated dashboard.
 
-Only the scanner is animated within that artwork. Shields, energy, compass,
-missiles, temperature, fuel and the original pitch/roll/speed gauge drawings
-remain unimplemented. The separate FPS/speed text is a diagnostic overlay
-below the original bitmap.
+A7 adds live speed, roll, pitch, shields, energy banks and laser-temperature
+indicators. Fuel, altitude, cabin temperature, compass and missile state remain
+unconnected. FPS/speed text is a diagnostic overlay below the original bitmap.
+
+A7 DIALS ports parts 1–3 and the shield and laser-temperature sections of part
+4. The native backend reproduces DIL's 32-pixel three-row bars and DIL2's
+16 two-pixel positions over four rows. It follows actual instructions rather
+than inconsistent range/width comments in the annotated source.
+
+In particular, DIL2 jumps through NEXTR, whose final ADC clears carry at the
+actual dashboard address. The subsequent pitch SBC #1 therefore subtracts TWO
+when BET1 is nonzero. This can blank the marker at some small pitch values;
+it is an original source behavior, not a new intended control rule. The pixel
+oracle executes that path and checks the resulting display.
+
+Recharge is the MA77 section of main flight loop part 13, including the
+SHD/DENGY effects. Laser cooling comes from MLOOP. Their tests cover the 127/128
+energy threshold, full shields, energy-unit values, saturation, rejected
+addition on carry, and sequential updates. Status begins with RES4's full
+shields/energy; heating, damage and combat are not invented.
+
+A7 also corrects the scheduling phase: original MCNT decrements after the
+flight loop and before DIALS. Earlier milestones used the increasing frame
+total for TIDY's periodic test. The corrected counter preserves the original
+slot schedule, with refreshed instruction-oracle trajectories.

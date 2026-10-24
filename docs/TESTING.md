@@ -1,17 +1,23 @@
-# A6 validation
+# A7 validation
 
-The recovered GCC driver/JAS/linker builds all eight executables. ELITEASM uses
+The recovered GCC driver/JAS/linker builds all nine executables. ELITEASM uses
 only assembly application sources; C is confined to diagnostics and benchmarks.
 
-`A6-INTEGRATION.log` records the final build's movement, TIDY, renderer,
+`A7-INTEGRATION.log` records the final build's movement, TIDY, renderer,
 keyboard, framebuffer, cleanup and benchmark passes under QLBox R9 / JS ROM.
-`A6-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
+`A7-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
 The BASIC harness sends a burst of printable game keys, checks that BASIC is
 suspended, then verifies the QDOS character queue is empty before and after
 Escape. It also checks job cleanup and restores the poll-chain head.
 
-Five instruction corpora test native routines against original 6502:
+Six instruction corpora test native routines against original 6502:
 
+- Instruments: 512 framebuffer-hash cases execute the original DIALS, DIL,
+  DIL2, ADD and NEXTR instructions into an Electron framebuffer, then convert
+  the final pixels to QL words. They cover both signs, zero, bar limits and
+  the every-four-updates slow-instrument gate.
+- Recharge/cooling: 2,048 state cases and 1,024 sequential updates execute
+  original MA77, SHD/DENGY and the MLOOP cooling section; all five bytes match.
 - Scanner: 512 geometry/framebuffer cases cover positive/negative coordinates,
   signed zero, both stick directions, dot clipping, range rejection, planets,
   visible/hidden flags, and dots across character boundaries. All 256 flag
@@ -65,15 +71,30 @@ from the movement oracle. Fixture expected values are not generated using
 native port formulas. `ELITECTL` checks both standalone cases and a continuous
 sequence; guard bytes catch writes past the 13-byte state.
 
-The A6 benchmark also invokes control_step once per frame. It disables damping
+The A7 benchmark also invokes control_step once per frame. It disables damping
 with JSTX=136/JSTY=127 to reproduce fixed ALPHA=1/BETA=0 and DELTA=0 for the
 same movement trajectory as A4; these are benchmark settings, not shell defaults.
 
-A6 integration reconstructs the dashboard directly from the bundled 1,792-byte
+A7 integration reconstructs the dashboard directly from the bundled 1,792-byte
 Electron asset, independently plots the live contact records, and compares
 all 7,168 QL bytes. It marks one ship as exploding and moves another beyond
 scanner range, then verifies stale contacts are removed. These checks run
 through the native application at 128 KB and 640 KB, including BASIC EXEC_W.
 The scanner oracle executes original instructions and framebuffer writes;
 it does not call the native geometry or pixel formulas to derive fixtures.
-The A6 benchmark includes live scanner erasure, flags, projection and drawing.
+The A7 benchmark includes live scanner erasure, flags, projection and drawing.
+
+A7 integration reconstructs the original background and contacts plus all
+supported gauges and compares every dashboard byte. The slow-instrument input
+snapshot accounts for their original four-update cadence. A separate live
+sequence sets depleted shields, 128 energy, an energy unit and a warm laser,
+then verifies each resulting status byte against the number of actual updates
+and initial MCNT. It checks MCNT decrements and that pause freezes status.
+Both BASIC-launch and headless integration pass at 128 KB and 640 KB.
+
+The scheduling trajectories now use `(-frame) & 255` to model the original
+countdown. The final benchmark includes recharge, cooling and gauge drawing
+as well as the scanner, movement, TIDY and ship renderer.
+
+`A7-BENCHMARK.log` records completed 300-frame runs for both scene sizes,
+with the expected result line checked in addition to the runner exit code.

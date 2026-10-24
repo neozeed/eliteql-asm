@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,54,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,55,0
 .align 2
 asm_stats:
- .data4 0x45514136,0x36383030
+ .data4 0x45514137,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -28,15 +28,23 @@ asm_ship_debug: .data4 asm_ships
 asm_vector_debug: .data4 asm_vectors
 asm_params_debug: .data4 asm_params
 asm_controls_debug: .data4 asm_controls
+asm_status_debug: .data4 asm_status
+asm_mcnt_debug: .data4 asm_mcnt
+asm_dials_debug: .data4 _dials_last_status
 asm_params: .data1 0,0,1,0
 asm_controls: .data1 128,128,0,0,0,0,0,0,0,0,0,0,1
 asm_keys: .data1 0,0,0,0,0,0
+asm_status: .data1 255,255,255,0,0
+asm_mcnt: .data1 0
 .align 2
 asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _dials_frame
+.extern _dials_last_status
+.extern _energy_step
 .extern _scanner_frame
 .extern _scanner_reset
 .extern _control_step
@@ -211,7 +219,8 @@ asm_draw_loop:
  move.w asm_count,d0
  subq.w #1,d0
  sub.w d7,d0
- move.l asm_frames,d1
+ moveq #0,d1
+ move.b asm_mcnt,d1
  eor.w d1,d0
  and.w #15,d0
  bne asm_no_tidy
@@ -251,6 +260,14 @@ asm_no_tidy:
  pea 0x20000
  jsr _scanner_frame
  lea 12(sp),sp
+ moveq #0,d0
+ move.b asm_mcnt,d0
+ move.l d0,-(sp)
+ pea asm_status
+ jsr _energy_step
+ addq.l #8,sp
+ subq.b #1,asm_mcnt
+ bsr asm_draw_dials
  addq.l #1,asm_frames
 asm_update_stats:
  bsr asm_fps
@@ -381,6 +398,23 @@ asm_setup_model:
  move.w #640,asm_ships+8
 asm_setup_done:
  bsr asm_reset_vectors
+ move.b #255,asm_status
+ move.b #255,asm_status+1
+ move.b #255,asm_status+2
+ clr.b asm_status+3
+ clr.b asm_status+4
+ clr.b asm_mcnt
+ bsr asm_draw_dials
+ rts
+asm_draw_dials:
+ moveq #0,d0
+ move.b asm_mcnt,d0
+ move.l d0,-(sp)
+ pea asm_status
+ pea asm_controls
+ pea 0x20000
+ jsr _dials_frame
+ lea 16(sp),sp
  rts
 asm_reset_vectors:
  clr.b asm_params

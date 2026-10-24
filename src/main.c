@@ -6,7 +6,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A6";
+char _prog_name[]="EliteQL ASM A7";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -30,6 +30,9 @@ extern short *live_matrix;
 extern void own_rotate(unsigned char *);
 extern void tidy_ship(unsigned char *);
 extern void scanner_reset(void *);
+extern void dials_frame(void *,const unsigned char *,const unsigned char *,unsigned);
+extern void energy_step(unsigned char *,unsigned);
+static unsigned char bench_status[5]={255,255,255,0,0};
 extern void scanner_frame(void *,unsigned char *,unsigned);
 extern void move_ship(unsigned char *,const unsigned char *);
 extern int motion_position(unsigned char *,short *);
@@ -118,6 +121,7 @@ static int selftest(void) {
 static int bound(int v,int lo,int hi) { return v<lo?lo:v>hi?hi:v; }
 int main(int argc,char **argv) {
     unsigned frames=0,start,elapsed,deadline;
+    unsigned char mcnt=0;
     int i,n=1,model=4,angle=128,x=0,y=0,z=640,limit=0,bench=0,scene=0,motion=0,flight=0;
     int row1,row7,old7=0,old1=0,paused=0,done=0;
     short mode=8,display=0;
@@ -184,7 +188,7 @@ int main(int argc,char **argv) {
             for(i=0;i<n;i++) {
                 if(motion){
                     if(flight){
-                        if(!(vectors[i][31]&160)&&!((frames^(unsigned)i)&15))tidy_ship(vectors[i]);
+                        if(!(vectors[i][31]&160)&&!((mcnt^(unsigned)i)&15))tidy_ship(vectors[i]);
                         flight_params[3]=(unsigned char)((const short *)ships[i].model)[11];
                         move_ship(vectors[i],flight_params);
                         ships[i].reserved=(short)!motion_position(vectors[i],&ships[i].x);
@@ -194,6 +198,11 @@ int main(int argc,char **argv) {
                 render_ship((void *)0x20000L,&ships[i]);live_matrix=0;
             }
             if(flight)scanner_frame((void *)0x20000L,&vectors[0][0],(unsigned)n);
+            if(flight) {
+                energy_step(bench_status,mcnt);
+                mcnt--;
+                dials_frame((void *)0x20000L,bench_controls,bench_status,mcnt);
+            }
             frames++;
             for(i=0;i<n;i++)ships[i].angle=(short)((ships[i].angle+1)&255);
         }
@@ -206,6 +215,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A6 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A7 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

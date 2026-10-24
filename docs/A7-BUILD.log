@@ -1,0 +1,18 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a7'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 3778 (ec2)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 24486 bytes, QDOS data space 3778
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEBEN
+host/ELITEBEN: dataspace 4520 (11a8)
+python3 tools/qlmeta.py host/ELITEBEN
+host/ELITEBEN: 40804 bytes, QDOS data space 4520
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITETST
+host/ELITETST: dataspace 4422 (1146)
+python3 tools/qlmeta.py host/ELITETST
+host/ELITETST: 51304 bytes, QDOS data space 4422
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/tidy_test.c src/tidy.s src/motion.s src/flight.s -o host/ELITETDY
+host/ELITETDY: dataspace 712 (2c8)
+python3 tools/qlmeta.py host/ELITETDY
+host/ELITETDY: 54034 bytes, QDOS data space 712
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a7'

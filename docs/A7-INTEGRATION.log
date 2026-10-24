@@ -1,0 +1,25 @@
+/tmp/tmp.DpdfjbCoFc/ELITEASM: 24486 bytes, QDOS data space 3778
+/tmp/tmp.DpdfjbCoFc/ELITEBEN: 40804 bytes, QDOS data space 4520
+/tmp/tmp.DpdfjbCoFc/ELITETST: 51304 bytes, QDOS data space 4422
+/tmp/tmp.DpdfjbCoFc/ELITEMOT: 70386 bytes, QDOS data space 652
+/tmp/tmp.DpdfjbCoFc/ELITEFLT: 73600 bytes, QDOS data space 638
+/tmp/tmp.DpdfjbCoFc/ELITETDY: 54034 bytes, QDOS data space 712
+/tmp/tmp.DpdfjbCoFc/ELITECTL: 102510 bytes, QDOS data space 530
+/tmp/tmp.DpdfjbCoFc/ELITESCN: 46704 bytes, QDOS data space 33560
+/tmp/tmp.DpdfjbCoFc/ELITEDIL: 59642 bytes, QDOS data space 33458
+6502 oracle: generated 768 cases; 11904 movement steps
+6502 flight oracle: 768 cases, 4224 steps
+TIDY oracle: 512 direct cases and 24 scheduled trajectories (5248 movement steps)
+Original controls oracle: 2048 byte-state cases, 1024 sequential updates
+Original scanner oracle: 512 geometry/framebuffer cases and all 256 visibility flags
+Original instruments: 512 pixel cases; recharge: 2048 cases and 1024 sequential updates
+Original DIALS/recharge: PASS (512 pixels, 2048 states, 1024 trajectory updates, 0 failures)
+Original SCAN: PASS (512 geometry/pixel/XOR cases, 256 flags, 0 failures)
+Original player controls: PASS (2048 cases, 1024 sequential updates, 0 failures)
+Original TIDY: PASS (512 direct, 24 trajectories, 0 failures)
+Original MVEIT parts 3-8: PASS (768 cases, 0 failures)
+Original 6502 motion: PASS (768 cases, 0 failures)
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS ASM native: ram=128 KB, frames=757, largest free block after startup=26112 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=757, largest free block after startup=541184 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+ASM A7 mode=2: ships=1 frames=300 ticks=279 fps=53.7 vertices=3690 lines=4637

@@ -19,3 +19,10 @@ Regenerate with tests/scanner_reference.py SOURCE.
 Original dashboard: 1-source-files/images/P.DIALS.bin (1792 bytes).
 Dashboard SHA256: 98a3914c3966df53e6ab81524217ca3dc99ee018b88712965ae445fc769ed945 
 Regenerate QL pixel data with tools/dashboard.py (src/dashboard.s).
+
+A7 adds original-dials.asm: DIALS parts 1-3, shield/laser-temperature pieces
+of part 4, DILX/DIL/DIL2, ADD, NEXTR, MA77 recharge, SHD/DENGY and cooling.
+The harness skips fuel/cabin/altitude and COMPAS; its NEXTR calls move past
+those unimplemented gauges without drawing them. Regenerate using
+ tests/dials_reference.py SOURCE.
+The original descending MCNT scheduling is taken from main game loop me3.

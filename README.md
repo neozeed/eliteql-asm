@@ -1,30 +1,32 @@
-# EliteQL ASM A6 — original scanner and dashboard artwork
+# EliteQL ASM A7 — original instruments, recharge and cooling
 
-A6 adds native 68000 ports of **SCAN geometry and MVEIT part 9 visibility**,
-with a QL pixel backend matching the original CPIX4/CPIX2 dots and vertical
-sticks. Contacts are erased and redrawn with XOR as ships move; exploding,
-killed, planet-type and out-of-range contacts are handled by the source rules.
+A7 adds native 68000 ports of **DIALS parts 1–3, the shield and laser-temperature
+sections of part 4, DIL/DIL2, shield/energy recharge and laser cooling**.
+Speed, roll and pitch indicators now follow the live controls. The energy
+banks, forward/aft shields and laser-temperature bar reflect player status.
 
-The dashboard uses the supplied **original P.DIALS bitmap**, converted to QL
-mode-8 pixels. The scanner is live; the other dashboard gauges and compass
-are currently just artwork. FPS and speed appear below it. Controls are the
-same as A5, with original buildup, damping and auto-recentring.
+Player status starts with full shields and energy, as in source RES4; the
+energy unit is absent and laser temperature starts at zero. Recharge uses the
+original energy threshold, charging order, drain and overflow behavior. There
+is no combat or firing yet, so normal play does not damage shields or heat the
+laser; the tests exercise those states without adding invented gameplay keys.
 
-A5 remains a separate working baseline. ELITEASM contains no C game logic
-and does not emulate a 6502 at runtime.
+The main scheduling byte now **counts down**, as the original MCNT does. TIDY
+uses that byte, recharge runs every eight updates, and slower instruments
+refresh every four, after the original end-of-loop decrement. A6 remains a
+separate baseline. The original scanner and keyboard-exit fix are retained.
 
-**This is still a flight-motion test scene, not a complete playable Elite port.**
-AI/TACTICS, the remaining cockpit instruments and the rest of the main flight
-loop remain to port. The test fleet is close together, so its scanner contacts
-initially cluster near the centre. They remain trackable outside the forward
-view, within the original scanner range.
+**This remains a flight test scene, not a complete playable Elite port.**
+Fuel, cabin temperature, altitude and compass remain unconnected artwork;
+AI/TACTICS, combat and the rest of the main loop still need porting. The
+application contains no C game logic and no runtime 6502 interpreter.
 
 ## Run
 
 Extract beside QLBox:
 
 ```bat
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a6\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a7\host
 ```
 
 At BASIC, use the waiting form so BASIC does not draw over the application:
@@ -80,6 +82,8 @@ records. This is a documented instruction subset, not a full machine emulator.
 The native QDOS tests compare all 33 movement-state bytes and all 13 player
 control-state bytes, not just visible geometry:
 
+- Instruments: **512 original framebuffer cases**, zero mismatches.
+- Recharge/cooling: **2,048 state cases and 1,024 sequential updates**, zero mismatches.
 - Scanner: **512 source geometry/pixel cases and all 256 visibility flags**, zero mismatches.
 - Player controls: **2,048 byte-state cases and 1,024 sequential updates**, zero mismatches.
 - TIDY: **512 direct cases and 24 scheduled trajectories (5,248 movement steps)**, zero mismatches.
@@ -96,7 +100,9 @@ suspended and a burst of printable game keys leaves the queue empty on exit.
 Tests check rate buildup, sign, damping to centre, both speed limits and
 Escape waiting until a held game key is released. Scanner integration also
 compares all 7,168 dashboard bytes against independently decoded original
-artwork plus contacts, including erasure when contacts become hidden.
+artwork plus contacts and live gauges, including erasure when contacts become
+hidden. Tests inject depleted shields and a warm laser, then compare every
+status byte and the countdown against the source-derived sequence.
 
 These establish the tested movement routines and adapters. The renderer still
 uses A1's native projection/clipping/rasterization, not exact Electron pixels.
@@ -108,25 +114,26 @@ QLBox R9 / JS ROM / speed 1 / 640 KB, 300 uncapped frames:
 
 | Scene | 50 Hz ticks | FPS |
 | --- | ---: | ---: |
-| One Cobra, z initially 640 | 268 | 55.9 |
-| Twelve ships, z initially 2400 | 1757 | 8.5 |
+| One Cobra, z initially 640 | 279 | 53.7 |
+| Twelve ships, z initially 2400 | 1808 | 8.2 |
 
 The benchmark runs the native control calculation once per frame, scheduled TIDY, MVEIT parts 3–8, position/vector adapters, projection and
-XOR ship erase/draw plus scanner erase, visibility update and plotting. It seeds continuous own rotation, ALPHA=1, BETA=0, DELTA=0,
+XOR ship erase/draw, scanner erase/plotting, recharge/cooling and instrument drawing. It seeds continuous own rotation, ALPHA=1, BETA=0, DELTA=0,
 ship speed=0. The benchmark disables control damping and supplies fixed rates
-to preserve A4's trajectory; the interactive scene uses damping. AI, keyboard
-polling and the other cockpit instruments are absent. Scene
+for fixed ALPHA/BETA; the interactive scene uses damping. A7's corrected
+countdown changes the TIDY schedule from A6, so trajectories differ slightly.
+AI, keyboard polling and the unconnected cockpit instruments are absent. Scene
 trajectories differ from A2; this is not a controlled per-routine speed delta.
 
 **Physical QL timing is untested.** QLBox's 68000 budget does not reproduce
 68008 external-bus/contention and IPC timing exactly.
 
-Final `ELITEASM`: **23,874 bytes**, **3,796-byte QDOS data-space request**, plus
+Final `ELITEASM`: **24,486 bytes**, **3,778-byte QDOS data-space request**, plus
 2,048-byte stack and a 32,768-byte original-screen snapshot. Tested largest
-free block after startup at 128 KB: **26,112 bytes** (actual BASIC launch; 26,624 with the headless loader). The milestone fits 128 KB;
+free block after startup at 128 KB: **25,600 bytes** (actual BASIC launch; 26,112 with the headless loader). The milestone fits 128 KB;
 the finished game's fit is still unproven. A 5 MB disk is ample for this build.
 
-For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3796**
+For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3778**
 using a QDOS-aware method. XTcc and included `.qlbox-meta` headers support
 QLBox; ordinary byte copying does not set a real QDOS executable header.
 
@@ -142,18 +149,20 @@ QLBox; ordinary byte copying does not set a real QDOS executable header.
 | `host/ELITETDY` | Original TIDY fixtures and scheduled movement; use 640 KB |
 | `host/ELITECTL` | Original player control fixtures and sequence test; use 640 KB |
 | `host/ELITESCN` | Original scanner geometry, pixels, XOR and flags; use 640 KB |
+| `host/ELITEDIL` | Original gauge pixels, recharge and cooling; use 640 KB |
 
 C and fixture data are excluded from ELITEASM. The recovered relocatable job
 startup is retained with C initialization bypassed.
 
 ```bat
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a6\host\ELITESCN
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a6\host\ELITECTL
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a6\host\ELITETDY
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a6\host\ELITEFLT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a6\host\ELITEMOT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a6\host\ELITETST --args "--selftest"
-bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a6\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITEDIL
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITESCN
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITECTL
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITETDY
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITEFLT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITEMOT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITETST --args "--selftest"
+bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a7\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
 ```
 
 `--motion` benchmarks A2 own rotation only; neither flag selects the A1 demo
@@ -179,6 +188,7 @@ python3 tests/flight_reference.py
 python3 tests/tidy_reference.py
 python3 tests/controls_reference.py
 python3 tests/scanner_reference.py
+python3 tests/dials_reference.py
 ```
 
 Pass `/path/to/elite-source.asm` as an argument to any of these scripts to re-extract
@@ -187,5 +197,5 @@ from the full supplied source. Geometry regeneration uses
 `python3 tests/reference.py`. Dashboard conversion uses
 `python3 tools/dashboard.py` with the bundled original asset.
 
-See `docs/A6-INTEGRATION.log`, `docs/A6-BASIC-EXIT.log`, `docs/TESTING.md`,
+See `docs/A7-BENCHMARK.log`, `docs/A7-INTEGRATION.log`, `docs/A7-BASIC-EXIT.log`, `docs/TESTING.md`,
 `docs/FIDELITY.md` and `docs/SCREENS.png`. Attribution is in `NOTICE.md`.

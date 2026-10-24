@@ -6,6 +6,7 @@
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
 | `src/flight.s` | MVEIT parts 3–7 and complete parts 3–8 dispatch; position adapter |
+| `src/dials.s` | Original gauge pixels, shield/energy recharge and laser cooling |
 | `src/scanner.s` | Original scanner projection/flags; native dot/stick XOR backend and contact cache |
 | `src/dashboard.s` | Generated QL pixels from original P.DIALS.bin |
 | `src/controls.s` | Original player rate update, damping, angle calculation and speed controls |
@@ -59,9 +60,10 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA6` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA7` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
-pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42, control-state pointer 46. Integration tests inspect
+pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42, control-state pointer 46, player-status pointer 50, MCNT-byte pointer 54,
+last-drawn slow-instrument status pointer 58. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
 
 ## Expanded blueprint header
@@ -88,7 +90,7 @@ may be partially written and must not be rendered. The shell sets the ship's
 hide flag accordingly, without modifying authoritative INWK coordinates.
 
 `tidy_ship(inwk)` preserves D2–D7/A2–A4 and updates the original vector
-bytes. Before movement, the shell calls it when `(frame ^ slot) & 15` is zero
+bytes. Before movement, the shell calls it when `(MCNT ^ slot) & 15` is zero
 and `INWK[31] & 160` is zero, following MVEIT part 1 scheduling. TACTICS remains absent.
 A6 applies part 9 and SCAN after movement.
 
@@ -144,3 +146,29 @@ XOR result of the source's per-ship erase/move/redraw order.
 conversion and clears the cache. Scene resets use it to remove old contacts.
 The rest of the frame is incremental; this is not a new full-screen backbuffer.
 The compiler-generated C benchmark calls the same scanner once per frame.
+
+## Instruments and status
+
+`energy_step(status, mcnt)` takes a five-byte state: FSH, ASH, ENERGY, GNTMP,
+ENGY. It runs the source MA77 recharge section when `(mcnt & 7)==0`, then
+cools GNTMP by one unless it is already zero. Shields are charged only when
+ENERGY has bit 7 set, aft before forward, with each increment paid from energy.
+The subsequent ENGY+ENERGY+1 addition is stored only if it does not overflow.
+
+`dials_frame(screen, controls, status, mcnt)` uses the existing 13-byte control
+record. Speed/roll/pitch are redrawn every call; energy banks, shields and laser
+temperature only when `(mcnt & 3)==0`. The native backend writes the same bar
+and marker pixels as source DIL/DIL2 in the QL format. It overwrites only each
+indicator's interior. The 5-byte `_dials_last_status` diagnostic snapshot keeps
+the inputs used for the most recent slower redraw, so integration can verify
+the displayed values even between refreshes.
+
+The shell now owns an explicit MCNT byte, reset to zero with the scene. TIDY
+and recharge use its pre-decrement value; the shell decrements it and draws
+the instruments using its post-decrement value. The diagnostic frame total
+continues to count upwards independently. Scene setup draws once with MCNT=0
+to initialise every supported gauge. The benchmark uses the same sequencing.
+
+Fuel, altitude, cabin-temperature and compass routines are not called with
+placeholder inputs. The source's full DIALS tail to COMPAS is not claimed
+complete. No combat/damage/firing behavior is simulated to animate the bars.
