@@ -1,5 +1,4 @@
-/* QDOS shell only. Rendering, clipping and XOR rasterization are native JAS.
-   This is a renderer milestone, not yet the ported game or MVEIT flight loop. */
+/* Separate C diagnostic driver for the native assembly core. */
 #include <qdos.h>
 #include <qlib.h>
 #include <stdio.h>
@@ -7,7 +6,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A4";
+char _prog_name[]="EliteQL ASM A5";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -33,6 +32,10 @@ extern void tidy_ship(unsigned char *);
 extern void move_ship(unsigned char *,const unsigned char *);
 extern int motion_position(unsigned char *,short *);
 static unsigned char flight_params[4]={1,0,0,40};
+extern void control_step(unsigned char *,const unsigned char *);
+/* Disable damping in this fixed-input benchmark: ALPHA=1, BETA=0, DELTA=0. */
+static unsigned char bench_controls[13]={136,127,255,255,0,0,0,0,0,0,0,0,0};
+static const unsigned char bench_keys[6]={0,0,0,0,0,0};
 extern void motion_matrix(unsigned char *,short *);
 static void poll_clock(void) { ticks++; }
 static QL_LINK_t clock_link={0,poll_clock};
@@ -169,6 +172,12 @@ int main(int argc,char **argv) {
             old1=row1;old7=row7;
         }
         if(!paused||frames==0) {
+            if(flight) {
+                control_step(bench_controls,bench_keys);
+                flight_params[0]=bench_controls[4];
+                flight_params[1]=bench_controls[5];
+                flight_params[2]=bench_controls[12];
+            }
             for(i=0;i<n;i++) {
                 if(motion){
                     if(flight){
@@ -193,6 +202,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A4 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A5 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

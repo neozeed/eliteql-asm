@@ -1,0 +1,20 @@
+/tmp/tmp.plrnE6P7BF/ELITEASM: 16190 bytes, QDOS data space 3786
+/tmp/tmp.plrnE6P7BF/ELITEBEN: 32550 bytes, QDOS data space 4514
+/tmp/tmp.plrnE6P7BF/ELITETST: 43050 bytes, QDOS data space 4418
+/tmp/tmp.plrnE6P7BF/ELITEMOT: 70386 bytes, QDOS data space 652
+/tmp/tmp.plrnE6P7BF/ELITEFLT: 73600 bytes, QDOS data space 638
+/tmp/tmp.plrnE6P7BF/ELITETDY: 54032 bytes, QDOS data space 712
+/tmp/tmp.plrnE6P7BF/ELITECTL: 102510 bytes, QDOS data space 530
+6502 oracle: generated 768 cases; 11904 movement steps
+6502 flight oracle: 768 cases, 4224 steps
+TIDY oracle: 512 direct cases and 24 scheduled trajectories (5248 movement steps)
+Original controls oracle: 2048 byte-state cases, 1024 sequential updates
+Original player controls: PASS (2048 cases, 1024 sequential updates, 0 failures)
+Original TIDY: PASS (512 direct, 24 trajectories, 0 failures)
+Original MVEIT parts 3-8: PASS (768 cases, 0 failures)
+Original 6502 motion: PASS (768 cases, 0 failures)
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS ASM native: ram=128 KB, frames=674, largest free block after startup=34304 bytes; pause, model, fleet framebuffer, uncapped toggle, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=674, largest free block after startup=549376 bytes; pause, model, fleet framebuffer, uncapped toggle, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+ASM A5 mode=2: ships=1 frames=300 ticks=255 fps=58.8 vertices=3690 lines=4637
+ASM A5 mode=2: ships=12 frames=300 ticks=1681 fps=8.9 vertices=28288 lines=38436

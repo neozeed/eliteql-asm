@@ -6,6 +6,7 @@
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
 | `src/flight.s` | MVEIT parts 3–7 and complete parts 3–8 dispatch; position adapter |
+| `src/controls.s` | Original player rate update, damping, angle calculation and speed controls |
 | `src/keyboard.s` | Bounded QDOS character queue draining using IO.QOUT |
 | `src/tidy.s` | Original TIDY/NORM vector correction and helpers |
 | `src/motion.s` | MVEIT part 8, MVS5/ADD and Q8 adapter |
@@ -56,9 +57,9 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA4` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA5` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
-pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42. Integration tests inspect
+pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42, control-state pointer 46. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
 
 ## Expanded blueprint header
@@ -96,6 +97,22 @@ including while paused. On exit, it waits for all eight raw key rows to clear,
 requires three clear scans separated by polling intervals, then drains again.
 The red BASIC screen is restored normally; game characters are consumed.
 
-Next: original keyboard response, TACTICS/main-loop integration and scanner. The current
+Next: TACTICS/main-loop integration and scanner. The current
 33-byte state and exact arithmetic fixtures provide those routines' boundary.
 The 128 KB test is a current budget measurement, not a finished-game promise.
+
+## Player control ABI
+
+`control_step(state, keys)` takes two native pointers and preserves D2–D7/A2–A6.
+The 13-byte state is JSTX, JSTY, DAMP, DJD, ALPHA, BETA, ALP1, ALP2,
+ALP2+1, BET1, BET2, BET2+1, DELTA. Keys are six nonzero/zero bytes in order:
+left, right, up, down, faster, slower. Each call applies DOKEY rate changes,
+M% part 2 angle conversion/damping, then the speed-key section of part 3.
+The active key bytes are sampled at 10 Hz. The shell calls the routine once
+per unpaused simulation update, then copies ALPHA/BETA/DELTA to the existing
+movement parameters. No 6502 processor state is retained at runtime.
+
+Zero DAMP/DJD means enabled, as in the original. Both are zero in the shell;
+nonzero modes are supported and tested but have no UI toggle yet. Neutral
+rates are JSTX=JSTY=128. Scene reset starts DELTA at 1. The source's complete
+DOKEY scanning/configuration routine and all of M% are not claimed complete.

@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,52,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,53,0
 .align 2
 asm_stats:
- .data4 0x45514134,0x36383030
+ .data4 0x45514135,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -27,13 +27,17 @@ asm_uncapped: .data2 0
 asm_ship_debug: .data4 asm_ships
 asm_vector_debug: .data4 asm_vectors
 asm_params_debug: .data4 asm_params
-asm_params: .data1 0,0,0,0
+asm_controls_debug: .data4 asm_controls
+asm_params: .data1 0,0,1,0
+asm_controls: .data1 128,128,0,0,0,0,0,0,0,0,0,0,1
+asm_keys: .data1 0,0,0,0,0,0
 .align 2
 asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _control_step
 .extern _keyboard_drain
 .extern _models
 .extern _render_ship
@@ -155,45 +159,38 @@ asm_check_fleet:
  move.w #12,asm_count
  bsr asm_setup
 asm_move:
- ; Inspection controls feed the ORIGINAL ALPHA/BETA/DELTA inputs.
- ; Original M% keyboard acceleration/damping is not yet connected.
- clr.b asm_params
- clr.b asm_params+1
+ ; Map raw QL keys to original DOKEY/KY1/KY2 held states.
+ ; Rate updates run once per simulation frame below, not per scan.
+ lea asm_keys,a0
  move.w asm_row1,d0
  btst #1,d0
- beq asm_right
- move.b #8,asm_params
-asm_right:
+ sne (a0)
  btst #4,d0
- beq asm_pitch_up
- move.b #136,asm_params
-asm_pitch_up:
+ sne 1(a0)
  btst #2,d0
- beq asm_pitch_down
- move.b #3,asm_params+1
-asm_pitch_down:
+ sne 2(a0)
  btst #7,d0
- beq asm_throttle
- move.b #131,asm_params+1
-asm_throttle:
+ sne 3(a0)
  moveq #4,d0
  bsr asm_keyrow
+ lea asm_keys,a0
  btst #4,d0
- beq asm_slow
- cmp.b #40,asm_params+2
- bhs asm_slow
- addq.b #1,asm_params+2
-asm_slow:
+ sne 4(a0)
  moveq #2,d0
  bsr asm_keyrow
+ lea asm_keys,a0
  btst #1,d0
- beq asm_draw_begin
- tst.b asm_params+2
- beq asm_draw_begin
- subq.b #1,asm_params+2
+ sne 5(a0)
 asm_draw_begin:
  tst.w asm_paused
  bne asm_update_stats
+ pea asm_keys
+ pea asm_controls
+ jsr _control_step
+ addq.l #8,sp
+ move.b asm_controls+4,asm_params
+ move.b asm_controls+5,asm_params+1
+ move.b asm_controls+12,asm_params+2
  lea asm_ships,a5
  move.w asm_count,d7
  subq.w #1,d7
@@ -376,7 +373,15 @@ asm_setup_done:
 asm_reset_vectors:
  clr.b asm_params
  clr.b asm_params+1
- clr.b asm_params+2
+ move.b #1,asm_params+2
+ lea asm_controls,a0
+ moveq #12,d0
+asm_clear_controls:
+ clr.b 0(a0,d0.w)
+ dbra d0,asm_clear_controls
+ move.b #128,(a0)
+ move.b #128,1(a0)
+ move.b #1,12(a0)
  lea asm_vectors,a0
  lea asm_ships,a1
  moveq #11,d0

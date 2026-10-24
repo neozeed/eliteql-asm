@@ -1,20 +1,20 @@
 QCC ?= qdos-gcc
 PYTHON ?= python3
-SOURCES = src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s
+SOURCES = src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s
 .PHONY: all clean
 all: host/ELITEASM host/ELITEBEN host/ELITETST
 host/ELITEBEN: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 clean:
-	rm -f host/ELITEASM host/ELITEBEN host/ELITETST host/ELITEMOT host/ELITEFLT host/ELITETDY
+	rm -f host/ELITEASM host/ELITEBEN host/ELITETST host/ELITEMOT host/ELITEFLT host/ELITETDY host/ELITECTL
 
 host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/controls.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/controls.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -30,4 +30,9 @@ host/ELITEFLT: tests/flight_test.c tests/flight_fixtures.h src/motion.s src/flig
 all: host/ELITETDY
 host/ELITETDY: tests/tidy_test.c tests/tidy_fixtures.h src/tidy.s src/motion.s src/flight.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/tidy_test.c src/tidy.s src/motion.s src/flight.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITECTL
+host/ELITECTL: tests/controls_test.c tests/controls_fixtures.h src/controls.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/controls_test.c src/controls.s -o $@
 	$(PYTHON) tools/qlmeta.py $@

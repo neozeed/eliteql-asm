@@ -8,3 +8,8 @@ Regenerate with tests/flight_reference.py, tests/motion_reference.py or
 tests/tidy_reference.py SOURCE.
 A4 adds original-tidy.asm, retaining contiguous TI2/TIS3/DVIDT fallthrough
 and the original NORM, SQUA, LL5, MULT12 and TIS1 helpers.
+
+A5 adds original-controls.asm: DOKEY's JSTX/JSTY update block; M% part 2;
+M% part 3 speed keys through MA4; cntr, BUMP2 and REDU2.
+Regenerate with tests/controls_reference.py SOURCE.
+Original comments and unused bytes in the angle block are retained.

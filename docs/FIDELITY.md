@@ -30,7 +30,7 @@ The independent Python oracle checks this documented A1 adaptation. It is not
 an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
-Not implemented: remaining MVEIT parts 1–2 and 9 (TACTICS/SCAN), planet movement (MV40), original keyboard response, tactics, flight loop, combat, explosions,
+Not implemented: remaining MVEIT parts 1–2 and 9 (TACTICS/SCAN), planet movement (MV40), secondary keyboard controls/configuration, tactics, flight loop, combat, explosions,
 laser beams, planet/sun drawing, scanner/dashboard, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
@@ -47,10 +47,11 @@ shift/add loops but retains their externally observable byte/sign/rounding
 behavior. All 33 state bytes match in the 768 tested cases. The original A2
 own-rotation corpus is also retained as an independent narrower regression.
 
-Input ALPHA/BETA bytes are supplied directly; deriving them from the original
-keyboard controls is not implemented. The demo's scene and control mapping are
-test scaffolding. A4 implements TIDY dispatch from MVEIT part 1; the
-TACTICS and SCAN paths are still absent.
+A5 obtains ALPHA/BETA from the original DOKEY rate updates and M% part 2.
+The QL scan replaces Electron hardware access; arrows map to the four source
+pitch/roll keys, A/Z to speed. DOKEY's pause/configuration and secondary keys
+remain unported. The scene itself is test scaffolding. A4 implements TIDY
+dispatch from MVEIT part 1; TACTICS and SCAN paths remain absent.
 
 Original positions have 23 magnitude bits plus sign. The renderer adapter
 rejects magnitudes above 30000; the original position remains untouched and
@@ -69,3 +70,11 @@ The Electron routine clears vector low bytes at INWK 9 through 23 (odd
 indices), but leaves INWK 25 unchanged; this port deliberately does the same.
 The independent source-instruction oracle checks all 33 bytes in 512 direct
 cases and 24 trajectories with scheduled TIDY and movement.
+
+A5 control fidelity includes the carry from the roll CMP #8 that survives cntr
+and affects pitch ADC #4, neutral pitch's signed zero, and both configuration
+flags. REDU2 retains the exact-zero result when subtraction lands on zero;
+its underflow path alone clamps to 1. Likewise, slowing DELTA=0 wraps to 255
+in the original routine: the oracle tests this, while the normal shell starts
+at DELTA=1. Simultaneous opposing keys run in original order. These are source
+behaviors, not substituted idealized control formulas.

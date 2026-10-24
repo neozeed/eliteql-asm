@@ -1,17 +1,21 @@
-# A4 validation
+# A5 validation
 
-The recovered GCC driver/JAS/linker builds all six executables. ELITEASM uses
+The recovered GCC driver/JAS/linker builds all seven executables. ELITEASM uses
 only assembly application sources; C is confined to diagnostics and benchmarks.
 
-`A4-INTEGRATION.log` records the final build's movement, TIDY, renderer,
+`A5-INTEGRATION.log` records the final build's movement, TIDY, renderer,
 keyboard, framebuffer, cleanup and benchmark passes under QLBox R9 / JS ROM.
-`A4-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
+`A5-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
 The BASIC harness sends a burst of printable game keys, checks that BASIC is
 suspended, then verifies the QDOS character queue is empty before and after
 Escape. It also checks job cleanup and restores the poll-chain head.
 
-Three instruction corpora test native routines against original 6502:
+Four instruction corpora test native routines against original 6502:
 
+- Controls: 2,048 cases cover every raw JSTX/JSTY byte with damping and
+  auto-recentre enabled/disabled, arbitrary state, simultaneous keys and speed
+  edges. A further 1,024 sequential updates cover hold/reversal, random input,
+  acceleration, braking and neutral decay. All 13 state bytes are compared.
 - TIDY: 512 direct cases, including arbitrary bytes, axis-aligned vectors,
   zero vectors and the retained INWK 25 low byte; 24 scheduled trajectories,
   5,248 movement steps, including exploding/killed flags that skip TIDY.
@@ -32,7 +36,8 @@ oracle, not original pixels. Cached line heaps are independently rasterized in
 the host integration harness and compared against all 24,576 viewport bytes.
 ESC restores all 32,768 screen bytes, restores the poll-chain head, and exits
 with status zero. INWK is unchanged while paused; pitch/roll counters reach
-zero; keyboard tests verify ALPHA/BETA signs, neutral release, and A/Z speed.
+zero; keyboard tests verify accumulated rates, ALPHA/BETA signs, damping to centre,
+A/Z clamps at 1 and 40, and Escape waiting for held game-key release.
 
 Integration waits for actual damping completion with a bounded timeout rather
 than assuming that 32 updates fit a fixed number of emulator frames. The first
@@ -47,3 +52,14 @@ work and the finished game's memory footprint remain outside this milestone.
 The BASIC harness allows BASIC to redraw after exit, so its screen is not
 compared byte-for-byte. The headless integration harness checks exact screen
 restoration. These tests do not reproduce every ROM or physical keyboard.
+
+`controls_reference.py` executes the separately bundled original control
+instructions, including their flags. It resolves P% jumps and label+byte
+entries using instruction byte positions. Its instruction subset is separate
+from the movement oracle. Fixture expected values are not generated using
+native port formulas. `ELITECTL` checks both standalone cases and a continuous
+sequence; guard bytes catch writes past the 13-byte state.
+
+The A5 benchmark also invokes control_step once per frame. It disables damping
+with JSTX=136/JSTY=127 to reproduce fixed ALPHA=1/BETA=0 and DELTA=0 for the
+same movement trajectory as A4; these are benchmark settings, not shell defaults.
