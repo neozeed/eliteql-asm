@@ -67,3 +67,8 @@ RC3-PRODUCTION.log, RC3-PRODUCTION-DIRECT.log. Retained original arithmetic
 fixture binaries are rerun; unchanged Python fixture generation is skipped.
 The lifecycle UI excerpts are source provenance; no claim is made that every
 6502 lifecycle instruction has an executed-original differential test.
+
+RC3a: at the user’s request, the completed ten-update DEATH animation now
+holds its final frame until a fresh Space press. Held Space is release-gated;
+other keys are ignored. This is an intentional QL presentation difference from
+the Electron timed transition. The subsequent saved-commander flow is unchanged.

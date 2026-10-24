@@ -62,3 +62,8 @@ missiles/ECM/bomb, pods/salvage, travel, station approach/dock, trading/equipmen
 save/load, death/restart and escape recovery. Full development regressions test
 rare conditions; separate production runs test actual stock startup and travel.
 Physical QL testing and a longer human playthrough remain external validation.
+
+RC3a: at the user’s request, the completed ten-update DEATH animation now
+holds its final frame until a fresh Space press. Held Space is release-gated;
+other keys are ignored. This is an intentional QL presentation difference from
+the Electron timed transition. The subsequent saved-commander flow is unchanged.

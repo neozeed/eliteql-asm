@@ -78,3 +78,8 @@ and the still-open universe capacity/compaction/processing-order difference.
 FLH is inert in the actual Electron program, so no flashing-bar effect is added.
 Unsupported joystick leftovers are documented rather than turned into new
 joystick mechanics. RC3 is not labelled a completed fidelity1.0 release.
+
+RC3a: at the user’s request, the completed ten-update DEATH animation now
+holds its final frame until a fresh Space press. Held Space is release-gated;
+other keys are ignored. This is an intentional QL presentation difference from
+the Electron timed transition. The subsequent saved-commander flow is unchanged.

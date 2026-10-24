@@ -79,3 +79,8 @@ production shortcut is superseded by the modal DEATH/BR1 flow. Source excerpts
 are retained in tests/original-lifecycle-ui.asm as provenance, not executable
 fixture coverage. The initial Ze incoming carry at the text-output boundary
 is explicitly clear; whole-game bit-identical RNG sequences are not claimed.
+
+RC3a: at the user’s request, the completed ten-update DEATH animation now
+holds its final frame until a fresh Space press. Held Space is release-gated;
+other keys are ignored. This is an intentional QL presentation difference from
+the Electron timed transition. The subsequent saved-commander flow is unchanged.

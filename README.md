@@ -1,4 +1,4 @@
-# EliteQL 1.0 RC3
+# EliteQL 1.0 RC3a
 
 A native 68000 QDOS adaptation of Acorn Electron Elite. RC3 adds the original
 start/restart flow, commander names, full status information, and working
@@ -15,7 +15,9 @@ bay. Like the original TITLE routine, that second screen accepts any key.
 Escape on either title screen exits to QDOS.
 
 Death shows GAME OVER with the Electron DEATH routine's four-canister scene,
-then returns to the load question. N restores the last successful save/load;
+then holds the final frame until a fresh press of Space returns to the load
+question. A key held during the animation cannot skip the screen. This requested
+QL presentation change deliberately differs from Electron’s timed return. N restores the last successful save/load;
 it does not award a new commander or retain unsaved progress. With no save,
 it restores the default Jameson. Paused Escape also returns to the title.
 
@@ -138,7 +140,7 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is 59,970 bytes with 7,356 bytes of declared QDOS data space. The game is
+ELITEASM is 60,044 bytes with 7,352 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
 Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not

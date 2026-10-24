@@ -11,7 +11,7 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .ascii "EliteQL 1.0 RC3\0"
+__prog_name: .ascii "EliteQL 1.0 RC3a\0"
 .align 2
 asm_stats:
  .data4 0x45514248,0x36383030
@@ -4978,6 +4978,7 @@ flow_copyright: .ascii "(C) ACORNSOFT 1984\0"
 flow_question: .ascii "LOAD NEW COMMANDER (Y/N)?\0"
 flow_ready_text: .ascii "PRESS FIRE OR SPACE, COMMANDER\0"
 flow_game_over: .ascii "GAME OVER\0"
+flow_death_continue: .ascii "PRESS SPACE TO CONTINUE\0"
 flow_load_text: .ascii "LOAD COMMANDER NAME:\0"
 flow_save_text: .ascii "SAVE COMMANDER NAME:\0"
 flow_edit_help: .ascii "ENTER ACCEPTS / LEFT DELETES\0"
@@ -5525,6 +5526,13 @@ flow_death_keys_zero:
  clr.w asm_view
  rts
 flow_death_frame:
+ tst.w flow_death_count
+ bne flow_death_animate
+ cmp.w #32,flow_key
+ bne asm_wait
+ bsr flow_title_load
+ bra asm_wait
+flow_death_animate:
  move.b asm_vectors,asm_laser+5
  pea asm_sound
  jsr _sound_tick
@@ -5595,7 +5603,12 @@ flow_death_ship_next:
  subq.b #1,asm_mcnt
  subq.w #5,flow_death_count
  bne asm_wait
- bsr flow_title_load
+ ; Requested QL presentation change: hold the final frame. A key held
+ ; through the animation cannot dismiss it; release before fresh Space.
+ move.w #1,flow_held
+ lea flow_death_continue,a4
+ moveq #112,d6
+ bsr asm_text
  bra asm_wait
 
 ; STATUS fields derive from STATUS/st6/st5/st3/stqv/st, with native QL layout.
