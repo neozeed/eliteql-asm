@@ -284,3 +284,20 @@ those positions to PTCLS. Reset erases particle caches before clearing them.
 RNG points at the existing LASLI state's four bytes; lasers, tactics and clouds
 share it. The player-dead and mode words are diagnostic shell state, not new
 fields in original INWK. Scene modes0/1/2 mean solo/fleet/hostile encounter.
+
+## A16 commander and modal display
+
+commander.s implements tally, settlement, rank and message-countdown entries.
+C ABI arguments are 32-bit slots; commander records must be word-aligned.
+Record bytes 0..3=CASH BE32,4..5=TALLY LE16,6=FIST,7=DLY,8=native message
+ID,9=padding. The original blueprint bounty is appended at offset38; headers
+are now40bytes and preceding fields keep their offsets. Stats magic EQB6/6800
+adds commander/page pointers at138/142.
+
+Settlement is reached only after explosion_frame transitions to killed+expired.
+Clearing that cloud's source vertex count prevents repeated settlement, and
+normal explosion_start repopulates it for reused slots. Page6 pauses simulation
+without changing the pause flag. Exit restores line heaps through render_cache,
+cloud points through cloud_xor, then the sight and optional live laser. Original
+QDOS screen snapshot/poll cleanup are unchanged. Formatting is integer 68000
+assembly, including full unsigned32 decimal division using two DIVU.W steps.

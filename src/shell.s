@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514235,0x36383030
+ .data4 0x45514236,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -50,6 +50,12 @@ asm_cargo_debug: .data4 asm_cargo
 asm_scooped_debug: .data4 asm_scooped
 asm_debris_debug: .data4 asm_debris
 asm_full_debug: .data4 asm_full
+asm_commander_debug: .data4 asm_commander
+asm_page_debug: .data4 asm_page
+asm_commander: .data4 1000
+ .data1 0,0,0,0,0,0
+asm_page: .data2 0
+asm_page_key: .data2 0
 asm_salvage: .data2 0
 asm_cargo: .space 18
 asm_scooped: .data4 0
@@ -91,6 +97,11 @@ asm_cargo_text: .ascii " C00\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _commander_tally
+.extern _commander_settle
+.extern _commander_rank
+.extern _commander_tick
+.extern _render_cache
 .extern _elite_random
 .extern _scoop_step
 .extern _debris_count
@@ -186,6 +197,30 @@ asm_loop:
  addq.l #5,d0
  move.l d0,asm_nextkeys
  jsr _keyboard_drain
+ ; Modal commander page: freezes simulation, preserves the pre-existing pause.
+ moveq #1,d0
+ bsr asm_keyrow
+ btst #3,d0
+ bne asm_finish
+ moveq #6,d0
+ bsr asm_keyrow
+ and.w #4,d0
+ move.w asm_page_key,d1
+ eor.w d0,d1
+ move.w d0,asm_page_key
+ and.w d0,d1
+ beq asm_page_key_done
+ eor.w #1,asm_page
+ bsr asm_clear_view
+ tst.w asm_page
+ beq asm_page_close
+ bsr asm_commander_page
+ bra asm_page_key_done
+asm_page_close:
+ bsr asm_restore_view
+asm_page_key_done:
+ tst.w asm_page
+ bne asm_update_stats
  moveq #2,d0
  bsr asm_keyrow
  move.w d0,asm_row2
@@ -339,6 +374,8 @@ asm_ecm_key_done:
  btst #4,d0
  sne asm_fire_key
 asm_draw_begin:
+ tst.w asm_page
+ bne asm_update_stats
  tst.w asm_dead
  bne asm_update_stats
  tst.w asm_paused
@@ -527,6 +564,12 @@ asm_friendly_not_ecm:
  pea asm_ai_params
  move.l a4,-(sp)
 asm_hostile_path:
+ tst.b asm_ai_params+4
+ beq asm_missile_no_tally
+ pea asm_commander
+ jsr _commander_tally
+ addq.l #4,sp
+asm_missile_no_tally:
  jsr _hostile_missile
  bra asm_ai_return
 asm_normal_ai:
@@ -628,6 +671,9 @@ asm_lock_done:
  lea 12(sp),sp
  cmp.w #2,d0
  bne asm_hit_survived
+ pea asm_commander
+ jsr _commander_tally
+ addq.l #4,sp
  bsr asm_drop_cargo
  ; LL9 initializes a real original explosion cloud at the kill boundary.
  pea asm_laser+5
@@ -679,6 +725,19 @@ asm_render_effect_ready:
  pea 0x20000
  jsr _explosion_frame
  lea 16(sp),sp
+ btst #7,31(a4)
+ beq asm_cloud_done
+ move.l asm_cloud,a0
+ clr.b 2(a0)
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 38(a0),d0
+ move.l d0,-(sp)
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ pea asm_commander
+ jsr _commander_settle
+ lea 12(sp),sp
 asm_cloud_done:
  lea 272(a5),a5
  dbra d7,asm_draw_loop
@@ -711,6 +770,9 @@ asm_laser_end:
  pea asm_laser
  jsr _laser_tick
  addq.l #8,sp
+ pea asm_commander
+ jsr _commander_tick
+ addq.l #4,sp
  subq.b #1,asm_mcnt
  bsr asm_draw_dials
  addq.l #1,asm_frames
@@ -829,6 +891,9 @@ asm_cloud_zero:
 asm_cargo_zero:
  clr.b 0(a0,d0.w)
  dbra d0,asm_cargo_zero
+ move.l #1000,asm_commander
+ clr.l asm_commander+4
+ clr.w asm_commander+8
  clr.l asm_scooped
  clr.l asm_debris
  clr.l asm_full
@@ -1354,6 +1419,13 @@ asm_hud_cargo_sum:
  add.b #48,d0
  move.b d0,asm_cargo_text+3
  lea asm_fps_text,a4
+ tst.b asm_commander+7
+ beq asm_hud_message_done
+ lea asm_bounty_message,a4
+ cmp.b #2,asm_commander+8
+ bne asm_hud_message_done
+ lea asm_rank_message,a4
+asm_hud_message_done:
  tst.w asm_dead
  beq asm_status_text
  lea asm_dead_text,a4
@@ -1362,11 +1434,173 @@ asm_status_text:
  bsr asm_text
 fps_return:
  rts
+; Native presentation adapter; source arithmetic/state lives in commander.s.
+asm_clear_view:
+ move.l #0x20000,a0
+ move.w #6143,d0
+asm_clear_view_loop:
+ clr.l (a0)+
+ dbra d0,asm_clear_view_loop
+ rts
+asm_restore_view:
+ lea asm_ships,a5
+ lea asm_clouds,a6
+ moveq #11,d7
+asm_restore_loop:
+ movem.l d7/a5-a6,-(sp)
+ move.l a5,-(sp)
+ pea 0x20000
+ jsr _render_cache
+ addq.l #8,sp
+ moveq #0,d0
+ move.w 56(a6),d0
+ move.l d0,-(sp)
+ pea 58(a6)
+ pea 0x20000
+ jsr _cloud_xor
+ lea 12(sp),sp
+ movem.l (sp)+,d7/a5-a6
+ lea 272(a5),a5
+ lea 448(a6),a6
+ dbra d7,asm_restore_loop
+ tst.b asm_sight
+ beq asm_restore_laser
+ pea 0x20000
+ jsr _sight_xor
+ addq.l #4,sp
+asm_restore_laser:
+ tst.b asm_laser+9
+ beq asm_restore_done
+ pea asm_laser
+ pea 0x20000
+ jsr _laser_xor
+ addq.l #8,sp
+asm_restore_done:
+ rts
+; Format unsigned 32-bit D0 as D1 fixed decimal digits at A0. No 68020 divide.
+asm_decimal:
+ movem.l d2-d5,-(sp)
+ adda.w d1,a0
+ subq.w #1,d1
+asm_decimal_loop:
+ move.l d0,d2
+ swap d2
+ and.l #65535,d2
+ divu.w #10,d2
+ move.w d2,d3
+ clr.w d2
+ move.w d0,d2
+ divu.w #10,d2
+ move.w d2,d0
+ swap d0
+ move.w d3,d0
+ swap d0
+ swap d2
+ add.b #48,d2
+ move.b d2,-(a0)
+ dbra d1,asm_decimal_loop
+ movem.l (sp)+,d2-d5
+ rts
+asm_commander_page:
+ lea asm_page_title,a4
+ moveq #4,d6
+ bsr asm_text
+ move.l asm_commander,d0
+ lea asm_cash_digits,a0
+ moveq #10,d1
+ bsr asm_decimal
+ ; Ten decimal tenths digits -> nine integral digits, dot, final digit.
+ move.b asm_cash_digits+9,asm_cash_digits+10
+ move.b #46,asm_cash_digits+9
+ lea asm_cash_digits,a0
+ moveq #7,d0
+asm_cash_trim:
+ cmp.b #48,(a0)
+ bne asm_cash_trim_done
+ move.b #32,(a0)+
+ dbra d0,asm_cash_trim
+asm_cash_trim_done:
+ lea asm_cash_line,a4
+ moveq #20,d6
+ bsr asm_text
+ pea asm_commander
+ jsr _commander_rank
+ addq.l #4,sp
+ subq.w #1,d0
+ lsl.w #2,d0
+ lea asm_rank_names,a0
+ move.l 0(a0,d0.w),a4
+ moveq #36,d6
+ bsr asm_text
+ lea asm_clean,a4
+ tst.b asm_commander+6
+ beq asm_page_legal
+ lea asm_offender,a4
+ cmp.b #50,asm_commander+6
+ blo asm_page_legal
+ lea asm_fugitive,a4
+asm_page_legal:
+ moveq #48,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_commander+5,d0
+ lsl.w #8,d0
+ move.b asm_commander+4,d0
+ lea asm_tally_digits,a0
+ moveq #5,d1
+ bsr asm_decimal
+ lea asm_tally_line,a4
+ moveq #60,d6
+ bsr asm_text
+ lea asm_commodity_names,a5
+ lea asm_cargo,a6
+ clr.w asm_page_item
+asm_page_cargo_loop:
+ lea asm_cargo_line,a0
+ moveq #11,d0
+asm_page_copy_name:
+ move.b (a5)+,(a0)+
+ dbra d0,asm_page_copy_name
+ addq.l #4,a5
+ moveq #0,d0
+ move.b (a6)+,d0
+ moveq #3,d1
+ bsr asm_decimal
+ move.b #84,asm_cargo_unit
+ move.b #32,asm_cargo_unit+1
+ cmp.w #16,asm_page_item
+ beq asm_page_cargo_unit
+ cmp.w #13,asm_page_item
+ blo asm_page_cargo_unit
+ move.b #75,asm_cargo_unit
+ move.b #71,asm_cargo_unit+1
+ cmp.w #15,asm_page_item
+ bne asm_page_cargo_unit
+ move.b #71,asm_cargo_unit
+ move.b #32,asm_cargo_unit+1
+asm_page_cargo_unit:
+ moveq #0,d6
+ move.w asm_page_item,d6
+ divu.w #9,d6
+ move.w d6,d7
+ mulu.w #128,d7
+ addq.w #8,d7
+ swap d6
+ mulu.w #12,d6
+ add.w #72,d6
+ lea asm_cargo_line,a4
+ bsr asm_text_at
+ addq.w #1,asm_page_item
+ cmp.w #17,asm_page_item
+ blo asm_page_cargo_loop
+ rts
+
 ; Original dashboard is copied by scanner_reset during scene setup.
 asm_labels:
  rts
 asm_text:
  move.w #32,d7
+asm_text_at:
 text_character:
  moveq #0,d0
  move.b (a4)+,d0
@@ -1550,3 +1784,50 @@ asm_release_quiet: .space 2
 .sect .bss
 .align 2
 asm_clouds: .space 5376
+
+.sect .data
+.align 2
+asm_page_item: .data2 0
+asm_page_title: .ascii "COMMANDER / CARGO - 6 TO RETURN\0"
+asm_cash_line: .ascii "CASH "
+asm_cash_digits: .ascii "000000000.0 CR\0"
+asm_tally_line: .ascii "KILLS "
+asm_tally_digits: .ascii "00000  /  HOLD 20 T\0"
+asm_cargo_line: .ascii "            000 "
+asm_cargo_unit: .ascii "T \0"
+asm_clean: .ascii "LEGAL: CLEAN\0"
+asm_offender: .ascii "LEGAL: OFFENDER\0"
+asm_fugitive: .ascii "LEGAL: FUGITIVE\0"
+asm_bounty_message: .ascii "BOUNTY AWARDED - 6 COMMANDER\0"
+asm_rank_message: .ascii "RIGHT ON COMMANDER!\0"
+.align 2
+asm_rank_names: .data4 asm_rank_0,asm_rank_1,asm_rank_2,asm_rank_3,asm_rank_4,asm_rank_5,asm_rank_6,asm_rank_7,asm_rank_8
+asm_rank_0: .ascii "RATING: HARMLESS\0"
+asm_rank_1: .ascii "RATING: MOSTLY HARMLESS\0"
+asm_rank_2: .ascii "RATING: POOR\0"
+asm_rank_3: .ascii "RATING: AVERAGE\0"
+asm_rank_4: .ascii "RATING: ABOVE AVERAGE\0"
+asm_rank_5: .ascii "RATING: COMPETENT\0"
+asm_rank_6: .ascii "RATING: DANGEROUS\0"
+asm_rank_7: .ascii "RATING: DEADLY\0"
+asm_rank_8: .ascii "RATING: ELITE\0"
+asm_commodity_names:
+ .ascii "FOOD            "
+ .ascii "TEXTILES        "
+ .ascii "RADIOACTIVES    "
+ .ascii "SLAVES          "
+ .ascii "LIQUOR/WINES    "
+ .ascii "LUXURIES        "
+ .ascii "NARCOTICS       "
+ .ascii "COMPUTERS       "
+ .ascii "MACHINERY       "
+ .ascii "ALLOYS          "
+ .ascii "FIREARMS        "
+ .ascii "FURS            "
+ .ascii "MINERALS        "
+ .ascii "GOLD            "
+ .ascii "PLATINUM        "
+ .ascii "GEM-STONES      "
+ .ascii "ALIEN ITEMS     "
+
+.align 2

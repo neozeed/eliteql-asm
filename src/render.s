@@ -408,6 +408,15 @@ distant_ship:
  addq.l #1,_line_total
  bra render_draw
 ; A5 object; A6 screen. xor_segment preserves the cache cursor and counter.
+; Redraw existing line heaps without changing simulation or render state.
+.globl _render_cache
+_render_cache:
+ movem.l d2-d7/a2-a6,-(sp)
+ move.l 48(sp),a6
+ move.l 52(sp),a5
+ bsr draw_cache
+ movem.l (sp)+,d2-d7/a2-a6
+ rts
 draw_cache:
  move.w 12(a5),d7
  beq cache_done

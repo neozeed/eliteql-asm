@@ -66,3 +66,8 @@ A15 original-cargo.asm contains tnpr, scoop proximity/selection logic, MAS4,
 SFS1 cargo tumble and the MA47 debris decision. MA58 is an explicit kill-flag
 boundary; docking and message presentation are outside this oracle.
 Blueprint extraction adds the original Max. canisters on demise byte.
+
+A16 original-commander.asm extracts EXNO2, MCASH, MA15/q2, STATUS st4/st5L
+and TT100 DLY decrement from the same verified Electron source. EXNO-2 is
+renamed EXNO_DONE as a sound boundary; MESS is a 22-tick test presentation stub.
+Blueprint extraction adds the original Bounty word at native offset38.

@@ -148,3 +148,16 @@ Then run `tests/run-qlbox.sh` and `tests/run-basic.sh` with the QLBox R9 root.
 
 Physical QL execution, other ROMs and all physical keyboard behavior remain
 unverified. The finished game's memory footprint is not established.
+
+## A16 release validation
+
+ELITECMD:65536 original STATUS rank results and4096 MA15/q2/MCASH,EXNO2 and
+TT100/DLY instruction cases. MESS is an explicit presentation stub. State,
+untouched bytes and guards are compared. Run this large-fixture job at640KB.
+Both live harnesses verify laser tally, delayed one-time bounty, police FIST,
+ECM tally, manifest units, modal freeze/key ownership, exact viewport restore
+(including live particles), reset and all prior regressions at128/640KB.
+See A16-BUILD.log,A16-INTEGRATION.log,A16-BASIC.log. Screen captures use
+injected cargo/tally values to cover every commodity and high-value formatting.
+SKIP_REFERENCES=1 allows a regression run after reference generation/rebuild
+without regenerating unchanged fixture data. It does not skip diagnostics.

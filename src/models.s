@@ -21,7 +21,7 @@ _models:
 model_0:
 .data2 10,15,7,20,15
 .data4 vertices_0,edges_0,faces_0
-.data2 37,70,4225,1,16,30,0,0
+.data2 37,70,4225,1,16,30,0,0,50
 vertices_0:
 .data2 -32,0,36,31
 .data1 0,1,4,5
@@ -77,7 +77,7 @@ faces_0:
 model_1:
 .data2 15,20,7,23,19
 .data4 vertices_1,edges_1,faces_1
-.data2 32,120,5625,2,17,42,0,0
+.data2 32,120,5625,2,17,42,0,0,0
 vertices_1:
 .data2 0,0,72,31
 .data1 1,2,3,4
@@ -148,7 +148,7 @@ faces_1:
 model_2:
 .data2 25,28,5,25,23
 .data4 vertices_2,edges_2,faces_2
-.data2 30,90,4900,3,18,34,0,1
+.data2 30,90,4900,3,18,34,0,1,150
 vertices_2:
 .data2 0,0,64,31
 .data1 0,1,2,3
@@ -243,7 +243,7 @@ faces_2:
 model_3:
 .data2 11,26,13,40,21
 .data4 vertices_3,edges_3,faces_3
-.data2 20,250,14400,4,27,46,0,3
+.data2 20,250,14400,4,27,46,0,3,200
 vertices_3:
 .data2 0,0,224,31
 .data1 0,1,2,3
@@ -324,7 +324,7 @@ faces_3:
 model_4:
 .data2 28,38,13,50,38
 .data4 vertices_4,edges_4,faces_4
-.data2 28,150,9025,5,19,42,84,3
+.data2 28,150,9025,5,19,42,84,3,0
 vertices_4:
 .data2 32,0,76,31
 .data1 15,15,15,15
@@ -451,7 +451,7 @@ faces_4:
 model_5:
 .data2 16,28,14,120,21
 .data4 vertices_5,edges_5,faces_5
-.data2 0,240,25600,7,6,54,0,0
+.data2 0,240,25600,7,6,54,0,0,0
 vertices_5:
 .data2 160,0,160,31
 .data1 0,1,2,6
@@ -546,7 +546,7 @@ faces_5:
 model_6:
 .data2 17,24,9,14,20
 .data4 vertices_6,edges_6,faces_6
-.data2 44,2,1600,8,0,10,0,0
+.data2 44,2,1600,8,0,10,0,0,0
 vertices_6:
 .data2 0,0,68,31
 .data1 0,1,2,3
@@ -629,7 +629,7 @@ faces_6:
 model_7:
 .data2 9,21,14,50,16
 .data4 vertices_7,edges_7,faces_7
-.data2 30,60,6400,9,0,34,0,0
+.data2 30,60,6400,9,0,34,0,0,5
 vertices_7:
 .data2 0,80,0,31
 .data1 15,15,15,15
@@ -703,7 +703,7 @@ faces_7:
 model_8:
 .data2 10,15,7,12,12
 .data4 vertices_8,edges_8,faces_8
-.data2 15,17,400,10,0,18,0,0
+.data2 15,17,400,10,0,18,0,0,0
 vertices_8:
 .data2 24,16,0,31
 .data1 0,1,5,5
@@ -759,7 +759,7 @@ faces_8:
 model_9:
 .data2 4,6,4,8,6
 .data4 vertices_9,edges_9,faces_9
-.data2 8,17,256,11,0,22,0,0
+.data2 8,17,256,11,0,22,0,0,0
 vertices_9:
 .data2 -7,0,36,31
 .data1 2,1,3,3

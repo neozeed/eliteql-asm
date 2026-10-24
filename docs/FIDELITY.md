@@ -200,3 +200,24 @@ PTCLS: this preserves pixels but can change incidental RNG state when an old
 cloud is erased without a new visible cloud being drawn. No equivalence to the
 complete game's global RNG sequence, memory layout or timing is claimed.
 Enemy-beam endpoints follow LL9 part9 while using the established native clipper.
+
+## A16 commander integration
+
+Original EXNO2 tally, MA15/q2 settlement, MCASH and STATUS rank branches now
+execute in src/commander.s. Bounty is settled once at native explosion expiry,
+including collision explosions; scoops have no explosion and no reward.
+DLY gates payment and a zero low bounty byte suppresses it, as in the source.
+Tally is incremented at laser and TA35 sites, not for hostile TA34 impacts or
+collisions. Fixed-slot invalidation is not an original TA35 execution.
+
+CASH is BE32 tenths, TALLY LE16; both preserve wrapping arithmetic. Original
+rank thresholds are tested for every possible tally. MESS is a 22-tick
+presentation boundary, not the original text engine; other message sources
+remain disconnected. Scene resets initialize 100.0 Cr/zero tally/clean status.
+Commander values are not saved and do not survive resets. This overrides older
+notes describing all rewards/rank as absent.
+
+The 6-key page is a native modal display with all seventeen stocks and original
+commodity units. It clears only the viewport and restores cached drawing with
+no simulation step or extra framebuffer. Exact source STATUS layout, condition,
+system names and equipment listing are not claimed. OUCH remains unconnected.
