@@ -6,6 +6,8 @@
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
 | `src/flight.s` | MVEIT parts 3–7 and complete parts 3–8 dispatch; position adapter |
+| `src/scanner.s` | Original scanner projection/flags; native dot/stick XOR backend and contact cache |
+| `src/dashboard.s` | Generated QL pixels from original P.DIALS.bin |
 | `src/controls.s` | Original player rate update, damping, angle calculation and speed controls |
 | `src/keyboard.s` | Bounded QDOS character queue draining using IO.QOUT |
 | `src/tidy.s` | Original TIDY/NORM vector correction and helpers |
@@ -39,7 +41,7 @@ original vertex-to-face references that the C prototype had discarded.
 The rasterizer clips once per segment. Its inner loop XORs a packed word and
 advances a rotating pixel mask and screen address, with no per-pixel function
 call, clipping check or multiplication. All flight drawing stays above line 192.
-The shell's static/footer region occupies rows 196–250.
+The original dashboard occupies rows 192–247; FPS/speed text uses rows 248–254.
 
 ## QDOS ownership
 
@@ -57,7 +59,7 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA5` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA6` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
 pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42, control-state pointer 46. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
@@ -87,8 +89,8 @@ hide flag accordingly, without modifying authoritative INWK coordinates.
 
 `tidy_ship(inwk)` preserves D2–D7/A2–A4 and updates the original vector
 bytes. Before movement, the shell calls it when `(frame ^ slot) & 15` is zero
-and `INWK[31] & 160` is zero, following MVEIT part 1 scheduling. TACTICS and
-SCAN remain absent.
+and `INWK[31] & 160` is zero, following MVEIT part 1 scheduling. TACTICS remains absent.
+A6 applies part 9 and SCAN after movement.
 
 `keyboard_drain` reads SV.KEYQ at system variables +0x4c and consumes up to
 128 events through the IO.QOUT ROM vector at 0xe2. It does not write queue
@@ -97,7 +99,7 @@ including while paused. On exit, it waits for all eight raw key rows to clear,
 requires three clear scans separated by polling intervals, then drains again.
 The red BASIC screen is restored normally; game characters are consumed.
 
-Next: TACTICS/main-loop integration and scanner. The current
+Next: TACTICS/main-loop integration and the remaining cockpit instruments. The current
 33-byte state and exact arithmetic fixtures provide those routines' boundary.
 The 128 KB test is a current budget measurement, not a finished-game promise.
 
@@ -116,3 +118,29 @@ Zero DAMP/DJD means enabled, as in the original. Both are zero in the shell;
 nonzero modes are supported and tested but have no UI toggle yet. Neutral
 rates are JSTX=JSTY=128. Scene reset starts DELTA at 1. The source's complete
 DOKEY scanning/configuration routine and all of M% are not claimed complete.
+
+## Scanner ABI and drawing
+
+`scanner_project(inwk, type, out)` writes four bytes: x, dot_y, base_y,
+visible. It returns 0/1 and always clears visible on rejection; other output
+bytes are unspecified on rejection. It leaves INWK unchanged. Type is passed
+as a 32-bit C argument, with its low byte interpreted like the source TYPE.
+`scanner_flags(inwk)` implements the MVEIT part 9 bit-4 update from flags 5/7.
+
+`scanner_xor(screen, projected)` uses a valid projected record and reproduces
+the original three-by-two dot and stick pixels in QL white, without calling C
+or the viewport-clipped ship rasterizer. No clipping is needed after SCAN's
+range checks: all scanner pixels lie within the 256x56 dashboard.
+
+`scanner_frame(screen, slots, count)` accepts 0–12 packed 34-byte INWK slots.
+It erases the twelve cached contacts, applies part 9 to each active slot,
+projects and plots current contacts, then retains four bytes per slot. The
+48-byte cache is private and non-reentrant. The shell currently contains only
+ships, so it supplies positive TYPE=1; the public projector tests negative
+planet types too. Erasing cached contacts after all motion preserves the final
+XOR result of the source's per-ship erase/move/redraw order.
+
+`scanner_reset(screen)` copies the embedded 7,168-byte original dashboard
+conversion and clears the cache. Scene resets use it to remove old contacts.
+The rest of the frame is incremental; this is not a new full-screen backbuffer.
+The compiler-generated C benchmark calls the same scanner once per frame.

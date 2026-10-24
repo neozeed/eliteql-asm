@@ -1,20 +1,20 @@
 QCC ?= qdos-gcc
 PYTHON ?= python3
-SOURCES = src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s
+SOURCES = src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s
 .PHONY: all clean
 all: host/ELITEASM host/ELITEBEN host/ELITETST
 host/ELITEBEN: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 clean:
-	rm -f host/ELITEASM host/ELITEBEN host/ELITETST host/ELITEMOT host/ELITEFLT host/ELITETDY host/ELITECTL
+	rm -f host/ELITEASM host/ELITEBEN host/ELITETST host/ELITEMOT host/ELITEFLT host/ELITETDY host/ELITECTL host/ELITESCN
 
 host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/controls.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/controls.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/controls.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/controls.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -35,4 +35,9 @@ host/ELITETDY: tests/tidy_test.c tests/tidy_fixtures.h src/tidy.s src/motion.s s
 all: host/ELITECTL
 host/ELITECTL: tests/controls_test.c tests/controls_fixtures.h src/controls.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/controls_test.c src/controls.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITESCN
+host/ELITESCN: tests/scanner_test.c tests/scanner_fixtures.h src/scanner.s src/dashboard.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/scanner_test.c src/scanner.s src/dashboard.s -o $@
 	$(PYTHON) tools/qlmeta.py $@

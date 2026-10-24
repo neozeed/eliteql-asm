@@ -30,8 +30,8 @@ The independent Python oracle checks this documented A1 adaptation. It is not
 an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
-Not implemented: remaining MVEIT parts 1–2 and 9 (TACTICS/SCAN), planet movement (MV40), secondary keyboard controls/configuration, tactics, flight loop, combat, explosions,
-laser beams, planet/sun drawing, scanner/dashboard, markets, commander saves,
+Not implemented: remaining MVEIT parts 1–2 (TACTICS), planet movement (MV40), secondary keyboard controls/configuration, tactics, flight loop, combat, explosions,
+laser beams, planet/sun drawing, other dashboard instruments, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
 The renderer uses a shared scratch workspace and is intentionally non-reentrant.
@@ -51,7 +51,7 @@ A5 obtains ALPHA/BETA from the original DOKEY rate updates and M% part 2.
 The QL scan replaces Electron hardware access; arrows map to the four source
 pitch/roll keys, A/Z to speed. DOKEY's pause/configuration and secondary keys
 remain unported. The scene itself is test scaffolding. A4 implements TIDY
-dispatch from MVEIT part 1; TACTICS and SCAN paths remain absent.
+dispatch from MVEIT part 1; TACTICS remains absent; A6 implements the SCAN/part 9 path.
 
 Original positions have 23 magnitude bits plus sign. The renderer adapter
 rejects magnitudes above 30000; the original position remains untouched and
@@ -78,3 +78,22 @@ its underflow path alone clamps to 1. Likewise, slowing DELTA=0 wraps to 255
 in the original routine: the oracle tests this, while the normal shell starts
 at DELTA=1. Simultaneous opposing keys run in original order. These are source
 behaviors, not substituted idealized control formulas.
+
+A6 scanner geometry follows SCAN, including the high-byte range rejection,
+negative-zero X offset (124 instead of 123), integer shifts and dot-Y clipping
+to 194–246. The QL backend preserves source CPIX4/CPIX2's three-by-two dot;
+the annotated source's wider-dot description is not substituted for its
+instructions. Upward sticks run from dot_y-2 to base_y-1, while downward
+sticks run from dot_y+1 to base_y, retaining the source's asymmetric endpoints.
+
+The source-instruction oracle executes the original Electron screen-address
+calculation, dash and stick stores. Only its resulting pixels are converted
+to QL words for comparison. The test checks geometry and framebuffer hashes
+for 512 cases, plus all visibility flag values. Separate integration tests
+compare the complete dashboard byte-for-byte. The original artwork is decoded
+from P.DIALS.bin; it is not a recreated or AI-generated dashboard.
+
+Only the scanner is animated within that artwork. Shields, energy, compass,
+missiles, temperature, fuel and the original pitch/roll/speed gauge drawings
+remain unimplemented. The separate FPS/speed text is a diagnostic overlay
+below the original bitmap.

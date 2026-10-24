@@ -6,7 +6,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A5";
+char _prog_name[]="EliteQL ASM A6";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -29,6 +29,8 @@ static short matrix[9];
 extern short *live_matrix;
 extern void own_rotate(unsigned char *);
 extern void tidy_ship(unsigned char *);
+extern void scanner_reset(void *);
+extern void scanner_frame(void *,unsigned char *,unsigned);
 extern void move_ship(unsigned char *,const unsigned char *);
 extern int motion_position(unsigned char *,short *);
 static unsigned char flight_params[4]={1,0,0,40};
@@ -144,6 +146,7 @@ int main(int argc,char **argv) {
     atexit(finish);
     mt_dmode(&oldmode,&olddisplay);mt_dmode(&mode,&display);
     memset((void *)0x20000L,0,32768);
+    if(flight)scanner_reset((void *)0x20000L);
     ticks=0;mt_lpoll(&clock_link);linked=1;
     for(i=0;i<n;i++) {
         ships[i].model=models[n==1?model:i%10];
@@ -190,6 +193,7 @@ int main(int argc,char **argv) {
                 }
                 render_ship((void *)0x20000L,&ships[i]);live_matrix=0;
             }
+            if(flight)scanner_frame((void *)0x20000L,&vectors[0][0],(unsigned)n);
             frames++;
             for(i=0;i<n;i++)ships[i].angle=(short)((ships[i].angle+1)&255);
         }
@@ -202,6 +206,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A5 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A6 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,53,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,54,0
 .align 2
 asm_stats:
- .data4 0x45514135,0x36383030
+ .data4 0x45514136,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -37,6 +37,8 @@ asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _scanner_frame
+.extern _scanner_reset
 .extern _control_step
 .extern _keyboard_drain
 .extern _models
@@ -242,6 +244,13 @@ asm_no_tidy:
  clr.l _live_matrix
  lea 272(a5),a5
  dbra d7,asm_draw_loop
+ moveq #0,d0
+ move.w asm_count,d0
+ move.l d0,-(sp)
+ pea asm_vectors
+ pea 0x20000
+ jsr _scanner_frame
+ lea 12(sp),sp
  addq.l #1,asm_frames
 asm_update_stats:
  bsr asm_fps
@@ -324,6 +333,9 @@ asm_keyrow:
  rts
 ; Erase all old caches before changing between one and twelve ships.
 asm_setup:
+ pea 0x20000
+ jsr _scanner_reset
+ addq.l #4,sp
  lea asm_ships,a5
  moveq #11,d7
 asm_erase_all:
@@ -465,30 +477,18 @@ fps_bounded:
  move.b d2,asm_fps_text+17
  add.b #48,d0
  move.b d0,asm_fps_text+16
- move.l #0x26200,a0
+ move.l #0x27c00,a0
  move.w #255,d0
 fps_clear:
  clr.l (a0)+
  dbra d0,fps_clear
  lea asm_fps_text,a4
- move.w #196,d6
+ move.w #248,d6
  bsr asm_text
 fps_return:
  rts
-; Static footer drawn once outside the incremental flight viewport.
+; Original dashboard is copied by scanner_reset during scene setup.
 asm_labels:
- lea label1(pc),a4
- move.w #208,d6
- bsr asm_text
- lea label2(pc),a4
- move.w #220,d6
- bsr asm_text
- lea label3(pc),a4
- move.w #232,d6
- bsr asm_text
- lea label4(pc),a4
- move.w #244,d6
- bsr asm_text
  rts
 asm_text:
  move.w #32,d7

@@ -13,3 +13,9 @@ A5 adds original-controls.asm: DOKEY's JSTX/JSTY update block; M% part 2;
 M% part 3 speed keys through MA4; cntr, BUMP2 and REDU2.
 Regenerate with tests/controls_reference.py SOURCE.
 Original comments and unused bytes in the angle block are retained.
+
+A6 adds original-scanner.asm: SCAN through NEXTR, CPIX4/CPIX2, and MV5/MVD1.
+Regenerate with tests/scanner_reference.py SOURCE.
+Original dashboard: 1-source-files/images/P.DIALS.bin (1792 bytes).
+Dashboard SHA256: 98a3914c3966df53e6ab81524217ca3dc99ee018b88712965ae445fc769ed945 
+Regenerate QL pixel data with tools/dashboard.py (src/dashboard.s).

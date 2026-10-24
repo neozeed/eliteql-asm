@@ -1,17 +1,22 @@
-# A5 validation
+# A6 validation
 
-The recovered GCC driver/JAS/linker builds all seven executables. ELITEASM uses
+The recovered GCC driver/JAS/linker builds all eight executables. ELITEASM uses
 only assembly application sources; C is confined to diagnostics and benchmarks.
 
-`A5-INTEGRATION.log` records the final build's movement, TIDY, renderer,
+`A6-INTEGRATION.log` records the final build's movement, TIDY, renderer,
 keyboard, framebuffer, cleanup and benchmark passes under QLBox R9 / JS ROM.
-`A5-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
+`A6-BASIC-EXIT.log` records actual BASIC EXEC_W launches at 128 KB and 640 KB.
 The BASIC harness sends a burst of printable game keys, checks that BASIC is
 suspended, then verifies the QDOS character queue is empty before and after
 Escape. It also checks job cleanup and restores the poll-chain head.
 
-Four instruction corpora test native routines against original 6502:
+Five instruction corpora test native routines against original 6502:
 
+- Scanner: 512 geometry/framebuffer cases cover positive/negative coordinates,
+  signed zero, both stick directions, dot clipping, range rejection, planets,
+  visible/hidden flags, and dots across character boundaries. All 256 flag
+  bytes are checked against original MVEIT part 9. Native XOR drawing is
+  applied twice to verify exact erasure; guard bytes protect projected output.
 - Controls: 2,048 cases cover every raw JSTX/JSTY byte with damping and
   auto-recentre enabled/disabled, arbitrary state, simultaneous keys and speed
   edges. A further 1,024 sequential updates cover hold/reversal, random input,
@@ -60,6 +65,15 @@ from the movement oracle. Fixture expected values are not generated using
 native port formulas. `ELITECTL` checks both standalone cases and a continuous
 sequence; guard bytes catch writes past the 13-byte state.
 
-The A5 benchmark also invokes control_step once per frame. It disables damping
+The A6 benchmark also invokes control_step once per frame. It disables damping
 with JSTX=136/JSTY=127 to reproduce fixed ALPHA=1/BETA=0 and DELTA=0 for the
 same movement trajectory as A4; these are benchmark settings, not shell defaults.
+
+A6 integration reconstructs the dashboard directly from the bundled 1,792-byte
+Electron asset, independently plots the live contact records, and compares
+all 7,168 QL bytes. It marks one ship as exploding and moves another beyond
+scanner range, then verifies stale contacts are removed. These checks run
+through the native application at 128 KB and 640 KB, including BASIC EXEC_W.
+The scanner oracle executes original instructions and framebuffer writes;
+it does not call the native geometry or pixel formulas to derive fixtures.
+The A6 benchmark includes live scanner erasure, flags, projection and drawing.
