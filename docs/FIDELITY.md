@@ -263,3 +263,29 @@ are native fixtures. Station compass uses SPS4 but its selection is scene-based,
 not SSPR. Cargo, cash, tally, legal status, ammo and equipment persist across
 local launch; universe objects do not. N and scene keys are still resets.
 The docked market UI and per-key single-unit buying are presentation adapters.
+
+## A19 universe arithmetic and adapter boundaries
+
+All eight galaxies derive from4A5A480253B7 in original byte order. TT20 performs
+four TT54 twists per system; cpl uses three/four digrams, skips pair0 and omits
+the '?' character. TT24 government fixes anarchy/feudal economy and rounds
+government/2 upwards when adding tech. Displayed tech is native value+1.
+Distance uses floor(abs(dy)/2), square/sum modulo65536, floor square root, then
+multiplies by4; it is not floating-point Euclidean rounding.
+
+Normal hyp requires nonzero distance and adequate fuel. TT107 takes85 update
+calls from wW to arrival. SOLAR's LSR FIST is retained. Ghy uses Superior's
+nearest(96,96), not Acornsoft's random destination. Nearest score is
+floor(abs(dx)/2)+floor(abs(dy)/2), first strict minimum; galaxy number wraps8.
+Native tests cover all eight transitions. GHYP is consumed at start; seed,
+location and legal updates commit on arrival, an explicit timing adaptation.
+
+Market GVL uses existing DORND with explicit input carry0; complete original
+RNG/sound sequencing is absent. Local launch keeps market stock, hyperspace
+regenerates it. Refuelling uses PRXS=(70-QQ14)*2 tenths and original affordability
+semantics. One galactic drive is a test-loadout grant, not a normal new commander
+equipment claim. It cannot yet be purchased again in the UI.
+
+Arrival geometry, fighters, modal directory and station selection are QL/test
+adapters. SOLAR universe placement, actual charts, tunnel, planet rendering,
+witchspace, equipment shop and disk saves remain absent.

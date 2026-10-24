@@ -188,3 +188,17 @@ dials_snapshot:
 .sect .bss
 .align 2
 _dials_last_status: .space 6
+
+.sect .text
+; Original DIALS fuel entry calls DILX+2: QQ14>>1, saturated by DIL width.
+.globl _dials_fuel
+_dials_fuel:
+ movem.l d2-d5/a2,-(sp)
+ move.l 24(sp),a2
+ move.l 28(sp),d0
+ and.w #255,d0
+ lsr.w #1,d0
+ move.w #26888,d1
+ bsr dials_bar
+ movem.l (sp)+,d2-d5/a2
+ rts

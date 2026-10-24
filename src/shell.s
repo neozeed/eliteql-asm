@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514238,0x36383030
+ .data4 0x45514239,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -58,6 +58,16 @@ asm_losses_debug: .data4 asm_losses
 asm_docked_debug: .data4 asm_docked
 asm_market_debug: .data4 asm_market
 asm_selection_debug: .data4 asm_market_selection
+asm_travel_debug: .data4 asm_travel
+asm_nav_debug: .data4 asm_nav
+asm_arrival_debug: .data4 asm_arriving
+asm_travel: .space 64
+asm_nav: .data2 0
+asm_nav_keys: .data2 0
+asm_nav_step: .data2 0
+asm_nav_tries: .data2 0
+asm_arriving: .data2 0
+asm_arrival_rng: .data4 0
 asm_docked: .data2 0
 asm_market_selection: .data2 0
 asm_market_keys: .data2 0
@@ -230,6 +240,9 @@ asm_loop:
  bsr asm_keyrow
  btst #3,d0
  bne asm_finish
+ bsr asm_navigation_keys
+ tst.w d0
+ bne asm_update_stats
  tst.w asm_docked
  beq asm_flight_keys
  bsr asm_dock_keys
@@ -429,6 +442,8 @@ asm_ecm_key_done:
  btst #4,d0
  sne asm_fire_key
 asm_draw_begin:
+ tst.w asm_nav
+ bne asm_update_stats
  tst.w asm_docked
  bne asm_update_stats
  tst.w asm_page
@@ -437,6 +452,11 @@ asm_draw_begin:
  bne asm_update_stats
  tst.w asm_paused
  bne asm_update_stats
+ pea asm_travel
+ jsr _travel_tick
+ addq.l #4,sp
+ tst.w d0
+ bne asm_arrival
  moveq #0,d0
  move.w asm_bomb_held,d0
  move.l d0,-(sp)
@@ -868,6 +888,8 @@ asm_laser_end:
  addq.l #1,asm_frames
  bra asm_update_stats
 asm_dock_commit:
+ clr.b asm_travel+11
+ clr.b asm_travel+13
  ; GOIN/RES4 state boundary. Tunnel/text and local scene are QL adapters.
  move.b #255,asm_status
  move.b #255,asm_status+1
@@ -980,7 +1002,12 @@ asm_setup:
  clr.w asm_market_result
  tst.w asm_keep_launch
  bne asm_market_kept
- ; Fixed test system, economy5/fluctuation0. No hyperspace market reroll yet.
+ pea asm_travel
+ jsr _travel_init
+ addq.l #4,sp
+ clr.w asm_nav
+ clr.w asm_nav_keys
+ ; Initial Lave market, fluctuation0.
  clr.l -(sp)
  move.l #5,-(sp)
  pea asm_market
@@ -1501,6 +1528,12 @@ asm_draw_dials:
  pea 0x20000
  jsr _dials_frame
  lea 16(sp),sp
+ moveq #0,d0
+ move.b asm_travel+9,d0
+ move.l d0,-(sp)
+ pea 0x20000
+ jsr _dials_fuel
+ addq.l #8,sp
  pea asm_player
  pea 0x20000
  jsr _missile_icons
@@ -1683,6 +1716,15 @@ asm_hud_not_loss:
  bne asm_hud_message_done
  lea asm_rank_message,a4
 asm_hud_message_done:
+ tst.b asm_travel+11
+ beq asm_hud_no_hyper
+ moveq #0,d0
+ move.b asm_travel+11,d0
+ lea asm_hyper_digits,a0
+ moveq #2,d1
+ bsr asm_decimal
+ lea asm_hyper_line,a4
+asm_hud_no_hyper:
  tst.w asm_dead
  beq asm_status_text
  lea asm_dead_text,a4
@@ -1812,6 +1854,8 @@ launch_restore_cargo:
  move.b (a0),asm_player
  clr.b asm_commander+7
  clr.b asm_commander+8
+ tst.w asm_arriving
+ bne launch_arrival_pose
  pea asm_cargo
  pea asm_commander
  jsr _launch_legal
@@ -1823,9 +1867,13 @@ launch_restore_cargo:
  move.b #96,asm_vectors+14
  move.b #96,asm_vectors+24
  move.w #-2048,asm_ships+8
+launch_arrival_pose:
  bsr asm_draw_dials
  rts
 asm_market_page:
+ move.b asm_travel+22,d0
+ add.b #48,d0
+ move.b d0,asm_market_economy
  lea asm_market_title,a4
  moveq #0,d6
  bsr asm_text
@@ -2336,7 +2384,8 @@ asm_loss_text: .ascii "                DESTROYED\0"
 .align 2
 
 .sect .data
-asm_market_title: .ascii "DOCKED / LOCAL MARKET / ECONOMY 5\0"
+asm_market_title: .ascii "DOCKED / LOCAL MARKET / ECONOMY "
+asm_market_economy: .ascii "5\0"
 asm_market_header: .ascii " ITEM         PRICE STOCK HOLD\0"
 asm_market_line: .ascii "              "
 asm_price_digits: .ascii "000.0 "
@@ -2350,4 +2399,331 @@ market_ok: .ascii "READY\0"
 market_stock: .ascii "NO STOCK\0"
 market_hold: .ascii "HOLD FULL\0"
 market_cash: .ascii "NOT ENOUGH CASH\0"
+.align 2
+
+.sect .text
+; Navigation UI owns keys only while open. 9 toggles, H/G starts from flight.
+asm_navigation_keys:
+ moveq #0,d4
+ moveq #5,d0
+ bsr asm_keyrow
+ btst #4,d0
+ beq nav_nine
+ bset #3,d4
+nav_nine:
+ btst #0,d0
+ beq nav_h
+ bset #0,d4
+nav_h:
+ moveq #4,d0
+ bsr asm_keyrow
+ btst #2,d0
+ beq nav_g
+ bset #1,d4
+nav_g:
+ moveq #3,d0
+ bsr asm_keyrow
+ btst #6,d0
+ beq nav_r
+ bset #2,d4
+nav_r:
+nav_arrows:
+ tst.w asm_nav
+ beq nav_edges
+ moveq #1,d0
+ bsr asm_keyrow
+ btst #2,d0
+ beq nav_down
+ bset #4,d4
+nav_down:
+ btst #7,d0
+ beq nav_left
+ bset #5,d4
+nav_left:
+ btst #1,d0
+ beq nav_right
+ bset #6,d4
+nav_right:
+ btst #4,d0
+ beq nav_edges
+ bset #7,d4
+nav_edges:
+ move.w asm_nav_keys,d0
+ eor.w d4,d0
+ and.w d4,d0
+ move.w d4,asm_nav_keys
+ move.w d0,d4
+ ; Countdown is live flight, selection remains frozen until arrival.
+ tst.b asm_travel+11
+ bne nav_not_consumed
+ tst.w asm_page
+ bne nav_not_consumed
+ btst #0,d4
+ beq nav_actions
+ eor.w #1,asm_nav
+ bsr asm_clear_view
+ tst.w asm_nav
+ bne nav_redraw
+ tst.w asm_docked
+ beq nav_close_flight
+ bsr asm_market_page
+ bra nav_consumed
+nav_close_flight:
+ bsr asm_restore_view
+ bra nav_consumed
+nav_actions:
+ tst.w asm_dead
+ bne nav_no_start
+ btst #1,d4
+ bne nav_start_normal
+ btst #2,d4
+ bne nav_start_galaxy
+nav_no_start:
+ tst.w asm_nav
+ beq nav_not_consumed
+ btst #3,d4
+ beq nav_select
+ tst.w asm_docked
+ beq nav_consumed
+ pea asm_commander
+ pea asm_travel
+ jsr _travel_refuel
+ addq.l #8,sp
+ move.b d0,asm_travel+15
+ beq nav_refueled
+ move.b #6,asm_travel+15
+ bra nav_redraw
+nav_refueled:
+ bsr asm_draw_dials
+ bra nav_redraw
+nav_select:
+ tst.w d4
+ beq nav_consumed
+ move.w #1,asm_nav_step
+ btst #4,d4
+ bne nav_decrement
+ btst #6,d4
+ beq nav_direction_ready
+nav_decrement:
+ move.w #-1,asm_nav_step
+nav_direction_ready:
+ move.w #255,asm_nav_tries
+nav_find:
+ clr.b asm_travel+15
+ moveq #0,d0
+ move.b asm_travel+8,d0
+ add.w asm_nav_step,d0
+ and.w #255,d0
+ move.l d0,-(sp)
+ pea asm_travel
+ jsr _travel_select
+ addq.l #8,sp
+ move.w asm_nav_keys,d0
+ and.w #192,d0
+ beq nav_redraw
+ pea asm_travel+40
+ pea asm_travel+16
+ jsr _galaxy_distance
+ addq.l #8,sp
+ tst.w d0
+ beq nav_find_next
+ moveq #0,d1
+ move.b asm_travel+9,d1
+ cmp.w d1,d0
+ bls nav_redraw
+nav_find_next:
+ subq.w #1,asm_nav_tries
+ bpl nav_find
+ bra nav_redraw
+nav_start_normal:
+ moveq #0,d0
+ bra nav_start
+nav_start_galaxy:
+ moveq #1,d0
+nav_start:
+ moveq #0,d1
+ move.w asm_docked,d1
+ move.l d1,-(sp)
+ move.l d0,-(sp)
+ pea asm_travel
+ jsr _travel_start
+ lea 12(sp),sp
+ tst.w d0
+ bne nav_start_failed
+ tst.w asm_nav
+ beq nav_consumed
+ clr.w asm_nav
+ bsr asm_clear_view
+ bsr asm_restore_view
+ bra nav_consumed
+nav_start_failed:
+ move.w #1,asm_nav
+nav_redraw:
+ bsr asm_clear_view
+ bsr asm_nav_page
+nav_consumed:
+ moveq #1,d0
+ rts
+nav_not_consumed:
+ moveq #0,d0
+ rts
+asm_arrival:
+ move.w #1,asm_arriving
+ ; GVL's DORND boundary uses explicit carry0; sound RNG is not reproduced.
+ clr.l -(sp)
+ pea asm_laser+5
+ jsr _elite_random
+ addq.l #8,sp
+ and.l #255,d0
+ lea asm_laser+5,a0
+ lea asm_arrival_rng,a1
+ moveq #3,d1
+arrival_keep_rng:
+ move.b (a0)+,(a1)+
+ dbra d1,arrival_keep_rng
+ move.l d0,-(sp)
+ pea asm_commander
+ pea asm_travel
+ jsr _travel_arrive
+ lea 12(sp),sp
+ move.w #3,asm_mode
+ move.w #2,asm_salvage
+ move.w #12,asm_count
+ move.w #1,asm_arriving
+ bsr asm_launch
+ clr.w asm_arriving
+ lea asm_arrival_rng,a0
+ lea asm_laser+5,a1
+ moveq #3,d1
+arrival_restore_rng:
+ move.b (a0)+,(a1)+
+ dbra d1,arrival_restore_rng
+ moveq #0,d0
+ move.b asm_travel+14,d0
+ move.l d0,-(sp)
+ move.b asm_travel+22,d0
+ move.l d0,-(sp)
+ pea asm_market
+ jsr _market_init
+ lea 12(sp),sp
+ bra asm_update_stats
+asm_nav_page:
+ moveq #0,d0
+ move.b asm_travel+6,d0
+ addq.w #1,d0
+ lea nav_gal_digit,a0
+ moveq #1,d1
+ bsr asm_decimal
+ lea nav_title,a4
+ moveq #4,d6
+ bsr asm_text
+ lea nav_current,a4
+ moveq #22,d6
+ bsr asm_text
+ lea asm_travel+25,a4
+ moveq #34,d6
+ bsr asm_text
+ lea nav_target,a4
+ moveq #52,d6
+ bsr asm_text
+ lea asm_travel+49,a4
+ moveq #64,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+8,d0
+ lea nav_index,a0
+ moveq #3,d1
+ bsr asm_decimal
+ moveq #0,d0
+ move.b asm_travel+46,d0
+ lea nav_econ,a0
+ moveq #1,d1
+ bsr asm_decimal
+ moveq #0,d0
+ move.b asm_travel+47,d0
+ lea nav_gov,a0
+ moveq #1,d1
+ bsr asm_decimal
+ moveq #0,d0
+ move.b asm_travel+48,d0
+ addq.w #1,d0
+ lea nav_tech,a0
+ moveq #2,d1
+ bsr asm_decimal
+ lea nav_details,a4
+ moveq #80,d6
+ bsr asm_text
+ pea asm_travel+40
+ pea asm_travel+16
+ jsr _galaxy_distance
+ addq.l #8,sp
+ lea nav_distance,a0
+ moveq #4,d1
+ bsr asm_decimal
+ move.b nav_distance+3,nav_distance+4
+ move.b #46,nav_distance+3
+ moveq #0,d0
+ move.b asm_travel+9,d0
+ lea nav_fuel,a0
+ moveq #2,d1
+ bsr asm_decimal
+ move.b nav_fuel+1,nav_fuel+2
+ move.b #46,nav_fuel+1
+ move.b #78,nav_drive
+ tst.b asm_travel+10
+ beq nav_no_drive
+ move.b #89,nav_drive
+nav_no_drive:
+ lea nav_range,a4
+ moveq #96,d6
+ bsr asm_text
+ lea nav_help1,a4
+ moveq #116,d6
+ bsr asm_text
+ lea nav_help2,a4
+ move.w #128,d6
+ bsr asm_text
+ lea nav_help3,a4
+ move.w #140,d6
+ bsr asm_text
+ lea nav_help4,a4
+ move.w #152,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+15,d0
+ lsl.w #2,d0
+ lea nav_errors,a0
+ move.l 0(a0,d0.w),a4
+ move.w #176,d6
+ bsr asm_text
+ rts
+.sect .data
+asm_hyper_line: .ascii "HYPERSPACE "
+asm_hyper_digits: .ascii "00 - HOLD COURSE\0"
+nav_title: .ascii "NAVIGATION / GALAXY "
+nav_gal_digit: .ascii "1\0"
+nav_current: .ascii "CURRENT SYSTEM\0"
+nav_target: .ascii "DESTINATION\0"
+nav_details: .ascii "ID "
+nav_index: .ascii "000  ECON "
+nav_econ: .ascii "0 GOV "
+nav_gov: .ascii "0 TECH "
+nav_tech: .ascii "00\0"
+nav_range: .ascii "DIST "
+nav_distance: .ascii "000.0 FUEL "
+nav_fuel: .ascii "7.0 GDRV "
+nav_drive: .ascii "Y\0"
+nav_help1: .ascii "LEFT/RIGHT NEXT WITHIN FUEL\0"
+nav_help2: .ascii "UP/DOWN ALL 256 SYSTEMS\0"
+nav_help3: .ascii "H HYPERSPACE  G NEXT GALAXY\0"
+nav_help4: .ascii "DOCKED R REFUEL  9 CLOSE\0"
+ .align 2
+nav_errors: .data4 nav_ok,nav_dock,nav_busy,nav_zero,nav_far,nav_no,nav_cash
+nav_ok: .ascii "READY - REFUEL COST 0.2 CR/UNIT\0"
+nav_dock: .ascii "LAUNCH BEFORE HYPERSPACE\0"
+nav_busy: .ascii "COUNTDOWN IN PROGRESS\0"
+nav_zero: .ascii "SELECT ANOTHER SYSTEM\0"
+nav_far: .ascii "HYPERSPACE RANGE?\0"
+nav_no: .ascii "NO GALACTIC HYPERDRIVE\0"
+nav_cash: .ascii "NOT ENOUGH CASH FOR FUEL\0"
 .align 2

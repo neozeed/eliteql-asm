@@ -1,61 +1,86 @@
-# EliteQL ASM A18 — dock, trade and launch
+# EliteQL ASM A19 — hyperspace and eight galaxies
 
-A18 adds a connected local docking/market/launch loop, translated from the
-Electron game's original 6502 logic into native 68000 assembly. A17 is preserved.
-This archive includes the complete source and runnable QDOS jobs.
+A19 connects original Electron galaxy generation and hyperspace logic to the
+native 68000 flight, docking and trading loop. A18 is preserved separately.
+The archive contains all source, runnable QDOS jobs and test fixtures.
 
 Mount this folder's host directory and run `EXEC_W WIN1_ELITEASM`:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a18\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a19\host
 ```
 
-## Try the new loop
+## Fly somewhere
 
-Press **7** for the station approach encounter. The station starts aligned ahead;
-use A/Z for speed and the existing inverted flight controls to approach it.
-Docking checks original proximity, station hostility, nose alignment, approach
-vector and roll alignment. A failed approach below speed 5 dents your ship;
-a failed approach at speed 5 or above is fatal. A correctly aligned approach
-can succeed at higher speeds. The compass follows the station in this scene.
+**9 opens navigation.** You begin at Lave in galaxy 1 with 7.0 light years of
+fuel. Left/Right selects the previous/next system within remaining fuel;
+Up/Down browses all 256 systems. The page shows the actual generated name,
+economy, government, tech level, distance and remaining fuel. Economy and
+government use original 0–7 values; displayed tech is the original value +1.
+Navigation freezes flight and preserves an existing pause.
 
-Once docked, flight simulation freezes and the market opens:
+**H starts hyperspace from flight.** You can choose a destination while docked,
+but must close navigation (9) and launch (L) before jumping. Zero-distance and
+out-of-fuel jumps are rejected. The original counters start at 15, wait 15 game
+updates for the first decrement, then 5 per decrement:85 updates in total.
+The HUD shows the countdown, flight/combat continues, and Space pauses it.
+Destination selection is frozen while the countdown runs.
 
-- Up/Down selects one of the 17 original commodities.
-- B buys one unit, subject to stock, cash and original hold checks.
-- S sells the entire selected cargo stock.
-- L launches again; the station is behind you.
+Arrival deducts the original rounded distance, halves legal status, preserves
+commander/cargo/ammo/equipment and generates the destination's market from its
+economy plus a new visit fluctuation. Dock, buy/sell, then open 9 and press **R**
+to buy a full tank at the original 0.2 Cr per fuel tenth. Insufficient cash
+leaves both tank and cash unchanged. The cockpit fuel gauge now tracks fuel.
+Local launches preserve the current market; a hyperspace visit regenerates it.
 
-Docking replenishes shields and energy. Launch preserves credits, tally, cargo,
-legal status, remaining missiles and equipment, including spent bombs and lost
-equipment. Contraband applies the original BAD legal-status arithmetic.
-The market persists across launches and re-docking. Original selling does not
-replenish station stock. **N and scene-selection keys still reset progress.**
+**G uses the one-use galactic hyperdrive.** One is fitted in this test loadout.
+The Superior Electron variant rotates each of the six galaxy-seed bytes,
+advances the galaxy modulo 8, clears legal status and selects the nearest
+system to (96,96). The first jump arrives at Ororra in galaxy 2. Galactic travel
+does not consume normal fuel. The drive is spent when the countdown begins.
+There is no drive-purchase screen yet, so only the initially fitted drive is
+available in an uninterrupted game; native tests refit it to verify all eight
+transitions and wraparound. **N/scene reset still erases progress**, returns to
+Lave and restores the test loadout. There is no disk save yet.
 
-This is one fixed local test system: economy 5, fluctuation 0. Station placement,
-launch pose and the two nearby fighters are native test fixtures; fighters and
-other encounter objects reset on launch. There is no galaxy/hyperspace travel,
-commander save, equipment shop, docking computer or tunnel animation yet.
-Station compass selection is scene-based, not the original safe-zone selector.
+## What is original, and what is still a test scene
 
-## A18 validation
+travel.s translates TT54/TT20 seed twisting, cpl names, TT24 economy/government/
+tech, TT111 distance, hyp/wW/TT107 countdown, Ghy seed rotation/selection,
+TT18 fuel deduction and SOLAR legal decay. No C game loop or 6502 interpreter
+is linked into ELITEASM. Original instruction interpreters are test tools only.
 
-ELITEMKT passes 2,048 original economy/fluctuation market comparisons and 2,048
-transaction/BAD cases. ELITEDCK passes 2,048 original docking cases. Transaction
-tests execute original tnpr/LCASH/MCASH/BAD helpers with a test adapter around
-buy/sell decisions; they do not emulate the complete original trading UI.
+The navigation directory is a QL UI, not a recreation of the chart crosshairs.
+Arrivals place the station ahead with two nearby fighters using the A18 approach
+fixture; this is not the original SOLAR planet/station geometry or encounter
+population. No hyperspace tunnel, rendered planet, witchspace, sound or full
+universe creation is claimed. Galactic seed/location/legal changes commit at
+countdown completion rather than immediately in Ghy. GVL uses the existing
+DORND routine with explicit carry0 at the missing whole-game RNG boundary.
 
-All diagnostic jobs and both live harnesses pass, including BASIC EXEC_W at
-128 and 640 KB. Live tests fly the first approach, dock, trade, launch and
-re-dock, checking state preservation, rejected trades, contraband status,
-slow collision damage, fast collision death and all earlier combat regressions.
+Docking retains original alignment, hostility, proximity and failed-approach
+speed checks. A bad approach below speed 5 dents the ship; at 5 or above it is
+fatal. Docked Up/Down selects cargo, B buys one, S sells all selected stock,
+and L launches. Docking replenishes shields and energy; launches do not grant
+new missiles, bombs or equipment. Station compass selection is scene-based.
 
-ELITEASM is 37,518 bytes plus 8,584 bytes QDOS data space. At 128 KB, BASIC
-EXEC_W leaves a 7,680-byte largest free block. Physical 68008 timing remains
-unmeasured. The inherited passive benchmark is not an active-game FPS claim.
-Logs are docs/A18-BUILD.log, A18-INTEGRATION.log and A18-BASIC.log.
-SCREENS.png shows actual market and launched-flight captures; some test cargo
-and equipment states are injected to exercise persistence.
+## A19 validation
+
+- All 2,048 systems across eight galaxies: original-instruction seed/name,
+  economy, government and tech comparisons.
+- 2,048 original SQUA2/LL5 distance comparisons, including 16-bit sum wrapping.
+- Native checks for countdown length, rejection, fuel purchase, legal decay,
+  destination locking and all eight galactic transitions.
+- Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
+  direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
+
+The game is 40,440 bytes plus 8,456 bytes QDOS data space. BASIC EXEC_W leaves a
+5,120-byte largest free block at 128 KB. Physical 68008 timing remains unmeasured;
+the passive benchmark is not an active-game performance claim. Logs are in
+A19-BUILD/INTEGRATION/BASIC.log, with focused travel checks in A19-TRAVEL.log.
+SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
+captures. Tests inject cargo/equipment/legal states for preservation checks and
+disable nearby fighter AI during the travel test; combat is tested separately.
 
 ## Controls
 
@@ -64,7 +89,12 @@ and equipment states are injected to exercise persistence.
 | 4 | Sidewinder/Viper/Mamba missile encounter |
 | 5 | Python/Cobra/Mamba salvage encounter |
 | 6 | Open/close commander status and cargo manifest |
-| 7 | Reset to station approach encounter |
+| 7 | Reset to station approach encounter at Lave |
+| 9 | Navigation page; press again to return |
+| Navigation: Left/Right | Previous/next system within remaining fuel |
+| Navigation: Up/Down | Browse all 256 systems |
+| H / G | Hyperspace to selected system / use galactic hyperdrive |
+| Navigation while docked: R | Buy enough fuel to fill the tank |
 | Docked: Up/Down, B, S, L | Select commodity, buy one, sell all selected, launch |
 | T / U / M | Arm and acquire a missile target / disarm / launch |
 | E | ECM, if fitted; holding repeats after expiry |
@@ -88,7 +118,7 @@ adapter, not a recreation of the original STATUS screen's system-name layout.
 ## Retained commander behavior
 
 Each reset starts this test commander with **100.0 Cr**, zero kills and clean
-legal status. Credits, tally and cargo persist through docking and launch in the local loop.
+legal status. Credits, tally and cargo persist through docking, launch and hyperspace.
 There is no disk save or continuity across N/scene reset yet.
 
 Laser kills execute original EXNO2 tally arithmetic, including 16-bit wrap and
@@ -112,7 +142,7 @@ Native CASH is the original big-endian four-byte total in tenths of a credit;
 TALLY retains its original little-endian byte pair. STATUS rank decisions are
 ported, with thresholds 8,16,32,64,128,512,2560,6400. Legal presentation uses
 Clean at zero, Offender at 1–49, and Fugitive at 50+. Killing a Viper makes this
-commander a fugitive; police spawning, legal decay and docking fines are absent.
+commander a fugitive; police spawning and docking fines are absent; hyperspace now halves legal status.
 
 DLY is shared by the two new commander messages and decremented once per
 simulation update. The complete original text-token/message system is not
@@ -145,9 +175,10 @@ unusual tnpr special branch for indices 13–16; the underlying hold arithmetic
 was not changed to match a newly invented capacity model. N resets all stocks.
 
 The unrendered test planet follows player-relative movement and drives the
-original pod navigation routines. Local docking and markets now work. Galaxy travel, a complete universe, rendered
-planets, original station-safe-zone selection, equipment purchases, player
-escape launch, sound and commander saves are unfinished. Native projection/clipping and fixed slots
+original pod navigation routines. Inter-system and galactic travel now work with destination markets. A complete
+universe, rendered planets, original station-safe-zone selection, equipment
+purchases beyond refuelling, player escape launch, sound and commander saves
+are unfinished. Arrivals still use the station-approach encounter fixture. Native projection/clipping and fixed slots
 remain adaptations; see docs/FIDELITY.md for inherited arithmetic boundaries.
 
 ## Validation and build
@@ -165,8 +196,8 @@ Both live-job harnesses exercise delayed bounty, one-time settlement, tally,
 ECM tally, police status, all cargo display units, frozen state, exact viewport
 restoration (including an active explosion), reset, and inherited combat,
 scanner, controls, inverted pitch, keyboard/EXEC_W and clean-exit behavior.
-A BASIC EXEC_W launch at 128 KB leaves a 7,680-byte largest free block.
-Logs and actual emulator captures are in docs/A18-*.log and docs/SCREENS.png.
+A BASIC EXEC_W launch at 128 KB leaves a 5,120-byte largest free block.
+Logs and actual emulator captures are in docs/A19-*.log and docs/SCREENS.png.
 Screenshots containing every commodity or Elite rank use injected test states;
 these are display tests, not claims of completing those achievements in play.
 
@@ -181,21 +212,24 @@ bash tests/run-basic.sh /absolute/path/to/qlbox-r9
 Keep `-fno-omit-frame-pointer` for C diagnostics. Regenerate modified reference
 fixtures BEFORE building. `run-qlbox.sh` normally regenerates fixtures but runs
 already-built jobs; `SKIP_REFERENCES=1` skips that generation when already done.
-The A18 release was rebuilt after generation and tested with that setting.
+The A19 release was rebuilt after generation and tested with that setting.
 QLBox sources, JS ROM and compiler are external and not bundled. No compiler is
 needed to run ELITEASM. Attribution: NOTICE.md.
 
 Blueprint headers append the original bounty word at offset 38 (40-byte header),
-preserving earlier offsets. Stats magic is EQB8/6800. Pointers at offsets 138
+preserving earlier offsets. Stats magic is EQB9/6800. Pointers at offsets 138
 and 142 expose the 10-byte commander record and modal-page word. Commander
 layout: CASH[4], TALLY[2], FIST, DLY, native message ID, padding. The source
 excerpts describe logic; native presentation and test-scene reset are explicit
 adapters. No modern combat-rating table replaces the Electron thresholds.
 
-A17 appends debug pointers at146 (equipment[5]),150 (compass cache[4]) and
+A17 appends debug pointers at 146 (equipment[5]),150 (compass cache[4]) and
 154 (loss count). Cargo[17] and equipment[5] are contiguous in original QQ20
 order: ECM,scoops,bomb,energy-unit,docking-computer. The new jobs are ELITEEQP,
 ELITECMP and ELITEPLN; the large fixture jobs should be run with640KB.
 
-A18 appends pointers at158 (docked word),162 (market34 bytes),166 (selection
-word). New jobs ELITEMKT and ELITEDCK use large fixtures and run at640KB.
+A18 appends pointers at 158 (docked word),162 (market34 bytes),166 (selection
+word). New jobs ELITEMKT and ELITEDCK use large fixtures and run at 640 KB.
+
+A19 adds debug pointers170(travel64),174(navigation word),178(arrival word).
+ELITETRV contains the large original-source travel fixture corpus; run at 640 KB.

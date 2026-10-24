@@ -195,3 +195,27 @@ ammo preservation, BAD, exact flight/scanner rendering, slow dent, fast crash
 and restart. ONLY_DOCK=1 is a focused mode; release logs use the entire suite.
 Logs:A18-BUILD/INTEGRATION/BASIC.log. Largest BASIC free block:7680 bytes at128KB,
 522752 at640KB. This is an emulator memory result, not real-hardware timing.
+
+## A19 travel
+
+travel_reference.py executes bundled original-travel.asm using the6502 test
+interpreter with BIT/BVS and a TT27 digram-output adapter. Corpus:2048 system
+seed/name/economy/government/tech records and2048 original SQUA2/LL5 distances.
+Nearest IDs are first strict minima over those original-generated records.
+ELITETRV checks all records, distance results, output guards,85-tick countdown,
+failed starts, frozen destination, fuel/cash, arrival legality and eight galaxy
+transitions. Transition checks are source-derived expectations; the full
+original UI/Ghy/tunnel is not instruction-emulated. Raw transition excerpts
+are also bundled for review.
+
+travel_check.h runs with both job harnesses at128/640KB, checking selection,
+page freeze, countdown/pause, commander/cargo/equipment/ammo preservation,
+fuel/legal decay, destination market, approach/dock/refuel, launch and Ororra
+in galaxy2 with a consumed drive. Initial fighters are disabled to isolate
+travel; inherited tests still exercise live combat. Screens use injected cargo
+and legal states. The additional market check compares all17 price/stock pairs
+against destination economy/fluctuation. Fuel gauge is checked by the full
+dashboard oracle. ONLY_TRAVEL=1 runs this focused check.
+
+Release logs:A19-BUILD/INTEGRATION/BASIC.log; A19-TRAVEL.log adds focused checks.
+BASIC largest free blocks:5120 bytes at128KB,520192 bytes at640KB.

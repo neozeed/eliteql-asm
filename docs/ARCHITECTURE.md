@@ -337,3 +337,25 @@ setup, skips market regeneration, clears old XOR caches, and applies BAD.
 No replacement ammo/equipment is granted. Station launch pose and fighter
 respawn are explicit fixtures. No second framebuffer is allocated.
 Stats EQB8/6800 adds docked ptr158,market ptr162,selection ptr166.
+
+## A19 travel and destination markets
+
+travel.s owns a64-byte record: galaxy seed[6],galaxy,current ID,target ID,fuel,
+GHYP,countdown,internal countdown,kind,market fluctuation,error,then two24-byte
+system records at16 and40. System records contain seed6,economy,government,tech,
+name9 and6 padding bytes. Fields are bytes; seed words retain little-endian
+layout. C ABI arguments are32-bit stack slots; records must be word-aligned.
+
+Galaxy generation is on demand, avoiding a resident2048-system table. Galactic
+nearest search advances the seed four twists per candidate, as TT20 does,
+rather than regenerating each system from the galaxy origin. No large heap or
+framebuffer was added. RNG storage is byte-copied across arrival to avoid odd
+68000 long-word accesses. Only three keyboard rows are scanned for navigation
+shortcuts outside its modal page; arrow polling is added inside the page.
+
+Arrival reuses the launch/reset adapter but skips BAD and the behind-player
+station pose. It keeps commander,cargo/equipment,ammo and travel record, restores
+the RNG, then replaces the market from destination economy/fluctuation. Flight
+objects are reset. Docking clears pending countdown. Fuel is drawn through the
+new dials_fuel entry using original DILX+2 scaling and the existing DIL writer.
+Stats EQB9/6800 appends travel ptr170,nav word ptr174,arrival word ptr178.
