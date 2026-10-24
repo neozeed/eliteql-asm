@@ -132,3 +132,18 @@ In-game filename prompts use the same path; title-load cancellation still return
 to the title. Station-root Esc stays in the bay. Pause state is preserved, and
 bare-cockpit/title exit semantics remain unchanged. Cheat key 0 keeps the earlier
 return-to-previous-screen behavior. This is an explicit user-requested QL UI fix.
+
+
+## RC5b deliberate quit (supersedes previous Escape exit notes)
+
+In production, backslash (QL matrix key 0x35) opens a modal QUIT TO BASIC? Y/N
+prompt before title, menu or gameplay dispatch. Only fresh Y exits. N/Esc cancels;
+other keys are ignored. Opening sets the shared release gate so a preheld Y cannot
+confirm. A 2,048-byte saved screen band restores the exact prior pixels; no full
+screen allocation is needed. Simulation is frozen; nested menu and pause state
+are retained. Debug pointer 330 exposes quit_active for the harness.
+
+All production direct-Escape exit paths are removed, including both titles and
+the second flight key scan. Bare-cockpit Esc stays in game; paused Esc no longer
+restarts the commander. Menus retain RC5a's root return. Legacy ELITEDEV diagnostic
+exit shortcuts are unchanged. This is a deliberate user-requested QL UI policy.

@@ -11,7 +11,7 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .ascii "EliteQL 1.0 RC5a\0"
+__prog_name: .ascii "EliteQL 1.0 RC5b\0"
 .align 2
 asm_stats:
  .data4 0x45514248,0x36383030
@@ -98,6 +98,7 @@ universe_remove_debug: .data4 uni_remove_current
 universe_cloud_debug: .data4 asm_cloud
 universe_models_debug: .data4 _models
 cheat_debug: .data4 cheat_active
+quit_debug: .data4 quit_active
 asm_snapshot_size: .data4 32768
 asm_snapshot_rle: .data2 0
 asm_tunnel_phase: .data2 0
@@ -349,6 +350,12 @@ asm_loop:
  move.l d0,asm_nextkeys
  jsr _keyboard_drain
  tst.w _release_mode
+ beq quit_poll_skip
+ bsr quit_poll
+ tst.w d0
+ bne asm_update_stats
+quit_poll_skip:
+ tst.w _release_mode
  beq flow_normal
  tst.w flow_state
  bne flow_dispatch
@@ -377,20 +384,10 @@ cheat_poll_done:
  beq flow_not_escape
  tst.w _release_mode
  beq flow_escape_legacy
- move.w asm_docked,d0
- or.w asm_nav,d0
- or.w asm_page,d0
- or.w asm_shop,d0
- beq flow_escape_legacy
  bsr menu_escape
  bra asm_update_stats
 flow_escape_legacy:
- tst.w asm_paused
- beq asm_finish
- tst.w _release_mode
- beq asm_finish
- bsr flow_title_load
- bra asm_update_stats
+ bra asm_finish
 flow_not_escape:
  tst.w asm_paused
  beq flow_not_config
@@ -499,6 +496,8 @@ asm_bench_done:
  moveq #1,d0
  bsr asm_keyrow
  move.w d0,asm_row1
+ tst.w _release_mode
+ bne release_pause_key
  btst #3,d0
  bne asm_finish
  tst.w _release_mode
@@ -737,6 +736,8 @@ release_fire:
  beq asm_draw_begin
  move.b #255,asm_fire_key
 asm_draw_begin:
+ tst.w quit_active
+ bne asm_update_stats
  tst.w cheat_active
  bne asm_update_stats
  tst.w flow_state
@@ -5215,7 +5216,7 @@ flow_dispatch:
  cmp.w #-1,d0
  beq flow_title_frame
  cmp.w #27,d0
- beq asm_finish
+ beq flow_title_frame
  bsr flow_title_ready
  bra asm_wait
 flow_title_yes:
@@ -5226,7 +5227,7 @@ flow_ready_keys:
  cmp.w #-1,d0
  beq flow_title_frame
  cmp.w #27,d0
- beq asm_finish
+ beq flow_title_frame
  ; TITLE returns on any key in the actual Electron instructions.
  bsr flow_restore
  move.w #1,flow_release_gate
@@ -5505,7 +5506,7 @@ flow_pause_done:
  rts
 
 .sect .data
-flow_keymap: .data1 0,0,0,88,86,0,78,0,56,50,54,81,69,48,84,85,57,87,73,0,82,0,89,79,76,51,72,49,65,80,68,74,0,2,75,83,70,0,71,0,0,90,0,67,66,0,77,0,13,8,0,27,0,0,32,0,0,0,53,0,0,1,52,55
+flow_keymap: .data1 0,0,0,88,86,0,78,0,56,50,54,81,69,48,84,85,57,87,73,0,82,0,89,79,76,51,72,49,65,80,68,74,0,2,75,83,70,0,71,0,0,90,0,67,66,0,77,0,13,8,0,27,0,92,32,0,0,0,53,0,0,1,52,55
 .align 2
 .sect .text
 ; DEATH D1: four canisters, Ze random signs, ROR pitch and killed flag,
@@ -6348,4 +6349,64 @@ menu_escape_cockpit:
 menu_escape_done:
  bsr asm_draw_dials
  moveq #1,d0
+ rts
+
+; Deliberate quit: preserve a 16-scanline band, no full-screen allocation.
+.sect .data
+.align 2
+quit_active: .data2 0
+quit_old: .data2 0
+quit_text: .ascii "QUIT TO BASIC? Y/N (ESC CANCEL)\0"
+.align 2
+.sect .bss
+quit_band: .space 2048
+.sect .text
+quit_poll:
+ tst.w quit_active
+ bne quit_keys
+ moveq #1,d0
+ bsr asm_keyrow
+ and.w #32,d0
+ move.w quit_old,d1
+ eor.w d0,d1
+ move.w d0,quit_old
+ and.w d0,d1
+ beq quit_idle
+ move.w #1,quit_active
+ move.w #1,flow_held
+ lea 0x22800,a0
+ lea quit_band,a1
+ move.w #511,d0
+quit_save:
+ move.l (a0),(a1)+
+ clr.l (a0)+
+ dbra d0,quit_save
+ lea quit_text,a4
+ moveq #84,d6
+ bsr asm_text
+ bra quit_consumed
+quit_keys:
+ bsr flow_read_key
+ cmp.w #89,d0
+ beq asm_finish
+ cmp.w #78,d0
+ beq quit_cancel
+ cmp.w #27,d0
+ bne quit_consumed
+quit_cancel:
+ lea quit_band,a0
+ lea 0x22800,a1
+ move.w #511,d0
+quit_restore:
+ move.l (a0)+,(a1)+
+ dbra d0,quit_restore
+ clr.w quit_active
+ move.w #32,quit_old
+ move.w #1,flow_release_gate
+ move.w #1,flow_held
+quit_consumed:
+ moveq #1,d0
+ rts
+quit_idle:
+ moveq #0,d0
  rts

@@ -1,11 +1,23 @@
-# EliteQL 1.0 RC5a
+# EliteQL 1.0 RC5b
 
 Native 68000/QDOS adaptation of Acorn Electron Elite. RC4 replaces the production
 fixed ship pool with the source-derived compact universe list. All gameplay is
 assembly; RC3a remains an independent fallback. This is still a release candidate:
 whole-game RNG identity and real-hardware timing are not claimed.
 
-## RC5a menu Escape fix
+## RC5b deliberate quit
+
+**Backslash (`\`) opens QUIT TO BASIC? Y/N.** Only a fresh **Y** confirms.
+**N** or **Esc** cancels. Other keys do nothing. Simulation freezes while the
+prompt is open; cancellation restores the exact previous screen and pause state.
+A Y key already held when opening cannot confirm. This works in flight, docked,
+on menus, title screens and during the death flow.
+
+**Esc never quits or restarts production gameplay.** In a menu it returns to the
+station bay or cockpit; in the cockpit or title it stays in the game. Paused Esc
+keeps the cockpit paused. RC5a remains a separate historical fallback.
+
+## Menu Escape behavior
 
 **Esc backs out of menus:** docked, it returns to the station bay/market;
 in flight, it returns to the cockpit. This applies to status, cargo, equipment,
@@ -14,8 +26,7 @@ ignores Esc as an exit command. A held Esc must be released before another actio
 so backing out cannot accidentally quit or restart. Existing pause state is kept.
 
 The cheat menu's **0** still closes to its previous screen; **Esc** goes directly
-to the bay/cockpit. Title-screen Escape and the existing bare-cockpit exit/restart
-commands remain available. RC5 is preserved as a separate fallback.
+to the bay/cockpit. Use backslash followed by a fresh Y to quit.
 
 ## RC5 optional cheat menu
 
@@ -66,14 +77,14 @@ The rotating Cobra asks **LOAD NEW COMMANDER (Y/N)?**. Press Y for a name, or N
 to use the last saved commander held in memory (Jameson on first start). The
 rotating Mamba then shows **PRESS FIRE OR SPACE, COMMANDER** before the docking
 bay. Like the original TITLE routine, that second screen accepts any key.
-Escape on either title screen exits to QDOS.
+Escape on either title screen stays there; backslash opens the quit confirmation.
 
 Death shows GAME OVER with the Electron DEATH routine's four-canister scene,
 then holds the final frame until a fresh press of Space returns to the load
 question. A key held during the animation cannot skip the screen. This requested
 QL presentation change deliberately differs from Electron’s timed return. N restores the last successful save/load;
 it does not award a new commander or retain unsaved progress. With no save,
-it restores the default Jameson. Paused Escape also returns to the title.
+it restores the default Jameson. Paused Escape stays in the game.
 
 Save/load accepts a commander name of 1–7 letters or digits. Left (or Backspace)
 deletes, Enter accepts, Escape cancels. The QDOS file is WIN1_<NAME>; for example,
@@ -97,7 +108,7 @@ While paused with F5:
 | A | Toggle automatic recentring |
 | X | Toggle title author credits |
 | F | Toggle the original inert flashing-bar flag |
-| Escape | Return to the title/load question |
+| Escape | Stay paused in the game |
 | F5 | Resume |
 
 The screen stays frozen, as in Electron FREEZE. Toggle keys beep if sound is on.
@@ -114,7 +125,7 @@ Arrow keys retain traditional flight pitch/roll; F remains a fire alias and
 Z a slow-down alias. A no longer accelerates.
 
 Space never toggles pause in ELITEASM. F5 toggles pause/resume as the QL
-substitute for Electron COPY/DELETE. Escape during normal play exits to QDOS and K uses an
+substitute for Electron COPY/DELETE. Backslash opens the quit confirmation and K uses an
 escape capsule. Existing T/U/M, E, -, J and C match Electron's secondary flight
 commands. Docked S remains sell/save, and chart arrows remain cursor controls.
 V now correctly selects the local chart (RC1 accidentally mapped that to X).
@@ -169,7 +180,8 @@ on the navigation page. Press9 again to close navigation.
 |9|Navigation/data/charts|
 |F5|Pause/resume|
 |N at the load question|Restore the last saved commander|
-|Escape|Exit normally; when paused, return to title|
+|Escape|Return from menus; never quit or restart|
+|Backslash|Quit confirmation: fresh Y confirms; N/Esc cancels|
 
 The production job ignores numbered test scenes, live commander reset and
 uncapped simulation. ELITEDEV retains these development controls and the
@@ -194,7 +206,7 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is 62,670 bytes with 7,182 bytes of declared QDOS data space. The game is
+ELITEASM is 62,878 bytes with 9,220 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
 Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not
