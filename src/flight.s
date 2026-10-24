@@ -54,6 +54,7 @@ speed_ready:
  move.b 2(a3),d0
  move.w #128,d1
  bsr translate_axis
+orientation_body:
  ; Part 7: MVS4 on nose, roof, side, in the original order.
  lea 9(a2),a0
  moveq #2,d7
@@ -282,3 +283,11 @@ position_adapter_reject:
 position_adapter_return:
  movem.l (sp)+,d2-d3
  rts
+
+; Shared original parts7/8, used after full-width MV40 planet translation.
+.globl _rotate_body
+_rotate_body:
+ movem.l d2-d7/a2-a3,-(sp)
+ move.l 36(sp),a2
+ move.l 40(sp),a3
+ bra orientation_body

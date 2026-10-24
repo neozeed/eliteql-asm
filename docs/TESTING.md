@@ -285,3 +285,49 @@ and FAROF cleanup at128/640KB. ONLY_ENCOUNTERS=1 selects this focused harness.
 Game-only generated render_game.s/models_game.s omit the obsolete demo matrix
 lookup/table. All live game rendering supplies converted motion matrices.
 Benchmarks and renderer diagnostics retain the full original native renderer.
+
+## A23 world integration (supersedes fixture-only station notes)
+
+station.s translates main flight-loop part14, MAS2/MAS1/MVT3/FAROF2 and NWSPS.
+MAS2 rejects any nonzero coordinate sign-byte magnitude; candidate coordinates
+are planet + 2*nosev using original sign-magnitude arithmetic. All sign-byte
+magnitudes must remain zero and each high byte must be <=192 (the code includes
+192 despite looser wording in source comments). NWSPS flips all three nose high
+sign bits, sets AI1, pitch0 and roll255. Energy/missiles and renderer storage are
+supplied by the existing native insertion adapter. Bytes33/34 are zero rather
+than Electron line-heap addresses. Planet input is never modified.
+
+Original planet orientation now runs TIDY every16 updates and shares native
+MVEIT parts7/8 with ships; position uses the existing full-width MV40 path.
+SOLAR arrivals create no station fixture. A station is attempted every32 updates
+when absent; allocation failure retries later. Its actual allocated address
+controls compass, safe zone and friendly station AI references. Docking is no
+longer limited to the old numbered station scene. After docking, normal launch
+uses TT110/SOS1/NWSPS planet +65536, station -256, speed12. Key7 still offers the
+old aligned approach fixture; key0 is a commander-preserving SOLAR sortie shortcut.
+
+J translates WARP: any present non-asteroid/pod/canister ship or station blocks
+it, as do original distance gates for both planet and type129 placeholder.
+The placeholder is copied from SOLAR planet coordinates and remains frozen
+between jumps; station departure resets it to KS4 coordinates(0,6*65536,0).
+Both distance gates run before either body changes. Original ADD with low bytes
+0x81 preserves a surprising negative-z high-byte increment of TWO, including
+byte wrap; the port follows instructions rather than the simplified comment.
+Successful WARP sets MCNT1 and EV0. Ship coordinates stay in the local bubble.
+Sound/view-clear is replaced with a brief QL status message; jump input is
+edge-triggered and blocked during modal/pause/countdown/dead/docked states.
+No witchspace implementation or original packed FRIN allocation is claimed.
+
+Stats EQBD/6800 appends pointers202(world word),206(station AI pointer variable),
+210(last jump result word:0 none,1 jumped,2 blocked),214(jump count long),
+218(frozen placeholder9). Station AI address minus32 identifies its INWK block.
+Existing offsets and EQA1 commander files are unchanged.
+
+ELITESTA compares4096 station cases (1769 eligible),2048 WARP planet primitives,
+1024 complete two-body WARP cases and768 shared orientation cases against executed
+original excerpts. Launch state is source-derived. Source oracle adapters own
+entry/exit, allocation, sound and line-heap addresses. Live tests at both RAM
+sizes seed a nearby planet, create a station in slot5, freeze roll after creation
+for deterministic alignment, then fly/dock/launch. Travel tests similarly inject
+only the nearby planet pose to avoid a long manual approach. Production arrivals
+keep SOLAR state and station roll. A23 logs record actual completed regressions.

@@ -1,47 +1,60 @@
-# EliteQL ASM A22 — original encounter spawning
+# EliteQL ASM A23 — original stations, planet rotation and in-system jumps
 
-A22 converts the Electron's ambient encounter generator to native 68000:
-traders, asteroids, loose canisters, police, pirates and bounty hunters now
-enter the live flight loop. A21 is preserved separately. Full source and
-runnable QDOS jobs are included.
+A23 connects the original Electron station-creation logic to live flight.
+Hyperspace arrivals now start with the SOLAR planet and no station placed ahead.
+Every32 flight updates, original MAS2/MAS1/MVT3/FAROF2 checks decide whether
+we are close enough to the station's position: planet centre + twice its nose
+vector. NWSPS flips the station nose toward the planet, sets friendly ECM AI,
+zero pitch and continuous roll. The compass then follows the actual station.
+The planet now receives original TIDY and MVEIT orientation updates as well as
+its already-converted full-width position updates.
 
-Press **0** in flight for deep space with live encounters. This shortcut keeps
-credits, cargo, equipment and travel state, but resets the local flight scene
-and shields through the existing launch adapter. Encounters use the original
-256-update cadence and random probabilities: ships need not appear immediately.
-The old numbered combat scenes remain useful for immediate action.
+**J performs an in-system jump.** Face the compass target and use J while the
+way is clear. Ships and stations mass-lock it; asteroids, pods and canisters
+are exempt. The original distance checks for both planet and frozen type129
+station placeholder apply. A brief status message reports a jump or lock.
+J is edge-triggered, costs no fuel and does not operate while paused, docked,
+on a modal page, dead or counting down hyperspace. Normal flight is still needed
+near the planet. There is no rendered planet yet: use the compass.
 
-Normal launches and hyperspace arrivals also enable ambient encounters and
-clear the staged fighters. The station's presence suppresses hostile spawning;
-traders can still arrive. Beyond that safe zone, government, legal status,
-contraband, existing police and asteroid counts influence the original branches.
-Ships beyond the original FAROF limit leave the pool without awarding a kill.
+Normal launch now uses the original TT110/SOS1/NWSPS positions: planet ahead
+at65536, station behind at256, and launch speed12. Arrivals and launches retain
+A22 ambient encounters. Station departure uses FAROF and recreates the original
+KS4 placeholder coordinates; later approaches can create a new station.
 
-**Station placement remains a fixture.** Original station creation, rendered
-planets, full universe lifecycle, other views, docking computer and sound remain
-unfinished. The native twelve-slot pool replaces original NWSHP allocation;
-spawn-step input carry is explicitly zero at the incomplete full-loop boundary.
+**7 retains the quick aligned docking test scene.** **0** starts a fresh deep
+space sortie at the current system's SOLAR position, retaining commander state
+but resetting the local flight/shields. Other numbered combat scenes remain.
+N and numbered scene resets erase progress; use normal launch/hyperspace to
+keep playing your commander.
 
-ELITEENC compares 2,048 cases against executed original 6502 excerpts, including
-RNG bytes, carry/overflow effects, complete spawn records, capacity and EV state.
-Live checks exercise eight ship-type branches, rendering/scanner updates,
-commander preservation and departure. Their seeds, cargo and government are
-injected for repeatability; the production scheduler uses live state.
+This still is not feature-complete: planet drawing, altitude/environment
+interaction, original station traffic/tactics, other views, docking computer,
+sound and remaining presentation need work. The fixed twelve-ship pool and QL
+UI remain native adaptations. Station creation retries when that pool is full;
+it does not implement original heap allocation or UNIV compaction.
 
-The game no longer links the old demo orientation table. Its converted motion
-matrices provide orientation; the standalone benchmark retains the table.
-ELITEASM is 40,682 bytes plus 8,246 bytes of QDOS data space. Physical 68008
-timing remains unmeasured. Full direct-job and BASIC EXEC_W regressions pass
-at both 128 KB and 640 KB. At 128 KB, BASIC EXEC_W leaves a 5,120-byte
-largest free block after startup. Release checks are in docs/A22-*.log.
+ELITESTA checks4096 station cases against executed original6502 excerpts,
+2048 planet-jump cases,1024 complete two-body WARP cases and768 orientation
+cases. Launch state has a direct source-derived check. Live tests exercise
+J/pause/mass lock, rotation, creation in a nonzero slot, duplicate suppression,
+compass target ownership, approach/docking and launch. The long approach tests
+inject a nearby planet pose and hold the station's roll for reproducible
+alignment; real flight retains original SOLAR placement and station rotation.
 
-A20 commander save files remain compatible; encounter state is transient.
-Press **9**, then **C** for the A21 galaxy chart; H/G retain hyperspace functions.
+A22 is preserved separately. A20 commander saves remain compatible. World and
+placeholder state are transient; docked saves resume through normal launch.
+ELITEASM is41,984 bytes plus8,176 bytes QDOS data space. Full direct-job and
+BASIC EXEC_W regressions pass at128KB and640KB; BASIC at128KB leaves a
+3,584-byte largest free block after startup.
+Release logs are docs/A23-BUILD/INTEGRATION/BASIC/STATION.log. All gameplay is
+native68000; C and6502 interpreters are only diagnostic tools. Physical68008
+performance remains unmeasured.
 
 Run `EXEC_W WIN1_ELITEASM` with this archive's host directory mounted:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a22\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a23\host
 ```
 
 ## Equipment and upgrades
@@ -93,10 +106,10 @@ a galactic drive already consumed by starting that jump is not refunded.
 
 ## Scope and verification
 
-This is another substantial step, **not feature completion**. Original station
-placement, rendered planets/environment interactions,
+This is another substantial step, **not feature completion**.
+Rendered planets/environment interactions,
 full charts and views, docking-computer operation, sound and presentation still
-need work. Arrivals continue to use the A18 station-approach fixture.
+need work. Key7 retains the A18 approach fixture as a test shortcut.
 
 ELITESHP tests3072 source-derived transaction combinations across all12 item
 indices,16 tech values and16 cash/equipment configurations. These expectations
@@ -149,10 +162,9 @@ TT18 fuel deduction and SOLAR legal decay. No C game loop or 6502 interpreter
 is linked into ELITEASM. Original instruction interpreters are test tools only.
 
 The navigation directory is a QL UI, not a recreation of the chart crosshairs.
-Arrivals place the station ahead using the A18 approach fixture, clear staged
-fighters and enable original ambient spawning. Station placement is not the
-original SOLAR planet/station geometry. No hyperspace tunnel, rendered planet, witchspace, sound or full
-universe creation is claimed. Galactic seed/location/legal changes commit at
+Arrivals use original SOLAR planet placement, clear staged fighters and enable
+original ambient spawning. Station creation uses original main-loop part14. No hyperspace tunnel, rendered planet, witchspace, sound or complete
+universe lifecycle is claimed. Galactic seed/location/legal changes commit at
 countdown completion rather than immediately in Ghy. GVL uses the existing
 DORND routine with explicit carry0 at the missing whole-game RNG boundary.
 
@@ -160,7 +172,7 @@ Docking retains original alignment, hostility, proximity and failed-approach
 speed checks. A bad approach below speed 5 dents the ship; at 5 or above it is
 fatal. Docked Up/Down selects cargo, B buys one, S sells all selected stock,
 and L launches. Docking replenishes shields and energy; launches do not grant
-new missiles, bombs or equipment. Station compass selection is scene-based.
+new missiles, bombs or equipment. Station compass selection follows the live allocated station.
 
 ## A19 validation
 
@@ -172,7 +184,7 @@ new missiles, bombs or equipment. Station compass selection is scene-based.
 - Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
   direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
 
-See the A22 size and validation notes above. The passive benchmark is not an
+See the A23 size and validation notes above. The passive benchmark is not an
 active-game performance claim.
 SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
 captures. Tests inject cargo/equipment/legal states for preservation checks and
@@ -186,7 +198,8 @@ disable nearby fighter AI during the travel test; combat is tested separately.
 | 5 | Python/Cobra/Mamba salvage encounter |
 | 6 | Open/close commander status and cargo manifest |
 | 7 | Reset to station approach encounter at Lave |
-| 0 | Deep space with original ambient encounters; retain commander |
+| 0 | SOLAR deep space with original encounters; retain commander |
+| J | In-system jump, subject to mass lock and distance checks |
 | 8 while docked | Equipment shop; press again for market |
 | Shop: B / S / O | Buy selected item / save / load |
 | K in flight | Use a fitted escape capsule |
@@ -276,7 +289,7 @@ was not changed to match a newly invented capacity model. N resets all stocks.
 
 The unrendered test planet follows player-relative movement and drives the
 original pod navigation routines. Inter-system and galactic travel now work with destination markets. A complete
-universe, rendered planets, original station creation, docking-computer operation and sound remain unfinished. Arrivals still use the station-approach encounter fixture. Native projection/clipping and fixed slots
+universe, rendered planets, station traffic/tactics, docking-computer operation and sound remain unfinished. Key7 retains the station-approach fixture. Native projection/clipping and fixed slots
 remain adaptations; see docs/FIDELITY.md for inherited arithmetic boundaries.
 
 ## Validation and build
@@ -294,7 +307,7 @@ Both live-job harnesses exercise delayed bounty, one-time settlement, tally,
 ECM tally, police status, all cargo display units, frozen state, exact viewport
 restoration (including an active explosion), reset, and inherited combat,
 scanner, controls, inverted pitch, keyboard/EXEC_W and clean-exit behavior.
-Current BASIC EXEC_W memory measurements are recorded in docs/A22-BASIC.log.
+Current BASIC EXEC_W memory measurements are recorded in docs/A23-BASIC.log.
 Logs and actual emulator captures are in docs/A19-*.log and docs/SCREENS.png.
 Screenshots containing every commodity or Elite rank use injected test states;
 these are display tests, not claims of completing those achievements in play.
@@ -338,3 +351,11 @@ The focused A20-SHOP.log additionally verifies file restoration after scene rese
 ELITEENC needs 640 KB for its diagnostic fixture corpus. Regenerate it with
 `python3 tests/encounters_reference.py` before rebuilding. `ONLY_ENCOUNTERS=1`
 selects the focused live check in either harness.
+
+ELITESTA needs640KB for the original station/WARP/orientation diagnostic corpus.
+Regenerate with `python3 tests/station_reference.py` before rebuilding.
+`ONLY_STATION=1` selects the focused live world checks in either harness.
+
+`docs/A23-generated-station.png` shows the live source-generated station after
+the test-only nearby-planet setup; five other occupied slots force allocation
+in slot5. It is not a screenshot of an unassisted long approach.

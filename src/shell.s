@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514243,0x36383030
+ .data4 0x45514244,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -66,6 +66,18 @@ asm_shop_debug: .data4 asm_shop
 asm_ambient_debug: .data4 asm_ambient
 asm_encounter_debug: .data4 asm_enc_params
 asm_spawn_count_debug: .data4 asm_enc_spawns
+asm_world_debug: .data4 asm_world
+asm_station_debug: .data4 asm_station
+asm_warp_debug: .data4 asm_warp_result
+asm_warps_debug: .data4 asm_warps
+asm_placeholder_debug: .data4 asm_placeholder
+asm_placeholder: .space 9
+.align 2
+asm_world: .data2 0
+asm_warp_result: .data2 0
+asm_warp_key: .data2 0
+asm_warp_timer: .data2 0
+asm_warps: .data4 0
 asm_ambient: .data2 0
 asm_deep_key: .data2 0
 asm_enc_spawns: .data4 0
@@ -276,8 +288,33 @@ asm_flight_keys:
  move.w #3,asm_salvage
  move.w #12,asm_count
  bsr asm_launch
+ clr.l -(sp)
+ moveq #0,d0
+ move.b asm_travel+24,d0
+ move.l d0,-(sp)
+ pea asm_travel+16
+ pea asm_planet
+ jsr _solar_planet
+ lea 16(sp),sp
+ bsr asm_copy_placeholder
  bra asm_update_stats
 asm_deep_done:
+ moveq #4,d0
+ bsr asm_keyrow
+ and.w #128,d0
+ move.w asm_warp_key,d1
+ eor.w d0,d1
+ move.w d0,asm_warp_key
+ and.w d0,d1
+ beq asm_warp_key_done
+ tst.w asm_page
+ bne asm_warp_key_done
+ tst.w asm_paused
+ bne asm_warp_key_done
+ tst.w asm_dead
+ bne asm_warp_key_done
+ bsr asm_warp
+asm_warp_key_done:
  moveq #6,d0
  bsr asm_keyrow
  and.w #4,d0
@@ -501,13 +538,30 @@ asm_draw_begin:
  move.b asm_controls+4,asm_params
  move.b asm_controls+5,asm_params+1
  move.b asm_controls+12,asm_params+2
- ; Test-scene planet follows original player-relative movement.
+ ; Original planet orientation is live in real-world sorties.
+ tst.w asm_world
+ beq planet_tidy_done
+ move.b asm_mcnt,d0
+ and.b #15,d0
+ bne planet_tidy_done
+ pea asm_planet
+ jsr _tidy_ship
+ addq.l #4,sp
+planet_tidy_done:
+ ; Planet follows original full-width player-relative movement.
  clr.b asm_params+3
  clr.l -(sp)
  pea asm_params
  pea asm_planet
  jsr _move_planet
  lea 12(sp),sp
+ tst.w asm_world
+ beq planet_rotation_done
+ pea asm_params
+ pea asm_planet
+ jsr _rotate_body
+ addq.l #8,sp
+planet_rotation_done:
  ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
  clr.l -(sp)
  moveq #0,d0
@@ -918,6 +972,11 @@ asm_laser_end:
  pea asm_commander
  jsr _commander_tick
  addq.l #4,sp
+ tst.w asm_warp_timer
+ beq warp_timer_done
+ subq.w #1,asm_warp_timer
+warp_timer_done:
+ bsr asm_station_tick
  subq.b #1,asm_mcnt
  bne asm_no_encounter_tick
  bsr asm_encounters
@@ -926,6 +985,7 @@ asm_no_encounter_tick:
  addq.l #1,asm_frames
  bra asm_update_stats
 asm_dock_commit:
+ move.w #2,asm_salvage
  clr.b asm_travel+11
  clr.b asm_travel+13
  ; GOIN/RES4 state boundary. Tunnel/text and local scene are QL adapters.
@@ -1051,6 +1111,10 @@ asm_setup:
  clr.w asm_nav
  clr.w asm_nav_keys
  clr.w asm_ambient
+ clr.w asm_world
+ clr.l asm_warps
+ clr.w asm_warp_result
+ clr.w asm_warp_timer
  clr.l asm_enc_spawns
  clr.b asm_enc_params+5
  ; Initial Lave market, fluctuation0.
@@ -1215,6 +1279,8 @@ asm_port_models_done:
  bne asm_port_pose_done
  cmp.w #2,asm_salvage
  bne asm_port_pose_done
+ lea asm_vectors+32,a0
+ move.l a0,asm_station
  ; Test approach pose: original Coriolis, slot horizontal, nose toward player.
  clr.b asm_vectors+27
  clr.b asm_vectors+29
@@ -1338,8 +1404,6 @@ asm_contact:
  move.l (a5),a0
  cmp.w #7,28(a0)
  bne asm_contact_nonstation
- cmp.w #2,asm_salvage
- bne asm_contact_done
  cmp.w #3,asm_mode
  bne asm_contact_done
  moveq #0,d0
@@ -1602,11 +1666,11 @@ asm_draw_dials:
  pea asm_planet
  cmp.w #3,asm_mode
  bne asm_compass_target_done
- cmp.w #2,asm_salvage
- bne asm_compass_target_done
  tst.l asm_station
  beq asm_compass_target_done
- move.l #asm_vectors,(sp)
+ move.l asm_station,d0
+ sub.l #32,d0
+ move.l d0,(sp)
  move.l #1,8(sp)
 asm_compass_target_done:
  pea 0x20000
@@ -1777,6 +1841,13 @@ asm_hud_not_loss:
  bne asm_hud_message_done
  lea asm_rank_message,a4
 asm_hud_message_done:
+ tst.w asm_warp_timer
+ beq asm_hud_warp_done
+ lea asm_warp_locked_text,a4
+ cmp.w #1,asm_warp_result
+ bne asm_hud_warp_done
+ lea asm_warp_success_text,a4
+asm_hud_warp_done:
  tst.b asm_travel+11
  beq asm_hud_no_hyper
  moveq #0,d0
@@ -1955,15 +2026,30 @@ launch_restore_cargo:
  pea asm_commander
  jsr _launch_legal
  addq.l #8,sp
- ; Local launch fixture: station behind at -2048, facing the departing ship.
- clr.b asm_vectors+6
- move.b #8,asm_vectors+7
- move.b #128,asm_vectors+8
- move.b #96,asm_vectors+14
- move.b #96,asm_vectors+24
- move.w #-2048,asm_ships+8
+ ; TT110/SOS1/NWSPS native launch pose.
+ cmp.w #3,asm_salvage
+ beq launch_arrival_pose
+ pea asm_vectors
+ pea asm_planet
+ jsr _station_launch
+ addq.l #8,sp
+ move.l asm_ships,a0
+ move.w 24(a0),d0
+ move.b d0,asm_vectors+35
+ move.b #12,asm_controls+12
+ move.b #12,asm_params+2
 launch_arrival_pose:
+ move.w #1,asm_world
  bsr asm_ambient_begin
+ tst.w asm_arriving
+ bne launch_empty_world
+ cmp.w #3,asm_salvage
+ bne launch_world_ready
+launch_empty_world:
+ move.b #160,asm_vectors+31
+ clr.b asm_vectors+32
+ clr.l asm_station
+launch_world_ready:
  bsr asm_draw_dials
  rts
 asm_market_page:
@@ -2751,6 +2837,7 @@ arrival_keep_rng:
  pea asm_planet
  jsr _solar_planet
  lea 16(sp),sp
+ bsr asm_copy_placeholder
  lea asm_arrival_rng,a0
  lea asm_laser+5,a1
  moveq #3,d1
@@ -3210,6 +3297,7 @@ encounter_inventory_next:
  pea asm_enc_output
  jsr _encounter_step
  lea 16(sp),sp
+encounter_emit:
  lea asm_enc_output+2,a2
  move.w asm_enc_output,d6
  subq.w #1,d6
@@ -3256,6 +3344,11 @@ encounter_record_copy:
  clr.w 12(a5)
  clr.w 14(a5)
  clr.b 2(a6)
+ cmp.w #7,28(a0)
+ bne encounter_not_station
+ lea 32(a4),a1
+ move.l a1,asm_station
+encounter_not_station:
  addq.l #1,asm_enc_spawns
  bra encounter_record_next
 encounter_find_next:
@@ -3293,6 +3386,12 @@ farof_leave:
  cmp.w #7,28(a0)
  bne farof_unlock
  clr.l asm_station
+ lea asm_placeholder,a0
+ moveq #8,d0
+farof_placeholder_clear:
+ clr.b 0(a0,d0.w)
+ dbra d0,farof_placeholder_clear
+ move.b #6,asm_placeholder+5
 farof_unlock:
  bsr asm_abort_target
  moveq #1,d0
@@ -3300,4 +3399,85 @@ farof_unlock:
 farof_stay:
  moveq #0,d0
 farof_done:
+ rts
+
+.sect .text
+asm_station_tick:
+ tst.w asm_world
+ beq station_tick_done
+ tst.l asm_station
+ bne station_tick_done
+ move.b asm_mcnt,d0
+ and.b #31,d0
+ bne station_tick_done
+ pea asm_planet
+ pea asm_enc_output+4
+ jsr _station_candidate
+ addq.l #8,sp
+ tst.w d0
+ beq station_tick_done
+ move.w #1,asm_enc_output
+ move.w #7,asm_enc_output+2
+ bsr encounter_emit
+station_tick_done:
+ rts
+asm_warp:
+ tst.w asm_world
+ beq warp_shell_done
+ move.w #2,asm_warp_result
+ move.w #32,asm_warp_timer
+ tst.b asm_travel+11
+ bne warp_shell_done
+ moveq #0,d2
+ tst.l asm_station
+ bne warp_shell_block
+ lea asm_vectors,a0
+ lea asm_ships,a1
+ moveq #11,d1
+warp_ship_loop:
+ move.b 31(a0),d0
+ and.b #160,d0
+ cmp.b #160,d0
+ beq warp_ship_next
+ move.l (a1),a2
+ move.w 28(a2),d0
+ cmp.w #9,d0
+ blo warp_shell_block
+ cmp.w #11,d0
+ bhi warp_shell_block
+warp_ship_next:
+ lea 36(a0),a0
+ lea 272(a1),a1
+ dbra d1,warp_ship_loop
+ bra warp_shell_try
+warp_shell_block:
+ moveq #1,d2
+warp_shell_try:
+ move.l d2,-(sp)
+ pea asm_placeholder
+ pea asm_planet
+ jsr _warp_world
+ lea 12(sp),sp
+ tst.w d0
+ beq warp_shell_done
+ move.w #1,asm_warp_result
+ addq.l #1,asm_warps
+ move.b #1,asm_mcnt
+ clr.b asm_enc_params+5
+warp_shell_done:
+ rts
+
+.sect .data
+asm_warp_locked_text: .ascii "IN-SYSTEM JUMP LOCKED\0"
+asm_warp_success_text: .ascii "IN-SYSTEM JUMP\0"
+.align 2
+
+.sect .text
+asm_copy_placeholder:
+ lea asm_planet,a0
+ lea asm_placeholder,a1
+ moveq #8,d0
+copy_placeholder_loop:
+ move.b (a0)+,(a1)+
+ dbra d0,copy_placeholder_loop
  rts

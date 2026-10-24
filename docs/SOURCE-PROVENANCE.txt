@@ -103,3 +103,7 @@ system generation; QL plotting/layout/cross controls are native presentation.
 A22 original-encounters.asm preserves TT100/MTT/Ze/DORND/ZINF/BAD excerpts;
 original-farof.asm preserves FAROF/FAROF2/MA34. The native shell supplies
 allocation, scene and incoming-carry boundaries described in FIDELITY.md.
+
+A23 original-station.asm, original-warp.asm and original-warp-world.asm
+contain part14/MAS1/MAS2/MVT3/FAROF2/NWSPS/NwS1 and WARP/ADD excerpts.
+TT110 launch values and KS4 placeholder reset derive from the same checkout.

@@ -1,0 +1,112 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a23'
+python3 tools/game_sources.py
+python3 tools/game_sources.py
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall src/navigation.s src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEBEN
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall src/navigation.s src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITETST
+host/ELITEBEN: dataspace 4518 (11a6)
+python3 tools/qlmeta.py host/ELITEBEN
+host/ELITETST: dataspace 4422 (1146)
+python3 tools/qlmeta.py host/ELITETST
+host/ELITEBEN: 43118 bytes, QDOS data space 4518
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/motion_test.c src/motion.s src/flight.s -o host/ELITEMOT
+host/ELITETST: 53620 bytes, QDOS data space 4422
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/flight_test.c src/motion.s src/flight.s -o host/ELITEFLT
+host/ELITEMOT: dataspace 652 (28c)
+python3 tools/qlmeta.py host/ELITEMOT
+host/ELITEFLT: dataspace 638 (27e)
+python3 tools/qlmeta.py host/ELITEFLT
+host/ELITEMOT: 70402 bytes, QDOS data space 652
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/tidy_test.c src/tidy.s src/motion.s src/flight.s -o host/ELITETDY
+host/ELITEFLT: 73616 bytes, QDOS data space 638
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/controls_test.c src/controls.s -o host/ELITECTL
+host/ELITETDY: dataspace 712 (2c8)
+python3 tools/qlmeta.py host/ELITETDY
+host/ELITETDY: 54050 bytes, QDOS data space 712
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/scanner_test.c src/scanner.s src/dashboard.s -o host/ELITESCN
+host/ELITECTL: dataspace 530 (212)
+python3 tools/qlmeta.py host/ELITECTL
+host/ELITESCN: dataspace 33560 (8318)
+host/ELITECTL: 102510 bytes, QDOS data space 530
+python3 tools/qlmeta.py host/ELITESCN
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/dials_test.c src/dials.s -o host/ELITEDIL
+host/ELITESCN: 46704 bytes, QDOS data space 33560
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/combat_test.c src/combat.s src/line.s -o host/ELITECBT
+host/ELITEDIL: dataspace 33458 (82b2)
+python3 tools/qlmeta.py host/ELITEDIL
+host/ELITEDIL: 59674 bytes, QDOS data space 33458
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/tactics_test.c src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITETAC
+host/ELITECBT: dataspace 32412 (7e9c)
+python3 tools/qlmeta.py host/ELITECBT
+host/ELITECBT: 313970 bytes, QDOS data space 32412
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/explosion_test.c src/explosion.s src/combat.s src/line.s -o host/ELITEEXP
+host/ELITETAC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITETAC
+host/ELITETAC: 291418 bytes, QDOS data space 100
+host/ELITEEXP: dataspace 33594 (833a)
+python3 tools/qlmeta.py host/ELITEEXP
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/missile_test.c src/missile.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITEMSL
+host/ELITEEXP: 54694 bytes, QDOS data space 33594
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/target_test.c src/target.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITETGT
+host/ELITEMSL: dataspace 834 (342)
+python3 tools/qlmeta.py host/ELITEMSL
+host/ELITEMSL: 20632 bytes, QDOS data space 834
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/navigation_test.c src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITENAV
+host/ELITENAV: dataspace 66130 (10252)
+python3 tools/qlmeta.py host/ELITENAV
+host/ELITETGT: dataspace 300 (12c)
+python3 tools/qlmeta.py host/ELITETGT
+host/ELITENAV: 78112 bytes, QDOS data space 66130
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/cargo_test.c src/cargo.s src/combat.s src/line.s -o host/ELITECRG
+host/ELITETGT: 152708 bytes, QDOS data space 300
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/commander_test.c src/commander.s -o host/ELITECMD
+host/ELITECMD: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITECMD
+host/ELITECMD: 214276 bytes, QDOS data space 100
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/equipment_test.c src/equipment.s src/combat.s src/line.s -o host/ELITEEQP
+host/ELITECRG: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITECRG
+host/ELITECRG: 230812 bytes, QDOS data space 100
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/compass_test.c src/compass.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITECMP
+host/ELITECMP: dataspace 33576 (8328)
+python3 tools/qlmeta.py host/ELITECMP
+host/ELITECMP: 26472 bytes, QDOS data space 33576
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/planet_test.c src/planet.s -o host/ELITEPLN
+host/ELITEEQP: dataspace 328 (148)
+python3 tools/qlmeta.py host/ELITEEQP
+host/ELITEEQP: 150806 bytes, QDOS data space 328
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/market_test.c src/market.s src/cargo.s src/combat.s src/line.s -o host/ELITEMKT
+host/ELITEPLN: dataspace 568 (238)
+python3 tools/qlmeta.py host/ELITEPLN
+host/ELITEPLN: 95266 bytes, QDOS data space 568
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/docking_test.c src/docking.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITEDCK
+host/ELITEDCK: dataspace 534 (216)
+python3 tools/qlmeta.py host/ELITEDCK
+host/ELITEDCK: 98048 bytes, QDOS data space 534
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/travel_test.c src/travel.s -o host/ELITETRV
+host/ELITEMKT: dataspace 100 (64)
+host/ELITETRV: dataspace 474 (1da)
+python3 tools/qlmeta.py host/ELITETRV
+python3 tools/qlmeta.py host/ELITEMKT
+host/ELITETRV: 89628 bytes, QDOS data space 474
+host/ELITEMKT: 327420 bytes, QDOS data space 100
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/shop_test.c src/shop.s src/cargo.s src/combat.s src/line.s -o host/ELITESHP
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/universe_test.c src/universe.s src/travel.s src/line.s -o host/ELITEUNI
+host/ELITEUNI: dataspace 860 (35c)
+python3 tools/qlmeta.py host/ELITEUNI
+host/ELITESHP: dataspace 826 (33a)
+python3 tools/qlmeta.py host/ELITESHP
+host/ELITEUNI: 18544 bytes, QDOS data space 860
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/encounters_test.c src/encounters.s -o host/ELITEENC
+host/ELITESHP: 19682 bytes, QDOS data space 826
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/station_test.c src/station.s src/flight.s src/motion.s -o host/ELITESTA
+host/ELITEENC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITEENC
+host/ELITEENC: 498880 bytes, QDOS data space 100
+host/ELITESTA: dataspace 100 (64)
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+python3 tools/qlmeta.py host/ELITESTA
+host/ELITESTA: 459120 bytes, QDOS data space 100
+host/ELITEASM: dataspace 8176 (1ff0)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 41984 bytes, QDOS data space 8176
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a23'
