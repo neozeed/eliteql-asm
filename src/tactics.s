@@ -6,6 +6,7 @@
 .globl _tactics_dot
 .globl _tactics_step
 .globl _tactics_due
+.globl _missile_steer
 .extern normalize_vector
 .extern tidy_mult
 .extern sign_add
@@ -115,6 +116,17 @@ _tactics_due:
 ; step(inwk,params[5]={type,maxEnergy,weaponByte,safeZone,ecm},rng,status).
 ; Missile, station and escape-pod tactics need their universe context and are
 ; deliberately excluded from this normal-ship entry (types1..6).
+ ; Missile homing only: same four-argument ABI as tactics_step, params type=8.
+; Caller must resolve ECM and proximity damage before entering TA21.
+_missile_steer:
+ movem.l d2-d7/a2-a6,-(sp)
+ subq.l #8,sp
+ move.l sp,a6
+ move.l 56(sp),a2
+ move.l 60(sp),a3
+ move.l 64(sp),a4
+ move.l 68(sp),a5
+ bra tactics_vectors
 _tactics_step:
  movem.l d2-d7/a2-a6,-(sp)
  subq.l #8,sp
@@ -148,6 +160,8 @@ tactics_vectors:
  moveq #10,d0
  bsr tactics_dot
  move.b d0,3(a6)
+ cmp.b #8,(a3)
+ beq tactics_pursue
  ; TYPE CMP MSL immediately before DORND supplies clear carry for types1..6.
  moveq #0,d0
  bsr tactics_random
@@ -236,6 +250,7 @@ tactics_choose:
  or.b #128,d0
  cmp.b 32(a2),d0
  bhs tactics_steer
+tactics_pursue:
  eor.b #128,(a6)
  eor.b #128,1(a6)
  eor.b #128,2(a6)
@@ -270,6 +285,9 @@ tactics_brake:
  cmp.b #18,d0
  blo tactics_quiet
  move.b #255,28(a2)
+ cmp.b #8,(a3)
+ bne tactics_quiet
+ move.b #254,28(a2)
 tactics_quiet:
  moveq #0,d0
 tactics_done:

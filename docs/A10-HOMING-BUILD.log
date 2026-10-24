@@ -1,0 +1,6 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a10'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/tactics_test.c src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITETAC
+host/ELITETAC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITETAC
+host/ELITETAC: 291090 bytes, QDOS data space 100
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a10'

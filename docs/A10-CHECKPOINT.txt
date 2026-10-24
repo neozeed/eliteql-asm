@@ -1,0 +1,15 @@
+A10 WORK IN PROGRESS: missile homing kernel
+
+This is a source checkpoint, not a new playable release. A9 remains the playable baseline.
+
+_missile_steer uses the same four-argument ABI as tactics_step with params[0]=8.
+It ports original TA21/TA19/TA20/TA15 through TA10, sharing TAS2/TAS3 and steering
+with normal-ship tactics. The caller must handle ECM, proximity, target-relative
+coordinates and damage before entry. These are NOT connected to the shell yet.
+
+ELITETAC passes 1024 original-instruction missile homing cases plus the existing
+1536 normal tactics, 512 vectors, 1536 dots and 3072 scheduling checks.
+
+Overlay the supplied src/tests files onto A9 to continue development. The
+modified native module does not change existing normal-ship behavior. No new
+ELITEASM is supplied. Original attribution and fidelity limits remain in A9.
