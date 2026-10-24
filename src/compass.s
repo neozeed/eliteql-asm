@@ -73,6 +73,7 @@ compass_xor_done:
 compass_masks: .data2 0x80c0,0x2030,0x080c,0x0203
 .globl _compass_frame
 .extern _planet_vector
+.extern _tactics_vector
 _compass_frame:
  movem.l a2-a4,-(sp)
  move.l 16(sp),a2
@@ -84,9 +85,16 @@ _compass_frame:
  jsr _compass_xor
  addq.l #8,sp
  move.l sp,a0
+ move.l 32(sp),d0
  move.l a0,-(sp)
  move.l a3,-(sp)
+ tst.l d0
+ beq compass_use_planet
+ jsr _tactics_vector
+ bra compass_vector_done
+compass_use_planet:
  jsr _planet_vector
+compass_vector_done:
  addq.l #8,sp
  move.l sp,a0
  move.l a4,-(sp)

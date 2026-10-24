@@ -321,3 +321,19 @@ Stats EQB7/6800 retains old offsets and appends equipment ptr146,compass ptr150,
 loss counter ptr154. Compass cache:COMX,COMY,COMC,valid. Commander message ID3
 selects the formatted destruction message. Equipment page uses four state
 indicators; docking computer remains an unsupported zero flag.
+
+## A18 local docking and trading
+
+docking.s implements proximity/ISDK/MA62 checks and returns far/dock/dent/death.
+market.s implements QQ23 price/stock arithmetic, buy/sell transactions and BAD.
+Market layout is price/4[17],AVL[17]. Commander/cargo layouts are unchanged.
+compass_frame now takes a fourth C ABI argument: zero selects planet_vector,
+nonzero selects tactics_vector for original SPS4 station coordinates.
+
+The shell's docked state freezes flight and uses edge-triggered market keys.
+Dock commit fills shields/energy, clears heat, ECM and laser state. Launch
+preserves commander10+cargo/equipment22+remaining-missiles1 bytes around scene
+setup, skips market regeneration, clears old XOR caches, and applies BAD.
+No replacement ammo/equipment is granted. Station launch pose and fighter
+respawn are explicit fixtures. No second framebuffer is allocated.
+Stats EQB8/6800 adds docked ptr158,market ptr162,selection ptr166.

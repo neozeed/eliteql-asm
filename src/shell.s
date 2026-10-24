@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514237,0x36383030
+ .data4 0x45514238,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -55,6 +55,16 @@ asm_page_debug: .data4 asm_page
 asm_equipment_debug: .data4 asm_equipment
 asm_compass_debug: .data4 asm_compass
 asm_losses_debug: .data4 asm_losses
+asm_docked_debug: .data4 asm_docked
+asm_market_debug: .data4 asm_market
+asm_selection_debug: .data4 asm_market_selection
+asm_docked: .data2 0
+asm_market_selection: .data2 0
+asm_market_keys: .data2 0
+asm_market_result: .data2 0
+asm_keep_launch: .data2 0
+asm_keep: .space 34
+asm_market: .space 34
 asm_compass: .data1 0,0,0,0
 asm_losses: .data4 0
 asm_bomb_held: .data2 0
@@ -108,6 +118,11 @@ asm_ipc: .data1 9,1,0,0,0,0,1,2
 .extern _bomb_key
 .extern _bomb_ship
 .extern _bomb_tick
+.extern _dock_check
+.extern _market_init
+.extern _market_trade
+.extern _launch_legal
+.extern _tactics_vector
 .extern _move_planet
 .extern _compass_frame
 .extern _commander_tally
@@ -215,6 +230,11 @@ asm_loop:
  bsr asm_keyrow
  btst #3,d0
  bne asm_finish
+ tst.w asm_docked
+ beq asm_flight_keys
+ bsr asm_dock_keys
+ bra asm_update_stats
+asm_flight_keys:
  moveq #6,d0
  bsr asm_keyrow
  and.w #4,d0
@@ -340,6 +360,22 @@ asm_salvage_scene:
  move.w #3,asm_mode
  bsr asm_setup
 asm_check_ecm:
+ moveq #0,d0
+ bsr asm_keyrow
+ btst #7,d0
+ beq asm_port_key_done
+ cmp.w #3,asm_mode
+ bne asm_start_port
+ cmp.w #2,asm_salvage
+ bne asm_start_port
+ tst.w asm_dead
+ beq asm_port_key_done
+asm_start_port:
+ move.w #2,asm_salvage
+ move.w #12,asm_count
+ move.w #3,asm_mode
+ bsr asm_setup
+asm_port_key_done:
  tst.b asm_equipment
  beq asm_ecm_key_done
  moveq #6,d0
@@ -393,6 +429,8 @@ asm_ecm_key_done:
  btst #4,d0
  sne asm_fire_key
 asm_draw_begin:
+ tst.w asm_docked
+ bne asm_update_stats
  tst.w asm_page
  bne asm_update_stats
  tst.w asm_dead
@@ -668,6 +706,8 @@ asm_ai_alive:
  eor.w #1,d0
  move.w d0,14(a5)
  bsr asm_contact
+ tst.w asm_docked
+ bne asm_dock_commit
  move.b 31(a4),d0
  and.b #160,d0
  bne asm_no_hit
@@ -826,6 +866,22 @@ asm_laser_end:
  subq.b #1,asm_mcnt
  bsr asm_draw_dials
  addq.l #1,asm_frames
+ bra asm_update_stats
+asm_dock_commit:
+ ; GOIN/RES4 state boundary. Tunnel/text and local scene are QL adapters.
+ move.b #255,asm_status
+ move.b #255,asm_status+1
+ move.b #255,asm_status+2
+ clr.b asm_status+3
+ clr.w asm_ecm
+ clr.b asm_laser
+ clr.b asm_laser+1
+ clr.b asm_laser+9
+ clr.w asm_market_keys
+ bsr asm_draw_dials
+ bsr asm_clear_view
+ bsr asm_market_page
+ bra asm_update_stats
 asm_update_stats:
  bsr asm_fps
  tst.w asm_uncapped
@@ -918,6 +974,19 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w asm_docked
+ clr.w asm_market_keys
+ clr.w asm_market_selection
+ clr.w asm_market_result
+ tst.w asm_keep_launch
+ bne asm_market_kept
+ ; Fixed test system, economy5/fluctuation0. No hyperspace market reroll yet.
+ clr.l -(sp)
+ move.l #5,-(sp)
+ pea asm_market
+ jsr _market_init
+ lea 12(sp),sp
+asm_market_kept:
  ; Erase all old particle caches before clearing their authoritative state.
  lea asm_clouds,a4
  moveq #11,d7
@@ -1053,7 +1122,36 @@ asm_encounter_ready:
  move.l 12(a0),asm_ships
  move.l 16(a0),asm_ships+272
 asm_salvage_models_done:
+ cmp.w #3,asm_mode
+ bne asm_port_models_done
+ cmp.w #2,asm_salvage
+ bne asm_port_models_done
+ lea _models,a0
+ move.l 20(a0),asm_ships
+ move.l 12(a0),asm_ships+272
+ clr.w asm_ships+4
+ clr.w asm_ships+6
+ move.w #1200,asm_ships+8
+ move.w #-500,asm_ships+272+4
+ move.w #2600,asm_ships+272+8
+ move.w #500,asm_ships+544+4
+ move.w #2600,asm_ships+544+8
+asm_port_models_done:
  bsr asm_reset_vectors
+ cmp.w #3,asm_mode
+ bne asm_port_pose_done
+ cmp.w #2,asm_salvage
+ bne asm_port_pose_done
+ ; Test approach pose: original Coriolis, slot horizontal, nose toward player.
+ clr.b asm_vectors+27
+ clr.b asm_vectors+29
+ clr.b asm_vectors+30
+ clr.b asm_vectors+32
+ clr.b asm_vectors+18
+ clr.b asm_vectors+22
+ move.b #96,asm_vectors+16
+ move.b #224,asm_vectors+24
+asm_port_pose_done:
  move.b #255,asm_status
  move.b #255,asm_status+1
  move.b #255,asm_status+2
@@ -1153,6 +1251,51 @@ asm_equipment_ouch_done:
  movem.l (sp)+,d2-d7/a2-a6
  rts
 asm_contact:
+ move.l (a5),a0
+ cmp.w #7,28(a0)
+ bne asm_contact_nonstation
+ cmp.w #2,asm_salvage
+ bne asm_contact_done
+ cmp.w #3,asm_mode
+ bne asm_contact_done
+ moveq #0,d0
+ move.b asm_controls+12,d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _dock_check
+ addq.l #8,sp
+ tst.l d0
+ beq asm_contact_done
+ cmp.w #1,d0
+ bne asm_dock_not_success
+ move.w #1,asm_docked
+ bra asm_contact_done
+asm_dock_not_success:
+ cmp.w #3,d0
+ bne asm_dock_dent
+ move.w #1,asm_dead
+ bra asm_contact_done
+asm_dock_dent:
+ move.b #1,asm_controls+12
+ move.b #1,asm_params+2
+ clr.l -(sp)
+ moveq #0,d0
+ move.b 8(a4),d0
+ move.l d0,-(sp)
+ move.l #5,-(sp)
+ pea asm_status
+ jsr _player_damage
+ lea 16(sp),sp
+ cmp.w #2,d0
+ bne asm_dock_dent_alive
+ move.w #1,asm_dead
+ bra asm_contact_done
+asm_dock_dent_alive:
+ cmp.w #1,d0
+ bne asm_contact_done
+ bsr asm_equipment_ouch
+ bra asm_contact_done
+asm_contact_nonstation:
  cmp.w #3,asm_mode
  bne asm_contact_done
  move.l #22,-(sp)
@@ -1362,11 +1505,19 @@ asm_draw_dials:
  pea 0x20000
  jsr _missile_icons
  addq.l #8,sp
+ clr.l -(sp)
  pea asm_compass
  pea asm_planet
+ cmp.w #3,asm_mode
+ bne asm_compass_target_done
+ cmp.w #2,asm_salvage
+ bne asm_compass_target_done
+ move.l #asm_vectors,(sp)
+ move.l #1,8(sp)
+asm_compass_target_done:
  pea 0x20000
  jsr _compass_frame
- lea 12(sp),sp
+ lea 16(sp),sp
  rts
 asm_reset_vectors:
  clr.b asm_params
@@ -1541,6 +1692,223 @@ asm_status_text:
 fps_return:
  rts
 ; Native presentation adapter; source arithmetic/state lives in commander.s.
+asm_dock_keys:
+ moveq #0,d4
+ moveq #1,d0
+ bsr asm_keyrow
+ btst #2,d0
+ beq dock_key_down
+ bset #0,d4
+dock_key_down:
+ btst #7,d0
+ beq dock_key_buy
+ bset #1,d4
+dock_key_buy:
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #4,d0
+ beq dock_key_sell
+ bset #2,d4
+dock_key_sell:
+ moveq #3,d0
+ bsr asm_keyrow
+ btst #3,d0
+ beq dock_key_launch
+ bset #3,d4
+dock_key_launch:
+ moveq #4,d0
+ bsr asm_keyrow
+ btst #0,d0
+ beq dock_key_edges
+ bset #4,d4
+dock_key_edges:
+ move.w asm_market_keys,d0
+ eor.w d4,d0
+ and.w d4,d0
+ move.w d4,asm_market_keys
+ move.w d0,d4
+ beq dock_keys_done
+ btst #4,d4
+ bne asm_launch
+ btst #0,d4
+ beq dock_select_down
+ subq.w #1,asm_market_selection
+ bpl dock_select_down
+ move.w #16,asm_market_selection
+dock_select_down:
+ btst #1,d4
+ beq dock_transaction
+ addq.w #1,asm_market_selection
+ cmp.w #17,asm_market_selection
+ blo dock_transaction
+ clr.w asm_market_selection
+dock_transaction:
+ move.w d4,d0
+ and.w #12,d0
+ beq dock_page_refresh
+ moveq #0,d0
+ btst #3,d4
+ beq dock_trade_args
+ moveq #1,d0
+dock_trade_args:
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.w asm_market_selection,d0
+ move.l d0,-(sp)
+ pea asm_market
+ pea asm_cargo
+ pea asm_commander
+ jsr _market_trade
+ lea 20(sp),sp
+ move.w d0,asm_market_result
+dock_page_refresh:
+ bsr asm_clear_view
+ bsr asm_market_page
+dock_keys_done:
+ rts
+asm_launch:
+ ; Keep commander, equipment, cargo and remaining missiles across the local
+ ; sortie reset. Market AVL persists; no free ammo/bomb/equipment replenishment.
+ lea asm_commander,a0
+ lea asm_keep,a1
+ moveq #9,d0
+launch_keep_cmd:
+ move.b (a0)+,(a1)+
+ dbra d0,launch_keep_cmd
+ lea asm_cargo,a0
+ moveq #21,d0
+launch_keep_cargo:
+ move.b (a0)+,(a1)+
+ dbra d0,launch_keep_cargo
+ move.b asm_player,(a1)
+ bsr asm_clear_view
+ lea asm_ships,a0
+ lea asm_clouds,a1
+ moveq #11,d0
+launch_clear_caches:
+ clr.w 12(a0)
+ clr.w 56(a1)
+ lea 272(a0),a0
+ lea 448(a1),a1
+ dbra d0,launch_clear_caches
+ clr.b asm_sight
+ clr.b asm_laser+9
+ clr.w asm_page
+ clr.w asm_paused
+ move.w #1,asm_keep_launch
+ bsr asm_setup
+ clr.w asm_keep_launch
+ lea asm_keep,a0
+ lea asm_commander,a1
+ moveq #9,d0
+launch_restore_cmd:
+ move.b (a0)+,(a1)+
+ dbra d0,launch_restore_cmd
+ lea asm_cargo,a1
+ moveq #21,d0
+launch_restore_cargo:
+ move.b (a0)+,(a1)+
+ dbra d0,launch_restore_cargo
+ move.b (a0),asm_player
+ clr.b asm_commander+7
+ clr.b asm_commander+8
+ pea asm_cargo
+ pea asm_commander
+ jsr _launch_legal
+ addq.l #8,sp
+ ; Local launch fixture: station behind at -2048, facing the departing ship.
+ clr.b asm_vectors+6
+ move.b #8,asm_vectors+7
+ move.b #128,asm_vectors+8
+ move.b #96,asm_vectors+14
+ move.b #96,asm_vectors+24
+ move.w #-2048,asm_ships+8
+ bsr asm_draw_dials
+ rts
+asm_market_page:
+ lea asm_market_title,a4
+ moveq #0,d6
+ bsr asm_text
+ move.l asm_commander,d0
+ lea asm_cash_digits,a0
+ moveq #10,d1
+ bsr asm_decimal
+ move.b asm_cash_digits+9,asm_cash_digits+10
+ move.b #46,asm_cash_digits+9
+ lea asm_cash_line,a4
+ moveq #10,d6
+ bsr asm_text
+ lea asm_market_header,a4
+ moveq #22,d6
+ bsr asm_text
+ clr.w asm_page_item
+ lea asm_commodity_names,a5
+market_page_loop:
+ lea asm_market_line+1,a0
+ moveq #11,d0
+market_copy_name:
+ move.b (a5)+,(a0)+
+ dbra d0,market_copy_name
+ addq.l #4,a5
+ move.w asm_page_item,d2
+ lea asm_market,a0
+ moveq #0,d0
+ move.b 0(a0,d2.w),d0
+ lsl.w #2,d0
+ lea asm_price_digits,a0
+ moveq #4,d1
+ bsr asm_decimal
+ move.b asm_price_digits+3,asm_price_digits+4
+ move.b #46,asm_price_digits+3
+ lea asm_market,a0
+ moveq #0,d0
+ move.b 17(a0,d2.w),d0
+ lea asm_stock_digits,a0
+ moveq #3,d1
+ bsr asm_decimal
+ lea asm_cargo,a0
+ moveq #0,d0
+ move.b 0(a0,d2.w),d0
+ lea asm_held_digits,a0
+ moveq #3,d1
+ bsr asm_decimal
+ move.b #32,asm_market_line
+ cmp.w asm_market_selection,d2
+ bne market_no_arrow
+ move.b #62,asm_market_line
+market_no_arrow:
+ move.b #84,asm_market_unit
+ move.b #32,asm_market_unit+1
+ cmp.w #13,d2
+ blo market_unit_done
+ cmp.w #16,d2
+ beq market_unit_done
+ move.b #75,asm_market_unit
+ move.b #71,asm_market_unit+1
+ cmp.w #15,d2
+ bne market_unit_done
+ move.b #71,asm_market_unit
+ move.b #32,asm_market_unit+1
+market_unit_done:
+ move.w d2,d6
+ lsl.w #3,d6
+ add.w #32,d6
+ lea asm_market_line,a4
+ bsr asm_text
+ addq.w #1,asm_page_item
+ cmp.w #17,asm_page_item
+ blo market_page_loop
+ lea asm_market_help,a4
+ move.w #172,d6
+ moveq #16,d7
+ bsr asm_text_at
+ move.w asm_market_result,d0
+ lsl.w #2,d0
+ lea asm_market_messages,a0
+ move.l 0(a0,d0.w),a4
+ move.w #184,d6
+ bsr asm_text
+ rts
 asm_clear_view:
  move.l #0x20000,a0
  move.w #6143,d0
@@ -1965,4 +2333,21 @@ asm_equipment_names:
  .ascii "ENERGY UNIT     "
  .ascii "DOCK COMPUTER   "
 asm_loss_text: .ascii "                DESTROYED\0"
+.align 2
+
+.sect .data
+asm_market_title: .ascii "DOCKED / LOCAL MARKET / ECONOMY 5\0"
+asm_market_header: .ascii " ITEM         PRICE STOCK HOLD\0"
+asm_market_line: .ascii "              "
+asm_price_digits: .ascii "000.0 "
+asm_stock_digits: .ascii "000 "
+asm_held_digits: .ascii "000 "
+asm_market_unit: .ascii "T \0"
+asm_market_help: .ascii "UP/DN  B BUY1  S SELLALL  L LAUNCH\0"
+.align 2
+asm_market_messages: .data4 market_ok,market_stock,market_hold,market_cash
+market_ok: .ascii "READY\0"
+market_stock: .ascii "NO STOCK\0"
+market_hold: .ascii "HOLD FULL\0"
+market_cash: .ascii "NOT ENOUGH CASH\0"
 .align 2

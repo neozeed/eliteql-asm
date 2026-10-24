@@ -246,3 +246,20 @@ and trajectories. K2-low is explicit and shell supplies0; original incidental
 shared scratch state is not recreated. Planet orientation/rendering remains
 absent. This supersedes earlier claims that the old planet movement was fully
 original player-relative movement. Ship movement itself is unchanged.
+
+## A18 docking/market boundary
+
+Original proximity, ISDK/SPS4 and MA62 speed gates are translated in docking.s.
+Successful docking returns through a native docked-state transition, not the
+original tunnel animation. market.s uses original QQ23 entries, economy and
+fluctuation arithmetic, byte wrapping, negative quantity clamping and AVL16=0.
+Buy-one uses tnpr/LCASH rules; sell-all follows TT210, leaves AVL unchanged and
+retains the original 16-bit GCASH product wrap. BAD retains ASL carry into ADC
+and ORs the result into FIST.
+
+Only economy5/fluctuation0 is live. No galaxy seed or market reroll is claimed.
+Station orientation/position, launch coordinates and encounter regeneration
+are native fixtures. Station compass uses SPS4 but its selection is scene-based,
+not SSPR. Cargo, cash, tally, legal status, ammo and equipment persist across
+local launch; universe objects do not. N and scene keys are still resets.
+The docked market UI and per-key single-unit buying are presentation adapters.

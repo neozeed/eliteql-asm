@@ -177,3 +177,21 @@ recharge test now sets the authoritative equipment ENGY byte as well as its
 status mirror. All inherited viewport/dashboard checks include the compass.
 ONLY_EQUIPMENT=1 is an optional focused harness mode; release logs use the full
 suite without it. Logs:A17-BUILD/INTEGRATION/BASIC.log.
+
+## A18 original-source and connected tests
+
+ELITEMKT:2048 markets (every economy0..7/fluctuation0..255),2048 transaction/BAD
+cases. ELITEDCK:2048 proximity/ISDK/SPS4/failure states. Both compare native
+outputs, unchanged inputs and guards. Market transaction decisions use an
+adapter that executes original tnpr,LCASH,MCASH,BAD helpers; full TT219 text/UI
+is not emulated. Raw source excerpts, Python oracles and generated fixtures
+are bundled. Generate fixtures before building.
+
+dock_loop_check.h runs in both direct-job and BASIC EXEC_W harnesses at128/640KB.
+First docking uses real approach movement. Re-docking and failure checks inject
+station poses; contraband/equipment/ammo cases inject states. Checks cover
+market freeze, buy/sell, rejection, persistent stock, commander/cargo/equipment/
+ammo preservation, BAD, exact flight/scanner rendering, slow dent, fast crash
+and restart. ONLY_DOCK=1 is a focused mode; release logs use the entire suite.
+Logs:A18-BUILD/INTEGRATION/BASIC.log. Largest BASIC free block:7680 bytes at128KB,
+522752 at640KB. This is an emulator memory result, not real-hardware timing.

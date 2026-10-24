@@ -78,3 +78,8 @@ CPIX4/CPIX2/DVID4), and original-planet.asm (MV40/MULT3/MVT3/MVT1/MU5/MV45).
 Compass DVID4 fractional return is replaced by CLC/RTS because only P and
 clear carry are consumed. Equipment oracle ends before text rendering. Planet
 oracle ends after coordinate translation; render/orientation paths are absent.
+
+A18: original-market.asm and original-docking.asm extract QQ23 market arithmetic,
+var/TT151/GVL, tnpr/LCASH/MCASH/BAD and proximity/ISDK/SPS4/MA62 from the same
+Electron source. Native docking.s/market.s translate these routines; the shell
+provides local test encounters and QL presentation. See FIDELITY.md boundaries.
