@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514244,0x36383030
+ .data4 0x45514245,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -71,6 +71,10 @@ asm_station_debug: .data4 asm_station
 asm_warp_debug: .data4 asm_warp_result
 asm_warps_debug: .data4 asm_warps
 asm_placeholder_debug: .data4 asm_placeholder
+asm_planet_cache_debug: .data4 asm_planet_cache
+asm_altitude_debug: .data4 asm_altitude
+asm_altitude: .data2 255
+asm_planet_cache: .space 80
 asm_placeholder: .space 9
 .align 2
 asm_world: .data2 0
@@ -562,6 +566,14 @@ planet_tidy_done:
  jsr _rotate_body
  addq.l #8,sp
 planet_rotation_done:
+ tst.w asm_world
+ beq planet_draw_done
+ pea asm_planet
+ pea asm_planet_cache
+ pea 0x20000
+ jsr _planet_frame
+ lea 12(sp),sp
+planet_draw_done:
  ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
  clr.l -(sp)
  moveq #0,d0
@@ -976,6 +988,24 @@ asm_laser_end:
  beq warp_timer_done
  subq.w #1,asm_warp_timer
 warp_timer_done:
+ tst.w asm_world
+ beq altitude_tick_done
+ move.b asm_mcnt,d0
+ and.b #31,d0
+ cmp.b #10,d0
+ bne altitude_tick_done
+ ; Original LL5 incoming Q is an explicit zero scratch boundary here.
+ clr.l -(sp)
+ pea asm_planet
+ jsr _planet_altitude
+ addq.l #8,sp
+ move.w d0,d1
+ and.w #255,d0
+ move.w d0,asm_altitude
+ btst #8,d1
+ beq altitude_tick_done
+ move.w #1,asm_dead
+altitude_tick_done:
  bsr asm_station_tick
  subq.b #1,asm_mcnt
  bne asm_no_encounter_tick
@@ -1094,6 +1124,12 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ pea asm_planet_cache
+ pea 0x20000
+ jsr _render_cache
+ addq.l #8,sp
+ clr.w asm_planet_cache+12
+ move.w #255,asm_altitude
  clr.w asm_chart
  clr.w asm_shop
  clr.w asm_docked
@@ -1657,6 +1693,12 @@ asm_draw_dials:
  pea 0x20000
  jsr _dials_fuel
  addq.l #8,sp
+ moveq #0,d0
+ move.w asm_altitude,d0
+ move.l d0,-(sp)
+ pea 0x20000
+ jsr _dials_altitude
+ addq.l #8,sp
  pea asm_player
  pea 0x20000
  jsr _missile_icons
@@ -1990,6 +2032,7 @@ launch_keep_cargo:
  dbra d0,launch_keep_cargo
  move.b asm_player,(a1)
  bsr asm_clear_view
+ clr.w asm_planet_cache+12
  lea asm_ships,a0
  lea asm_clouds,a1
  moveq #11,d0
@@ -2147,6 +2190,10 @@ asm_clear_view_loop:
  dbra d0,asm_clear_view_loop
  rts
 asm_restore_view:
+ pea asm_planet_cache
+ pea 0x20000
+ jsr _render_cache
+ addq.l #8,sp
  lea asm_ships,a5
  lea asm_clouds,a6
  moveq #11,d7

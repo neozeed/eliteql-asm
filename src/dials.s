@@ -202,3 +202,16 @@ _dials_fuel:
  bsr dials_bar
  movem.l (sp)+,d2-d5/a2
  rts
+
+.sect .text
+.globl _dials_altitude
+_dials_altitude:
+ movem.l d2-d5/a2,-(sp)
+ move.l 24(sp),a2
+ move.l 28(sp),d0
+ and.w #255,d0
+ lsr.w #3,d0
+ move.w #29960,d1
+ bsr dials_bar
+ movem.l (sp)+,d2-d5/a2
+ rts

@@ -331,3 +331,32 @@ sizes seed a nearby planet, create a station in slot5, freeze roll after creatio
 for deterministic alignment, then fly/dock/launch. Travel tests similarly inject
 only the nearby planet pose to avoid a long manual approach. Production arrivals
 keep SOLAR state and station roll. A23 logs record actual completed regressions.
+
+## A24 planet rendering and altitude (supersedes unrendered-planet notes)
+
+planet_view.s implements PLANET/PROJ/PLS6/DVID3B2 visibility and projection,
+original CIRCLE/SNE step selection and segment coordinates, then native QL
+clipping/XOR rasterization. Behind, z_sign>=48, or z_sign|z_hi==0 rejects the
+planet. Normalized top-byte division and forced odd numerator match the source;
+projection magnitude>=1024 rejects it. A nonzero radius high byte selects248.
+The Electron draws an outline circle for both planet types. CHKON is replaced
+by per-segment native clipping; BLINE/LOIN pixels and line-heap layout are QL
+adaptations. At most16 cached segments fit80 bytes (count at12, segments at16),
+reusing _render_cache. Pause/modal redraw, reset and launch maintain XOR parity.
+
+ALTIT is computed at MCNT mod32==10 in live-world sorties. MAS2 rejects nonzero
+sign-byte magnitude. MAS3 adds each individually truncated unsigned square;
+overflow leaves ALTIT255. The result minus37 implements SBC36 with carry clear.
+Underflow or zero LL5 result sets death; otherwise the integer square root is
+ALTIT. Live LL5 scratch Q is explicitly0; tests cover all256 incoming Q bytes.
+The existing native DIL scaling draws ALTIT at AL, y234. ENERGY LOW message and
+sound from the adjacent MA22 branch are not implemented here.
+
+Stats EQBE/6800 appends pointers222(planet cache80),226(altitude word).
+ELITEPV compares2048 original projection and4096 altitude cases. The interpreter
+runs original instruction excerpts with drawing/sound/death exit adapters.
+Live checks validate the original radius64 circle endpoints independently,
+complete viewport/scanner/gauge pixels, clipped limb, behind erasure, modal
+restore, low altitude, scheduled surface death and reset. Positions are injected
+for these repeatable tests; production retains original SOLAR/world coordinates.
+No new framebuffer or C game loop is introduced. EQA1 saves are unchanged.

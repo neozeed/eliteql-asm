@@ -1,0 +1,10 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a24'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 8148 (1fd4)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 42972 bytes, QDOS data space 8148
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/planet_view_test.c src/planet_view.s src/render.s src/models.s src/line.s -o host/ELITEPV
+host/ELITEPV: dataspace 578 (242)
+python3 tools/qlmeta.py host/ELITEPV
+host/ELITEPV: 115032 bytes, QDOS data space 578
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a24'

@@ -107,3 +107,7 @@ allocation, scene and incoming-carry boundaries described in FIDELITY.md.
 A23 original-station.asm, original-warp.asm and original-warp-world.asm
 contain part14/MAS1/MAS2/MVT3/FAROF2/NWSPS/NwS1 and WARP/ADD excerpts.
 TT110 launch values and KS4 placeholder reset derive from the same checkout.
+
+A24 original-planet-view.asm and original-circle.asm preserve PLANET,PROJ,
+PLS6,DVID3B2,LL31,CIRCLE/CIRCLE2,MA22,MAS2/MAS3,SQUA2/MU11 and LL5.
+SNE table follows the source ABS(SIN) rounded256 construction.

@@ -1,60 +1,55 @@
-# EliteQL ASM A23 — original stations, planet rotation and in-system jumps
+# EliteQL ASM A24 — visible planets and original altitude checks
 
-A23 connects the original Electron station-creation logic to live flight.
-Hyperspace arrivals now start with the SOLAR planet and no station placed ahead.
-Every32 flight updates, original MAS2/MAS1/MVT3/FAROF2 checks decide whether
-we are close enough to the station's position: planet centre + twice its nose
-vector. NWSPS flips the station nose toward the planet, sets friendly ECM AI,
-zero pitch and continuous roll. The compass then follows the actual station.
-The planet now receives original TIDY and MVEIT orientation updates as well as
-its already-converted full-width position updates.
+A24 draws the live planet and connects original altitude/surface collision logic.
+The Electron PLANET path draws a simple circle for both planet types128/130;
+it does not draw the equator/crater detail suggested by their type names.
 
-**J performs an in-system jump.** Face the compass target and use J while the
-way is clear. Ships and stations mass-lock it; asteroids, pods and canisters
-are exempt. The original distance checks for both planet and frozen type129
-station placeholder apply. A brief status message reports a jump or lock.
-J is edge-triggered, costs no fuel and does not operate while paused, docked,
-on a modal page, dead or counting down hyperspace. Normal flight is still needed
-near the planet. There is no rendered planet yet: use the compass.
+Projection follows original PLANET/PROJ/PLS6/DVID3B2, including the deliberately
+approximate top-byte division, forced odd numerator, signed coordinates, distance
+rejection,1024-pixel projection limit and248-pixel radius cap. CIRCLE uses the
+original SNE values and step8 below radius9, otherwise step4. Final segment
+clipping and pixel rasterization use the existing QL backend. This is not a
+claim of pixel-identical Electron BLINE/LOIN output.
 
-Normal launch now uses the original TT110/SOS1/NWSPS positions: planet ahead
-at65536, station behind at256, and launch speed12. Arrivals and launches retain
-A22 ambient encounters. Station departure uses FAROF and recreates the original
-KS4 placeholder coordinates; later approaches can create a new station.
+The planet has an80-byte XOR line cache: old segments erase before new ones are
+drawn. It survives navigation/commander-page restore and clears on launch/reset.
+There is no extra framebuffer. All gameplay remains native68000 assembly.
 
-**7 retains the quick aligned docking test scene.** **0** starts a fresh deep
-space sortie at the current system's SOLAR position, retaining commander state
-but resetting the local flight/shields. Other numbered combat scenes remain.
-N and numbered scene resets erase progress; use normal launch/hyperspace to
-keep playing your commander.
+The AL gauge now displays original ALTIT. Every32 updates at counter phase10,
+MA22/MAS2/MAS3/LL5 logic checks distance, sums individually truncated coordinate
+squares, subtracts37 with the original carry rule and computes altitude.
+The original radius is24576; crossing the source collision threshold enters
+player death, with the existing restart controls. As elsewhere in this port,
+the untracked incoming scratch Q for LL5 is explicitly zero in live play;
+the diagnostic covers all256 Q values. The adjacent ENERGY LOW message/sound
+branch is not newly implemented by this pass.
 
-This still is not feature-complete: planet drawing, altitude/environment
-interaction, original station traffic/tactics, other views, docking computer,
-sound and remaining presentation need work. The fixed twelve-ship pool and QL
-UI remain native adaptations. Station creation retries when that pool is full;
-it does not implement original heap allocation or UNIV compaction.
+Use **0** for a commander-preserving deep-space sortie, follow the compass to
+find the planet, and use **J** for in-system jumps when clear. **7** retains the
+quick aligned station approach. Hyperspace arrivals use original SOLAR placement;
+stations spawn from the moving planet's orientation as in A23. Fly toward the
+station once the compass changes target rather than continuing into the planet.
 
-ELITESTA checks4096 station cases against executed original6502 excerpts,
-2048 planet-jump cases,1024 complete two-body WARP cases and768 orientation
-cases. Launch state has a direct source-derived check. Live tests exercise
-J/pause/mass lock, rotation, creation in a nonzero slot, duplicate suppression,
-compass target ownership, approach/docking and launch. The long approach tests
-inject a nearby planet pose and hold the station's roll for reproducible
-alignment; real flight retains original SOLAR placement and station rotation.
+The test captures A24-planet.png and A24-planet-limb.png use injected positions
+for repeatable visibility and clipping checks. Production uses live positions.
+ELITEPV compares2048 projection and4096 altitude cases with executed original
+6502 excerpts. Live tests check circle endpoints, edge clipping, behind-view
+erasure, exact view restoration, the altitude gauge and collision/restart.
 
-A22 is preserved separately. A20 commander saves remain compatible. World and
-placeholder state are transient; docked saves resume through normal launch.
-ELITEASM is41,984 bytes plus8,176 bytes QDOS data space. Full direct-job and
-BASIC EXEC_W regressions pass at128KB and640KB; BASIC at128KB leaves a
-3,584-byte largest free block after startup.
-Release logs are docs/A23-BUILD/INTEGRATION/BASIC/STATION.log. All gameplay is
-native68000; C and6502 interpreters are only diagnostic tools. Physical68008
-performance remains unmeasured.
+A23 is preserved separately; commander saves remain compatible. ELITEASM is
+42,972 bytes plus8,148 bytes QDOS data space. Full direct-job and BASIC EXEC_W
+regressions pass at128KB and640KB; BASIC at128KB leaves a2,560-byte largest
+free block after startup. Physical68008 timing remains
+unmeasured. Release logs are docs/A24-BUILD/INTEGRATION/BASIC/PLANET.log.
+
+Still unfinished: original station traffic/tactics, other views and their
+weapons, docking computer, witchspace, sound, stardust and remaining presentation.
+The native ship pool, UI and raster backend remain documented adaptations.
 
 Run `EXEC_W WIN1_ELITEASM` with this archive's host directory mounted:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a23\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a24\host
 ```
 
 ## Equipment and upgrades
@@ -107,7 +102,7 @@ a galactic drive already consumed by starting that jump is not refunded.
 ## Scope and verification
 
 This is another substantial step, **not feature completion**.
-Rendered planets/environment interactions,
+Remaining special encounters,
 full charts and views, docking-computer operation, sound and presentation still
 need work. Key7 retains the A18 approach fixture as a test shortcut.
 
@@ -163,7 +158,7 @@ is linked into ELITEASM. Original instruction interpreters are test tools only.
 
 The navigation directory is a QL UI, not a recreation of the chart crosshairs.
 Arrivals use original SOLAR planet placement, clear staged fighters and enable
-original ambient spawning. Station creation uses original main-loop part14. No hyperspace tunnel, rendered planet, witchspace, sound or complete
+original ambient spawning. Station creation uses original main-loop part14. No hyperspace tunnel, witchspace, sound or complete
 universe lifecycle is claimed. Galactic seed/location/legal changes commit at
 countdown completion rather than immediately in Ghy. GVL uses the existing
 DORND routine with explicit carry0 at the missing whole-game RNG boundary.
@@ -184,7 +179,7 @@ new missiles, bombs or equipment. Station compass selection follows the live all
 - Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
   direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
 
-See the A23 size and validation notes above. The passive benchmark is not an
+See the A24 size and validation notes above. The passive benchmark is not an
 active-game performance claim.
 SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
 captures. Tests inject cargo/equipment/legal states for preservation checks and
@@ -287,9 +282,9 @@ gem-stones are g, and the other commodities are t. It preserves the source's
 unusual tnpr special branch for indices 13–16; the underlying hold arithmetic
 was not changed to match a newly invented capacity model. N resets all stocks.
 
-The unrendered test planet follows player-relative movement and drives the
+The live planet follows player-relative movement and drives the
 original pod navigation routines. Inter-system and galactic travel now work with destination markets. A complete
-universe, rendered planets, station traffic/tactics, docking-computer operation and sound remain unfinished. Key7 retains the station-approach fixture. Native projection/clipping and fixed slots
+universe, station traffic/tactics, docking-computer operation and sound remain unfinished. Key7 retains the station-approach fixture. Native projection/clipping and fixed slots
 remain adaptations; see docs/FIDELITY.md for inherited arithmetic boundaries.
 
 ## Validation and build
@@ -307,7 +302,7 @@ Both live-job harnesses exercise delayed bounty, one-time settlement, tally,
 ECM tally, police status, all cargo display units, frozen state, exact viewport
 restoration (including an active explosion), reset, and inherited combat,
 scanner, controls, inverted pitch, keyboard/EXEC_W and clean-exit behavior.
-Current BASIC EXEC_W memory measurements are recorded in docs/A23-BASIC.log.
+Current BASIC EXEC_W memory measurements are recorded in docs/A24-BASIC.log.
 Logs and actual emulator captures are in docs/A19-*.log and docs/SCREENS.png.
 Screenshots containing every commodity or Elite rank use injected test states;
 these are display tests, not claims of completing those achievements in play.
@@ -356,6 +351,7 @@ ELITESTA needs640KB for the original station/WARP/orientation diagnostic corpus.
 Regenerate with `python3 tests/station_reference.py` before rebuilding.
 `ONLY_STATION=1` selects the focused live world checks in either harness.
 
-`docs/A23-generated-station.png` shows the live source-generated station after
-the test-only nearby-planet setup; five other occupied slots force allocation
-in slot5. It is not a screenshot of an unassisted long approach.
+
+ELITEPV needs640KB for its diagnostic corpus. Regenerate with
+`python3 tests/planet_view_reference.py` before building.
+`ONLY_PLANET_VIEW=1` selects focused live tests in either harness.

@@ -1,0 +1,2 @@
+PASS planet view/altitude: ram=128 KB; visible circle, clipping, behind erase, modal restore, low altitude, collision death/reset
+PASS planet view/altitude: ram=640 KB; visible circle, clipping, behind erase, modal restore, low altitude, collision death/reset
