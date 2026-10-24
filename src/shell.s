@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514234,0x36383030
+ .data4 0x45514235,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -46,6 +46,15 @@ asm_launch_debug: .data4 asm_launches
 asm_player_debug: .data4 asm_player
 asm_planet_debug: .data4 asm_planet
 asm_pods_debug: .data4 asm_pods
+asm_cargo_debug: .data4 asm_cargo
+asm_scooped_debug: .data4 asm_scooped
+asm_debris_debug: .data4 asm_debris
+asm_full_debug: .data4 asm_full
+asm_salvage: .data2 0
+asm_cargo: .space 18
+asm_scooped: .data4 0
+asm_debris: .data4 0
+asm_full: .data4 0
 asm_planet: .space 36
 asm_pods: .data4 0
 asm_spawn_kind: .data2 6
@@ -76,11 +85,17 @@ asm_mcnt: .data1 0
 asm_dead_text: .ascii "DESTROYED - N / 1 / 2 / 3\0"
 .align 2
 asm_fps_text: .ascii "FPS 00.0  SPEED 00"
-asm_msl_text: .ascii " M4 -\0"
+asm_msl_text: .ascii " M4 -"
+asm_cargo_text: .ascii " C00\0"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _elite_random
+.extern _scoop_step
+.extern _debris_count
+.extern _cargo_tumble
+.extern _player_damage
 .extern _pod_step
 .extern _tactics_cnt
 .extern _missile_icons
@@ -248,12 +263,31 @@ asm_move:
  moveq #0,d0
  bsr asm_keyrow
  btst #6,d0
- beq asm_check_ecm
+ beq asm_check_salvage
+ tst.w asm_salvage
+ bne asm_missile_scene
  cmp.w #3,asm_mode
  bne asm_missile_scene
  tst.w asm_dead
  beq asm_check_ecm
 asm_missile_scene:
+ clr.w asm_salvage
+ move.w #12,asm_count
+ move.w #3,asm_mode
+ bsr asm_setup
+asm_check_salvage:
+ moveq #0,d0
+ bsr asm_keyrow
+ btst #2,d0
+ beq asm_check_ecm
+ cmp.w #3,asm_mode
+ bne asm_salvage_scene
+ tst.w asm_salvage
+ beq asm_salvage_scene
+ tst.w asm_dead
+ beq asm_check_ecm
+asm_salvage_scene:
+ move.w #1,asm_salvage
  move.w #12,asm_count
  move.w #3,asm_mode
  bsr asm_setup
@@ -544,6 +578,7 @@ asm_ai_alive:
  addq.l #8,sp
  eor.w #1,d0
  move.w d0,14(a5)
+ bsr asm_contact
  move.b 31(a4),d0
  and.b #160,d0
  bne asm_no_hit
@@ -593,6 +628,7 @@ asm_lock_done:
  lea 12(sp),sp
  cmp.w #2,d0
  bne asm_hit_survived
+ bsr asm_drop_cargo
  ; LL9 initializes a real original explosion cloud at the kill boundary.
  pea asm_laser+5
  move.l (a5),-(sp)
@@ -788,6 +824,14 @@ asm_cloud_reset_loop:
 asm_cloud_zero:
  clr.l (a0)+
  dbra d0,asm_cloud_zero
+ lea asm_cargo,a0
+ moveq #17,d0
+asm_cargo_zero:
+ clr.b 0(a0,d0.w)
+ dbra d0,asm_cargo_zero
+ clr.l asm_scooped
+ clr.l asm_debris
+ clr.l asm_full
  clr.l asm_pods
  move.w #6,asm_spawn_kind
  clr.b _tactics_cnt
@@ -880,6 +924,14 @@ asm_setup_done:
  move.w #-160,asm_ships+544+6
  move.w #1400,asm_ships+544+8
 asm_encounter_ready:
+ cmp.w #3,asm_mode
+ bne asm_salvage_models_done
+ tst.w asm_salvage
+ beq asm_salvage_models_done
+ lea _models,a0
+ move.l 12(a0),asm_ships
+ move.l 16(a0),asm_ships+272
+asm_salvage_models_done:
  bsr asm_reset_vectors
  move.b #255,asm_status
  move.b #255,asm_status+1
@@ -920,6 +972,87 @@ asm_abort_next:
  lea 36(a0),a0
  dbra d3,asm_abort_loop
  movem.l (sp)+,d0-d3/a0-a2
+ rts
+asm_drop_cargo:
+ cmp.w #3,asm_mode
+ bne asm_drop_done
+ movem.l d2-d7/a2-a3,-(sp)
+ move.l (a5),a0
+ pea asm_laser+5
+ moveq #0,d0
+ move.w 36(a0),d0
+ move.l d0,-(sp)
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ jsr _debris_count
+ lea 12(sp),sp
+ move.w d0,d5
+ beq asm_drop_restore
+ move.w #8,asm_spawn_kind
+asm_drop_loop:
+ bsr asm_spawn_missile
+ subq.w #1,d5
+ bne asm_drop_loop
+ move.w #6,asm_spawn_kind
+asm_drop_restore:
+ movem.l (sp)+,d2-d7/a2-a3
+asm_drop_done:
+ rts
+asm_contact:
+ cmp.w #3,asm_mode
+ bne asm_contact_done
+ move.l #22,-(sp)
+ pea asm_laser+5
+ pea asm_cargo
+ move.l #255,-(sp)
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _scoop_step
+ lea 24(sp),sp
+ tst.l d0
+ beq asm_contact_done
+ cmp.w #3,d0
+ beq asm_collision
+ cmp.w #1,d0
+ bne asm_contact_full
+ addq.l #1,asm_scooped
+ bra asm_contact_remove
+asm_contact_full:
+ addq.l #1,asm_full
+asm_contact_remove:
+ or.b #160,31(a4)
+ bsr asm_abort_target
+ bra asm_contact_done
+asm_collision:
+ moveq #0,d0
+ move.b 35(a4),d0
+ move.w d0,d1
+ and.w #1,d1
+ move.l d1,-(sp)
+ moveq #0,d1
+ move.b 8(a4),d1
+ move.l d1,-(sp)
+ lsr.w #1,d0
+ or.w #128,d0
+ move.l d0,-(sp)
+ pea asm_status
+ jsr _player_damage
+ lea 16(sp),sp
+ cmp.w #2,d0
+ bne asm_collision_alive
+ move.w #1,asm_dead
+asm_collision_alive:
+ pea asm_laser+5
+ move.l (a5),-(sp)
+ move.l asm_cloud,-(sp)
+ move.l a4,-(sp)
+ jsr _explosion_start
+ lea 16(sp),sp
+ bsr asm_abort_target
+asm_contact_done:
  rts
 asm_player_input:
  cmp.w #3,asm_mode
@@ -1016,6 +1149,16 @@ asm_spawn_enemy:
  jsr _spawn_child
  lea 12(sp),sp
 asm_spawn_initialized:
+ cmp.w #8,asm_spawn_kind
+ bne asm_spawn_no_tumble
+ pea asm_laser+5
+ move.l a2,-(sp)
+ jsr _cargo_tumble
+ addq.l #8,sp
+ addq.l #1,asm_debris
+asm_spawn_no_tumble:
+ cmp.w #8,asm_spawn_kind
+ beq asm_count_spawned
  clr.w 14(a3)
  clr.b 2(a6)
  cmp.w #9,asm_spawn_kind
@@ -1032,6 +1175,14 @@ asm_spawn_next:
  lea 272(a3),a3
  lea 448(a6),a6
  dbra d6,asm_spawn_find
+ cmp.w #8,asm_spawn_kind
+ bne asm_spawn_failed
+ ; SFS1 consumes its tumble RNG before NWSHP discovers a full pool.
+ move.l #1,-(sp)
+ pea asm_laser+5
+ jsr _elite_random
+ addq.l #8,sp
+asm_spawn_failed:
  suba.l a0,a0
 asm_spawn_end:
  movem.l (sp)+,d2-d7/a2-a6
@@ -1187,6 +1338,21 @@ asm_hud_lock:
  add.b #48,d0
  move.b d0,asm_msl_text+4
 asm_hud_ready:
+ lea asm_cargo,a0
+ moveq #12,d1
+ moveq #0,d0
+asm_hud_cargo_sum:
+ moveq #0,d2
+ move.b (a0)+,d2
+ add.w d2,d0
+ dbra d1,asm_hud_cargo_sum
+ divu.w #10,d0
+ move.w d0,d2
+ add.b #48,d2
+ move.b d2,asm_cargo_text+2
+ swap d0
+ add.b #48,d0
+ move.b d0,asm_cargo_text+3
  lea asm_fps_text,a4
  tst.w asm_dead
  beq asm_status_text

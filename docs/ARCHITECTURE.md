@@ -1,3 +1,10 @@
+# A15 update
+
+See README.md for the native cargo/debris/collision path and explicit remaining
+boundaries. New code is src/cargo.s; tests/cargo_reference.py executes bundled
+source through the stated boundaries. A15 logs are current. Blueprint header
+size is now38 bytes, with debris mask at36 and all previous offsets preserved.
+
 # A14 update
 
 README.md describes the new pod path, explicit CNT boundary, navigation-only

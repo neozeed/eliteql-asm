@@ -61,3 +61,8 @@ follows original MA4/MA20/MA25/MA26, with QL keyboard and pool adapters.
 A14 original-navigation.asm adds SPS1/SPS3 to the TACTICS excerpts.
 original-missile-icons.asm contains MSBAR and MDIALS. Child pod spawning
 uses the normal-parent SESCP/SFS1/NWSHP path already bundled at A11.
+
+A15 original-cargo.asm contains tnpr, scoop proximity/selection logic, MAS4,
+SFS1 cargo tumble and the MA47 debris decision. MA58 is an explicit kill-flag
+boundary; docking and message presentation are outside this oracle.
+Blueprint extraction adds the original Max. canisters on demise byte.

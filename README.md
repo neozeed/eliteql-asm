@@ -1,22 +1,22 @@
-# EliteQL ASM A14 — escape pods and cockpit missile symbols
+# EliteQL ASM A15 — salvage, cargo and collisions
 
-A14 connects the original escape decision to pod creation and planet-direction
-steering, and adds the original dashboard missile symbols. A13's combat and
-A12's inverted pitch controls are retained. A13 remains a separate baseline.
-This is the complete source and runnable build.
+A15 adds original laser-kill canister spawning, cargo tumbling, automatic
+scooping, a 20-tonne hold and nearby collision damage. Missile combat, escape
+pods, cockpit symbols and inverted pitch controls are retained. A14 remains
+a separate baseline. This is the complete source and runnable build.
 
-Launch `EXEC_W WIN1_ELITEASM` with the `host` directory mounted in QLBox.
-For example:
+Launch `EXEC_W WIN1_ELITEASM` with this folder's `host` directory mounted.
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a14\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a15\host
 ```
 
 ## Controls
 
 | Key | Action |
 | --- | --- |
-| 4 | Full missile encounter: three fighters, nine reusable missile slots |
+| 4 | Sidewinder/Viper/Mamba missile encounter |
+| 5 | Python/Cobra/Mamba salvage encounter |
 | T | Arm a missile; acquire the first target passing original HITCH |
 | U | Disarm and clear target lock |
 | M | Launch at the locked target |
@@ -31,7 +31,7 @@ bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a14\host
 | B | Toggle 10 Hz cap (also changes simulation speed) |
 | Escape | Release held keys, restore screen and exit |
 
-Player missiles are enabled in scene 4. The status strip shows `M4 -` when
+Player missiles and salvage are enabled in scenes 4 and 5. The status strip shows `M4 -` when
 four missiles are available and none is armed, `M4 A` while seeking a lock,
 and a target slot in place of the dash after locking. Slots 10/11 currently
 appear as `:` / `;`. Arming, disarming and launch occur on simulation updates,
@@ -57,7 +57,7 @@ energy and decrements the timer by two. ECM destroys active missiles. Pause
 freezes simulation, although E can arm the countdown while paused.
 
 This is still a flight/combat test scene. Player escape-pod launch,
-station police, debris, rewards/rank, sound, docking, travel, markets and saves
+station police, rewards/rank, sound, docking, travel, markets and saves
 are not finished. The ECM lamp and incoming-missile text/sound are not connected.
 
 ## Source fidelity and adapter boundaries
@@ -86,7 +86,7 @@ documented in FIDELITY.md.
 ## Validation and build
 
 ELITEASM is entirely native assembly. C is used only for diagnostics/benchmarks.
-At 128 KB a BASIC EXEC_W launch leaves a largest free block of 14,336 bytes;
+At 128 KB a BASIC EXEC_W launch leaves a largest free block of 13,312 bytes;
 640 KB is also tested. Physical 68008 timing has not been measured.
 
 The new `ELITEMSL` diagnostic tests 65,536 ECM states and 1,024 sets of impact,
@@ -97,7 +97,7 @@ comparisons in `ELITETAC` do execute original 6502 instructions.
 Both live-job harnesses check launch, homing, E activation, countdown expiry,
 explosion, slot reuse, fatal impact and restart, together with the earlier combat,
 framebuffer, scanner, controls, keyboard and clean-exit regressions at 128/640 KB.
-Logs are in docs/A14-*.log. Older architecture/testing sections describe inherited
+Logs are in docs/A15-*.log. Older architecture/testing sections describe inherited
 milestones; the A13 notes in those documents specify changes and limits.
 
 Build with the recovered GCC 2.95.3 R2 signed-remainder-fix cross toolchain:
@@ -186,3 +186,57 @@ original MSBAR instruction loop. Both live harnesses additionally check the
 escape decision, pod spawn, parent AI shutdown, planet-relative movement,
 scanner/viewport pixels and reset at 128 KB and 640 KB. Earlier missile,
 ECM, laser, inverted controls and clean-exit checks remain in the suite.
+
+## A15 salvage loop
+
+Press 5 for the salvage encounter. Laser kills of ordinary ships follow the
+original MA47/um decision: half the random outcomes suppress debris; otherwise
+the random byte is ANDed with the blueprint's canister mask. The original masks
+are zero for Sidewinder/Viper, one for Mamba, and three for Python/Cobra. A kill
+can therefore leave nothing, even in the salvage scene. Missile kills do not
+run this laser-specific debris path.
+
+Canisters inherit their parent's location and orientation. The original SFS1
+cargo branch sets random pitch, speed and endless roll, with no AI. Canisters,
+pods and missiles share the nine reusable child slots. A full pool can lose
+new debris; its original tumble RNG call is still consumed on allocation failure.
+
+Fuel scoops are fitted in these test scenes. Approach slowly with a canister
+below the nose. Scooping is automatic when the original coordinate tests pass:
+all three high bytes zero, each low byte below 64, and negative y with scoops
+fitted. Cargo canisters produce an original random commodity from 0–7. Escape
+pods use the original commodity 3 mapping (slaves). The authoritative hold has
+17 byte stocks; tnpr checks its original tonne and special-unit limits. The
+scene supplies a standard 20-tonne hold (encoded CRGO=22).
+
+The HUD's C00 counter shows carried tonnes. N resets all cargo, debris and
+collection counters along with the scene. The cargo manifest, commodity
+messages, trading and persistent commander saves are not implemented yet.
+
+A full hold destroys the attempted scoop without adding cargo. Approaching a
+nearby object above the nose causes a collision instead. Original MA58 damage
+is 128 + half the object's energy, with the ROR carry passed into OOPS; shields,
+energy and the existing death boundary respond. Missiles retain their own impact
+logic. Station docking/collision checks are excluded from this new entry.
+Collision destruction uses the native explosion adapter; successful/failed
+scoops remove the item without drawing a cloud. OUCH cargo/equipment loss and
+collision sounds remain unconnected.
+
+## A15 validation and format notes
+
+ELITECRG compares 2,048 tnpr cases, 1,024 proximity/scoop/collision-boundary
+cases and 512 debris/tumble cases with bundled original instruction excerpts.
+It compares ship bytes, all cargo stocks, RNG state, results and guard bytes.
+The oracle ends at the collision boundary; OOPS is covered by the existing
+combat corpus and the live collision test. It does not emulate docking, messages
+or sound. The already-tested OOPS and damage logic remains native assembly.
+
+Both real-job harnesses exercise scene 5, laser-spawned cargo, tumbling,
+collection, a full hold, collision shield damage, reset and exact viewport/
+dashboard reconstruction at 128/640 KB, including BASIC EXEC_W. All inherited
+combat, navigation, controls, scanner, icon and exit checks remain in the suite.
+
+Blueprint headers append the original debris mask at offset 36; earlier field
+offsets remain unchanged. Stats magic is EQB5/6800. Debug pointers at offsets
+122,126,130,134 expose cargo stocks, collected count, spawned canister count
+and full-hold rejection count. These diagnostics are not commander rewards.
