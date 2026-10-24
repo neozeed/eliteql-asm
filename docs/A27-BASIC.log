@@ -1,0 +1,44 @@
+PASS live combat: ram=128 KB; F/pause, five-hit kill, original explosion lifetime/pixels, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS live tactics: ram=128 KB; encounter steering, scheduled enemy fire, exact shield/recharge state, DEATH freeze, 3 restart, solo reset
+PASS live missiles: ram=128 KB; launch, homing, E/ECM countdown, explosion, slot reuse, fatal impact, restart
+PASS player missiles: ram=128 KB; T lock, U disarm, M launch, inventory, target-relative impact, cloud cleanup, jam, enemy ECM
+PASS pods: ram=128 KB; original escape decision, spawn, parent AI disabled, navigation/movement, reset and missile icons
+PASS salvage: ram=128 KB; laser debris, tumble, scoop, inventory, full hold, collision damage, reset
+PASS commander: ram=128 KB; laser tally, delayed bounty, no duplicate payment, police FIST, all cargo units, modal freeze, exact view restore, reset
+PASS equipment/navigation: ram=128 KB; front/rear compass pixels, bomb key/countdown/tally/station immunity, cargo/ECM/scoop/bomb/unit destruction, disabled ECM/bomb/scooping, reset
+PASS local loop: ram=128 KB; real approach/dock, freeze, buy/sell, cash/hold rejection, market persistence, equipment/ammo preservation, BAD launch, redock, slow dent, fast crash, restart
+PASS travel: ram=128 KB; Lave selection, frozen page, original countdown/pause, arrival/fuel/legal decay, commander preservation, destination market/dock/refuel, galaxy two/one-use drive, view restore
+PASS equipment/save: ram=128 KB; missile cap, hold upgrade, beam trade-in, bomb/unit/galactic replacements, QDOS save/load, preservation, live beam, corrupt/truncated rejection, escape recovery, load after reset
+PASS ambient encounters: ram=128 KB; state-preserving deep space, original trader/asteroid/canister/cop/pirate/hunter spawn paths, renderer/scanner, FAROF release
+PASS fittings/computer: ram=128 KB; purchase/tech/duplicate/trade-in per mount, EQA2 save, invalid/truncated rejection, EQA1 import, launch preservation, four-view pulse/beam kills, C fitted/friendly/safe-zone/pause/modal gates and immediate dock
+PASS views/station tactics: ram=128 KB; four cameras, cache erase, modal/pause, unarmed side/rear, missile locks, explosion view changes, rear planet, friendly station, provocation, police cap3, safe-zone aggression and hostile docking denial
+PASS original world: ram=128 KB; empty arrival/deep space, J jump/pause/mass lock, planet rotation, source station spawn/no duplicate, approach/dock, original launch, station mass lock/FAROF/KS4 placeholder
+PASS planet view/altitude: ram=128 KB; visible circle, clipping, behind erase, modal restore, low altitude, collision death/reset
+Active native flight: ram=128 KB, 50 updates / 250 50-Hz ticks (dust+sound enabled)
+fidelity: sound start
+fidelity: chart start
+PASS A27 fidelity: ram=128 KB; stardust/pause/modal parity, live IPC/envelope silence, source chart/cursor/nearest/home, launch tunnel frozen simulation, ENERGY LOW
+PASS BASIC EXEC_W: suspended, printable burst consumed, keyboard queue empty
+PASS ASM native: ram=128 KB, frames=5256, largest free block after startup=24576 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+PASS live combat: ram=640 KB; F/pause, five-hit kill, original explosion lifetime/pixels, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS live tactics: ram=640 KB; encounter steering, scheduled enemy fire, exact shield/recharge state, DEATH freeze, 3 restart, solo reset
+PASS live missiles: ram=640 KB; launch, homing, E/ECM countdown, explosion, slot reuse, fatal impact, restart
+PASS player missiles: ram=640 KB; T lock, U disarm, M launch, inventory, target-relative impact, cloud cleanup, jam, enemy ECM
+PASS pods: ram=640 KB; original escape decision, spawn, parent AI disabled, navigation/movement, reset and missile icons
+PASS salvage: ram=640 KB; laser debris, tumble, scoop, inventory, full hold, collision damage, reset
+PASS commander: ram=640 KB; laser tally, delayed bounty, no duplicate payment, police FIST, all cargo units, modal freeze, exact view restore, reset
+PASS equipment/navigation: ram=640 KB; front/rear compass pixels, bomb key/countdown/tally/station immunity, cargo/ECM/scoop/bomb/unit destruction, disabled ECM/bomb/scooping, reset
+PASS local loop: ram=640 KB; real approach/dock, freeze, buy/sell, cash/hold rejection, market persistence, equipment/ammo preservation, BAD launch, redock, slow dent, fast crash, restart
+PASS travel: ram=640 KB; Lave selection, frozen page, original countdown/pause, arrival/fuel/legal decay, commander preservation, destination market/dock/refuel, galaxy two/one-use drive, view restore
+PASS equipment/save: ram=640 KB; missile cap, hold upgrade, beam trade-in, bomb/unit/galactic replacements, QDOS save/load, preservation, live beam, corrupt/truncated rejection, escape recovery, load after reset
+PASS ambient encounters: ram=640 KB; state-preserving deep space, original trader/asteroid/canister/cop/pirate/hunter spawn paths, renderer/scanner, FAROF release
+PASS fittings/computer: ram=640 KB; purchase/tech/duplicate/trade-in per mount, EQA2 save, invalid/truncated rejection, EQA1 import, launch preservation, four-view pulse/beam kills, C fitted/friendly/safe-zone/pause/modal gates and immediate dock
+PASS views/station tactics: ram=640 KB; four cameras, cache erase, modal/pause, unarmed side/rear, missile locks, explosion view changes, rear planet, friendly station, provocation, police cap3, safe-zone aggression and hostile docking denial
+PASS original world: ram=640 KB; empty arrival/deep space, J jump/pause/mass lock, planet rotation, source station spawn/no duplicate, approach/dock, original launch, station mass lock/FAROF/KS4 placeholder
+PASS planet view/altitude: ram=640 KB; visible circle, clipping, behind erase, modal restore, low altitude, collision death/reset
+Active native flight: ram=640 KB, 50 updates / 250 50-Hz ticks (dust+sound enabled)
+fidelity: sound start
+fidelity: chart start
+PASS A27 fidelity: ram=640 KB; stardust/pause/modal parity, live IPC/envelope silence, source chart/cursor/nearest/home, launch tunnel frozen simulation, ENERGY LOW
+PASS BASIC EXEC_W: suspended, printable burst consumed, keyboard queue empty
+PASS ASM native: ram=640 KB, frames=5256, largest free block after startup=539648 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit

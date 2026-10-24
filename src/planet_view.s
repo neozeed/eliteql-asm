@@ -90,6 +90,41 @@ pg_shift_left:
  lsl.l d2,d0
  rts
 
+; CIRCLE2 entry for LAUN/LL164: no planet projection, no previous-ring erase.
+; circle_ring(screen,cache80,radius,step), centred at original (128,96).
+.globl _circle_xy
+_circle_xy:
+ movem.l d2-d7/a2-a6,-(sp)
+ move.l 48(sp),a6
+ move.l 52(sp),a5
+ move.l 56(sp),d0
+ move.l 60(sp),d1
+ move.l 64(sp),d2
+ move.l 68(sp),d3
+ clr.w 12(a5)
+ sub.l #20,sp
+ move.w #1,(sp)
+ move.w d0,2(sp)
+ move.w d1,4(sp)
+ move.w d2,6(sp)
+ move.w d3,8(sp)
+ bra pv_step_ready
+.globl _circle_ring
+_circle_ring:
+ movem.l d2-d7/a2-a6,-(sp)
+ move.l 48(sp),a6
+ move.l 52(sp),a5
+ move.l 56(sp),d0
+ move.l 60(sp),d1
+ clr.w 12(a5)
+ sub.l #20,sp
+ move.w #1,(sp)
+ move.w #128,2(sp)
+ move.w #96,4(sp)
+ move.w d0,6(sp)
+ move.w d1,8(sp)
+ bra pv_step_ready
+
 .globl _planet_frame
 _planet_frame:
  movem.l d2-d7/a2-a6,-(sp)

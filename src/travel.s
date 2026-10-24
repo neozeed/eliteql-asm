@@ -354,3 +354,68 @@ tr_fail:
 .sect .data
 .align 2
 digrams: .ascii "ALLEXEGEZACEBISOUSESARMAINDIREA?ERATENBERALAVETIEDORQUANTEISRION"
+.sect .text
+; TT123: reject an overflowing signed-byte delta, rather than wrapping/clamping.
+.globl _chart_move
+_chart_move:
+ move.l 4(sp),d0
+ and.l #255,d0
+ move.l 8(sp),d1
+ ext.w d1
+ move.w d0,-(sp)
+ add.w d1,d0
+ cmp.w #255,d0
+ bls chart_move_ok
+ move.w (sp),d0
+chart_move_ok:
+ addq.l #2,sp
+ rts
+; TT111: first strict minimum of floor(abs(dx)/2)+floor(abs(dy)/2).
+; chart_nearest(galaxySeed6,x,y) -> system index. Coordinates are bytes.
+.globl _chart_nearest
+_chart_nearest:
+ movem.l d2-d7/a2-a4,-(sp)
+ move.l 40(sp),a2
+ move.l 44(sp),d3
+ and.w #255,d3
+ move.l 48(sp),d4
+ and.w #255,d4
+ sub.l #24,sp
+ move.l (a2),(sp)
+ move.w 4(a2),4(sp)
+ moveq #0,d7
+ moveq #127,d6
+ moveq #0,d5
+chart_nearest_loop:
+ moveq #0,d0
+ move.b 3(sp),d0
+ sub.w d3,d0
+ bpl chart_nearest_x
+ neg.w d0
+chart_nearest_x:
+ lsr.w #1,d0
+ moveq #0,d1
+ move.b 1(sp),d1
+ sub.w d4,d1
+ bpl chart_nearest_y
+ neg.w d1
+chart_nearest_y:
+ lsr.w #1,d1
+ add.w d1,d0
+ cmp.w d6,d0
+ bhs chart_nearest_next
+ move.w d0,d6
+ move.w d7,d5
+chart_nearest_next:
+ move.l sp,a0
+ bsr seed_twist
+ bsr seed_twist
+ bsr seed_twist
+ bsr seed_twist
+ addq.w #1,d7
+ cmp.w #256,d7
+ blo chart_nearest_loop
+ move.l d5,d0
+ add.l #24,sp
+ movem.l (sp)+,d2-d7/a2-a4
+ rts

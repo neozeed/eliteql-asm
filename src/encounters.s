@@ -19,9 +19,9 @@ _encounter_step:
  and.w #1,d3
  bsr en_random
  cmp.b #35,d0
- bhs en_police
+ bhs en_police_carry
  cmp.b #3,1(a4)
- bhs en_police
+ bhs en_police_carry
  bsr en_zero
  move.b #38,7(a6)
  moveq #0,d3
@@ -77,6 +77,8 @@ en_trader:
  moveq #6,d0
  bsr en_add
  bra en_done
+en_police_carry:
+ moveq #1,d3
 en_police:
  tst.b (a4)
  bne en_done
@@ -121,10 +123,10 @@ en_no_cop:
  tst.b 3(a4)
  beq en_hostile
  cmp.b #90,d0
- bhs en_done
+ bhs en_done_set_carry
  and.b #7,d0
  cmp.b 3(a4),d0
- blo en_done
+ blo en_done_clear_carry
  moveq #1,d3
 en_hostile:
  bsr en_ze
@@ -158,9 +160,16 @@ en_pirate_loop:
  bsr en_add
  dbra d7,en_pirate_loop
 en_done:
+ move.l d3,d0
  add.l #36,sp
  movem.l (sp)+,d2-d7/a2-a6
  rts
+en_done_set_carry:
+ moveq #1,d3
+ bra en_done
+en_done_clear_carry:
+ moveq #0,d3
+ bra en_done
 en_zero:
  moveq #35,d2
 en_clear:

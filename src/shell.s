@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514247,0x36383030
+ .data4 0x45514248,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -78,6 +78,24 @@ asm_police_debug: .data4 asm_police_launches
 asm_sight_debug: .data4 asm_sight
 asm_shop_view_debug: .data4 asm_shop_view
 asm_computer_debug: .data4 asm_computer_docks
+asm_dust_debug: .data4 asm_dust
+asm_dust_valid_debug: .data4 asm_dust_valid
+asm_snapshot_size_debug: .data4 asm_snapshot_size
+asm_snapshot_rle_debug: .data4 asm_snapshot_rle
+asm_tunnel_debug: .data4 asm_tunnel_phase
+asm_chart_cursor_debug: .data4 asm_chart_cursor
+asm_sound_debug: .data4 asm_sound
+asm_snapshot_size: .data4 32768
+asm_snapshot_rle: .data2 0
+asm_tunnel_phase: .data2 0
+asm_chart_cursor: .data1 0,0
+asm_sound: .space 24
+asm_sound_carry: .data2 0
+asm_sound_ecm: .data1 0
+asm_sound_dead: .data1 0
+.align 2
+asm_dust: .space 168
+asm_dust_valid: .data2 0
 asm_shop_view: .data2 0
 asm_computer_docks: .data4 0
 asm_view: .data2 0
@@ -230,20 +248,51 @@ asm_clock:
  addq.l #1,asm_ticks
  rts
 asm_main:
- ; MT.ALCHP, block owned by this job. No permanent allocation on failure.
+ ; Preserve the entire caller bitmap, using lossless word RLE when smaller.
+ clr.l -(sp)
+ clr.l -(sp)
+ pea 0x20000
+ jsr _screen_pack
+ lea 12(sp),sp
+ move.l #32768,asm_snapshot_size
+ clr.w asm_snapshot_rle
+ cmp.l #32768,d0
+ bhs snapshot_allocate
+ move.l d0,asm_snapshot_size
+ move.w #1,asm_snapshot_rle
+snapshot_allocate:
  moveq #0x18,d0
- move.l #32768,d1
+ move.l asm_snapshot_size,d1
  moveq #-1,d2
  trap #1
  tst.l d0
  bne _exit
  move.l a0,asm_snapshot
+ tst.w asm_snapshot_rle
+ beq snapshot_raw
+ move.l asm_snapshot_size,-(sp)
+ move.l a0,-(sp)
+ pea 0x20000
+ jsr _screen_pack
+ lea 12(sp),sp
+ tst.l d0
+ bpl snapshot_saved
+ ; Another foreground writer changed the bitmap between passes. Bounds were
+ ; checked before every packet; exit without changing its display or mode.
+ move.l asm_snapshot,a0
+ moveq #0x19,d0
+ trap #1
+ clr.l asm_snapshot
+ moveq #-3,d0
+ bra _exit
+snapshot_raw:
  move.l a0,a1
  move.l #0x20000,a0
  move.w #8191,d0
 asm_save_screen:
  move.l (a0)+,(a1)+
  dbra d0,asm_save_screen
+snapshot_saved:
  moveq #0x10,d0
  moveq #-1,d1
  moveq #-1,d2
@@ -269,6 +318,7 @@ asm_clear_screen:
  move.l d1,asm_free
  move.w #1,asm_ready
 asm_loop:
+ bsr asm_sound_poll
  move.l asm_ticks,d0
  addq.l #5,d0
  move.l d0,asm_deadline
@@ -541,6 +591,11 @@ asm_draw_begin:
  bne asm_update_stats
  tst.w asm_paused
  bne asm_update_stats
+ ; Original M% reseeds RAND from planet x_lo at each flight update.
+ move.b asm_planet,asm_laser+5
+ pea asm_sound
+ jsr _sound_tick
+ addq.l #4,sp
  pea asm_travel
  jsr _travel_tick
  addq.l #4,sp
@@ -599,9 +654,26 @@ planet_rotation_done:
  jsr _planet_frame
  lea 12(sp),sp
 planet_draw_done:
- ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
- clr.l -(sp)
+ ; MA68 calls NOISE only after all firing gates pass; NO3 carry reaches LASLI.
  bsr asm_current_laser
+ move.w d0,d2
+ clr.w asm_sound_carry
+ tst.b asm_laser
+ bne laser_sound_ready
+ tst.b asm_fire_key
+ beq laser_sound_ready
+ cmp.b #242,asm_status+3
+ bhs laser_sound_ready
+ tst.b d2
+ beq laser_sound_ready
+ moveq #0,d0
+ bsr asm_sound_event
+laser_sound_ready:
+ moveq #0,d0
+ move.w asm_sound_carry,d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b d2,d0
  move.l d0,-(sp)
  moveq #0,d0
  move.b asm_fire_key,d0
@@ -658,6 +730,7 @@ asm_bomb_ship_done:
  move.l (a5),-(sp)
  move.l asm_cloud,-(sp)
  move.l a4,-(sp)
+ bsr asm_sound_explosion
  jsr _explosion_start
  lea 16(sp),sp
  bsr asm_abort_target
@@ -821,6 +894,10 @@ asm_ai_not_escape:
  cmp.w #3,d0
  blo asm_ai_not_hit
  addq.l #1,asm_ai_events
+ move.w d0,-(sp)
+ moveq #8,d0
+ bsr asm_sound_event
+ move.w (sp)+,d0
 asm_ai_not_hit:
  cmp.w #4,d0
  bne asm_ai_no_ouch
@@ -837,6 +914,7 @@ asm_ai_done:
  move.l (a5),-(sp)
  move.l asm_cloud,-(sp)
  move.l a4,-(sp)
+ bsr asm_sound_explosion
  jsr _explosion_start
  lea 16(sp),sp
  bsr asm_abort_target
@@ -881,6 +959,8 @@ asm_ai_alive:
  move.w asm_slot,d0
  move.b d0,asm_player+2
  clr.b asm_player+1
+ moveq #32,d0
+ bsr asm_sound_event
 asm_lock_done:
  ; Original HITCH follows PLUT: test view-space INWK, damage world state.
  tst.b asm_laser+1
@@ -898,6 +978,7 @@ asm_lock_done:
  tst.l d0
  beq asm_no_hit
  addq.l #1,asm_hits
+ bsr asm_sound_hit
  move.l (a5),a0
  moveq #0,d0
  move.w 28(a0),d0
@@ -919,6 +1000,7 @@ asm_lock_done:
  move.l (a5),-(sp)
  move.l asm_cloud,-(sp)
  move.l a4,-(sp)
+ bsr asm_sound_explosion
  jsr _explosion_start
  lea 16(sp),sp
  bsr asm_abort_target
@@ -997,38 +1079,23 @@ asm_cloud_done:
  pea asm_status
  jsr _energy_step
  addq.l #8,sp
- pea asm_status
- pea asm_ecm
- jsr _ecm_step
- addq.l #8,sp
- ; MA23 erases pulse lines when LASCT falls below 8.
- tst.b asm_laser+9
- beq asm_laser_end
- cmp.b #8,asm_laser
- bhs asm_laser_end
- bsr asm_erase_laser
-asm_laser_end:
- ; Laser-counter adapter retains explicit C=1 MLOOP cadence (10,6,2,0).
- move.l #1,-(sp)
- pea asm_laser
- jsr _laser_tick
- addq.l #8,sp
- pea asm_equipment+2
- jsr _bomb_tick
- addq.l #4,sp
- pea asm_commander
- jsr _commander_tick
- addq.l #4,sp
  tst.w asm_warp_timer
  beq warp_timer_done
  subq.w #1,asm_warp_timer
 warp_timer_done:
- tst.w asm_world
- beq altitude_tick_done
  move.b asm_mcnt,d0
  and.b #31,d0
  cmp.b #10,d0
  bne altitude_tick_done
+ cmp.b #50,asm_status+2
+ bhi altitude_no_warning
+ moveq #4,d0
+ bsr asm_message
+ moveq #32,d0
+ bsr asm_sound_event
+altitude_no_warning:
+ tst.w asm_world
+ beq altitude_tick_done
  ; Original LL5 incoming Q is an explicit zero scratch boundary here.
  clr.l -(sp)
  pea asm_planet
@@ -1042,14 +1109,53 @@ warp_timer_done:
  move.w #1,asm_dead
 altitude_tick_done:
  bsr asm_station_tick
+ pea asm_status
+ pea asm_ecm
+ jsr _ecm_step
+ addq.l #8,sp
+ bsr asm_ecm_sound
+ ; MA23 erases pulse lines when LASCT falls below 8.
+ tst.b asm_laser+9
+ beq asm_laser_end
+ cmp.b #8,asm_laser
+ bhs asm_laser_end
+ bsr asm_erase_laser
+asm_laser_end:
+ pea asm_equipment+2
+ jsr _bomb_tick
+ addq.l #4,sp
+ moveq #1,d0
+ bsr asm_dust_run
+ moveq #0,d2
+ move.b asm_commander+7,d2
+ pea asm_commander
+ jsr _commander_tick
+ addq.l #4,sp
+ ; me2/mes9's final LSR de determines C when a message expires.
+ cmp.w #1,d2
+ bne message_carry_ready
+ clr.b asm_dust+166
+ cmp.b #3,asm_commander+8
+ bne message_carry_ready
+ move.b #1,asm_dust+166
+message_carry_ready:
  subq.b #1,asm_mcnt
  bne asm_no_encounter_tick
  bsr asm_encounters
 asm_no_encounter_tick:
+ ; MLOOP's SBC #4 uses the actual preceding STARS/message/encounter carry.
+ moveq #0,d0
+ move.b asm_dust+166,d0
+ move.l d0,-(sp)
+ pea asm_laser
+ jsr _laser_tick
+ addq.l #8,sp
  bsr asm_draw_dials
  addq.l #1,asm_frames
  bra asm_update_stats
 asm_dock_commit:
+ moveq #8,d0
+ bsr asm_tunnel
  clr.b asm_player+1
  move.b #255,asm_player+2
  move.w #2,asm_salvage
@@ -1070,10 +1176,22 @@ asm_dock_commit:
  bsr asm_market_page
  bra asm_update_stats
 asm_update_stats:
+ moveq #0,d0
+ tst.w asm_dead
+ sne d0
+ cmp.b asm_sound_dead,d0
+ beq death_sound_done
+ move.b d0,asm_sound_dead
+ tst.b d0
+ beq death_sound_done
+ moveq #24,d0
+ bsr asm_sound_event
+death_sound_done:
  bsr asm_fps
  tst.w asm_uncapped
  bne asm_loop
 asm_wait:
+ bsr asm_sound_poll
  move.l asm_deadline,d0
  sub.l asm_ticks,d0
  ble asm_loop
@@ -1113,6 +1231,9 @@ asm_release_tick:
  trap #1
  bra asm_release_wait
 asm_release_done:
+ pea asm_sound
+ jsr _sound_stop
+ addq.l #4,sp
  jsr _keyboard_drain
  clr.w asm_ready
  lea asm_poll,a0
@@ -1122,12 +1243,21 @@ asm_release_done:
  move.w asm_oldmode,d1
  move.w asm_olddisplay,d2
  trap #1
+ tst.w asm_snapshot_rle
+ beq snapshot_restore_raw
+ pea 0x20000
+ move.l asm_snapshot,-(sp)
+ jsr _screen_unpack
+ addq.l #8,sp
+ bra snapshot_restored
+snapshot_restore_raw:
  move.l asm_snapshot,a0
  move.l #0x20000,a1
  move.w #8191,d0
 asm_restore_screen:
  move.l (a0)+,(a1)+
  dbra d0,asm_restore_screen
+snapshot_restored:
  move.l asm_snapshot,a0
  moveq #0x19,d0
  trap #1
@@ -1161,6 +1291,12 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ tst.w asm_dust_valid
+ beq dust_setup_clean
+ moveq #3,d0
+ bsr asm_dust_run
+dust_setup_clean:
+ clr.w asm_dust_valid
  clr.w asm_shop_view
  clr.l asm_computer_docks
  clr.w asm_view
@@ -1385,6 +1521,9 @@ asm_deep_clear:
  dbra d0,asm_deep_clear
  clr.l asm_station
 asm_not_deep_setup:
+ moveq #0,d0
+ bsr asm_dust_run
+ move.w #1,asm_dust_valid
  move.b #255,asm_status
  move.b #255,asm_status+1
  move.b #255,asm_status+2
@@ -1401,7 +1540,10 @@ asm_abort_target:
  bne asm_abort_followers
  move.b #255,asm_player+2
  clr.b asm_player+1
+ moveq #5,d0
+ bsr asm_message
 asm_abort_followers:
+ move.w asm_slot,d0
  add.b d0,d0
  or.b #128,d0
  lea asm_vectors,a0
@@ -1452,8 +1594,12 @@ asm_drop_done:
  rts
 asm_equipment_ouch:
  movem.l d2-d7/a2-a6,-(sp)
- ; Missing EXNO3 sound boundary: incoming DORND carry explicitly 1.
- move.l #1,-(sp)
+ ; OOPS calls EXNO3 before OUCH; retain NO3 priority result as DORND C.
+ moveq #24,d0
+ bsr asm_sound_event
+ moveq #0,d0
+ move.w asm_sound_carry,d0
+ move.l d0,-(sp)
  moveq #0,d0
  move.b asm_commander+7,d0
  move.l d0,-(sp)
@@ -1522,6 +1668,7 @@ asm_dock_dent:
  move.w #1,asm_dead
  bra asm_contact_done
 asm_dock_dent_alive:
+ bsr asm_sound_contact
  cmp.w #1,d0
  bne asm_contact_done
  bsr asm_equipment_ouch
@@ -1554,6 +1701,8 @@ asm_contact_nonstation:
  bra asm_contact_remove
 asm_contact_full:
  addq.l #1,asm_full
+ moveq #24,d0
+ bsr asm_sound_event
 asm_contact_remove:
  or.b #160,31(a4)
  bsr asm_abort_target
@@ -1586,6 +1735,7 @@ asm_collision_alive:
  move.l (a5),-(sp)
  move.l asm_cloud,-(sp)
  move.l a4,-(sp)
+ bsr asm_sound_contact
  jsr _explosion_start
  lea 16(sp),sp
  bsr asm_abort_target
@@ -1596,6 +1746,8 @@ asm_player_input:
  bne asm_player_input_done
  tst.b asm_mkeys+1
  beq asm_player_arm
+ moveq #40,d0
+ bsr asm_sound_event
  clr.b asm_player+1
  move.b #255,asm_player+2
 asm_player_arm:
@@ -1623,7 +1775,11 @@ asm_player_fire:
  bsr asm_spawn_missile
  clr.b asm_player+3
  move.l a0,d0
- beq asm_player_input_done
+ bne player_missile_launched
+ moveq #7,d0
+ bsr asm_message
+ bra asm_player_input_done
+player_missile_launched:
  subq.b #1,asm_player
  moveq #0,d0
  move.b asm_player+2,d0
@@ -1704,6 +1860,13 @@ asm_spawn_no_tumble:
  bra asm_count_spawned
 asm_count_missile:
  addq.l #1,asm_launches
+ tst.b asm_player+3
+ bne sound_own_missile
+ moveq #6,d0
+ bsr asm_message
+sound_own_missile:
+ moveq #48,d0
+ bsr asm_sound_event
 asm_count_spawned:
  move.l a2,a0
  bra asm_spawn_end
@@ -1927,6 +2090,30 @@ asm_hud_cargo_sum:
  lea asm_fps_text,a4
  tst.b asm_commander+7
  beq asm_hud_message_done
+ moveq #0,d0
+ move.b asm_commander+8,d0
+ cmp.w #4,d0
+ blo hud_legacy_message
+ subq.w #4,d0
+ lsl.w #2,d0
+ lea asm_flight_messages,a0
+ move.l 0(a0,d0.w),a4
+ bra asm_hud_message_done
+hud_legacy_message:
+ move.l asm_commander,d0
+ lea asm_bounty_message,a0
+ moveq #10,d1
+ bsr asm_decimal
+ move.b asm_bounty_message+9,asm_bounty_message+10
+ move.b #46,asm_bounty_message+9
+ lea asm_bounty_message,a0
+ moveq #7,d0
+hud_cash_spaces:
+ cmp.b #48,(a0)
+ bne hud_cash_ready
+ move.b #32,(a0)+
+ dbra d0,hud_cash_spaces
+hud_cash_ready:
  lea asm_bounty_message,a4
  cmp.b #3,asm_commander+8
  bne asm_hud_not_loss
@@ -2089,6 +2276,11 @@ dock_show_market:
 dock_keys_done:
  rts
 asm_launch:
+ tst.w asm_arriving
+ bne tunnel_launch_done
+ moveq #8,d0
+ bsr asm_tunnel
+tunnel_launch_done:
  ; Keep commander, equipment, cargo and remaining missiles across the local
  ; sortie reset. Market AVL persists; no free ammo/bomb/equipment replenishment.
  lea asm_commander,a0
@@ -2104,6 +2296,7 @@ launch_keep_cargo:
  dbra d0,launch_keep_cargo
  move.b asm_player,(a1)
  bsr asm_clear_view
+ clr.w asm_dust_valid
  clr.w asm_planet_cache+12
  lea asm_ships,a0
  lea asm_clouds,a1
@@ -2262,6 +2455,11 @@ asm_clear_view_loop:
  dbra d0,asm_clear_view_loop
  rts
 asm_restore_view:
+ tst.w asm_dust_valid
+ beq dust_restore_done
+ moveq #3,d0
+ bsr asm_dust_run
+dust_restore_done:
  pea asm_planet_cache
  pea 0x20000
  jsr _render_cache
@@ -2638,7 +2836,7 @@ asm_cargo_unit: .ascii "T \0"
 asm_clean: .ascii "LEGAL: CLEAN\0"
 asm_offender: .ascii "LEGAL: OFFENDER\0"
 asm_fugitive: .ascii "LEGAL: FUGITIVE\0"
-asm_bounty_message: .ascii "BOUNTY AWARDED - 6 COMMANDER\0"
+asm_bounty_message: .ascii "000000000.0 CR\0"
 asm_rank_message: .ascii "RIGHT ON COMMANDER!\0"
 .align 2
 asm_rank_names: .data4 asm_rank_0,asm_rank_1,asm_rank_2,asm_rank_3,asm_rank_4,asm_rank_5,asm_rank_6,asm_rank_7,asm_rank_8
@@ -2712,12 +2910,20 @@ asm_navigation_keys:
  beq nav_nine
  bset #3,d4
 nav_nine:
+ btst #7,d0
+ beq nav_no_home
+ bset #11,d4
+nav_no_home:
  btst #0,d0
  beq nav_h
  bset #0,d4
 nav_h:
  moveq #4,d0
  bsr asm_keyrow
+ btst #6,d0
+ beq nav_no_distance
+ bset #10,d4
+nav_no_distance:
  btst #2,d0
  beq nav_g
  bset #1,d4
@@ -2764,6 +2970,14 @@ nav_edges:
  and.w d4,d0
  move.w d4,asm_nav_keys
  move.w d0,d4
+ tst.w asm_chart
+ beq nav_no_cursor_repeat
+ tst.w asm_nav
+ beq nav_no_cursor_repeat
+ move.w asm_nav_keys,d0
+ and.w #240,d0
+ or.w d0,d4
+nav_no_cursor_repeat:
  btst #8,d4
  beq nav_no_escape
  tst.w asm_page
@@ -2838,8 +3052,31 @@ nav_select:
  btst #9,d4
  beq nav_select_system
  eor.w #1,asm_chart
+ beq nav_chart_to_data
+ bsr asm_chart_from_target
+ bra nav_redraw
+nav_chart_to_data:
+ bsr asm_chart_snap
  bra nav_redraw
 nav_select_system:
+ tst.w asm_chart
+ beq nav_data_select
+ btst #10,d4
+ bne nav_chart_snap
+ btst #11,d4
+ bne nav_chart_home
+ and.w #240,d4
+ beq nav_consumed
+ bsr asm_chart_move
+ bra nav_consumed
+nav_chart_snap:
+ bsr asm_chart_snap
+ bra nav_redraw
+nav_chart_home:
+ move.b asm_travel+19,asm_chart_cursor
+ move.b asm_travel+17,asm_chart_cursor+1
+ bra nav_redraw
+nav_data_select:
  tst.w d4
  beq nav_consumed
  move.w #1,asm_nav_step
@@ -2879,6 +3116,12 @@ nav_find_next:
  bpl nav_find
  bra nav_redraw
 nav_start_normal:
+ tst.w asm_chart
+ beq nav_normal_ready
+ tst.w asm_nav
+ beq nav_normal_ready
+ bsr asm_chart_snap
+nav_normal_ready:
  moveq #0,d0
  bra nav_start
 nav_start_galaxy:
@@ -2916,6 +3159,9 @@ nav_not_consumed:
  moveq #0,d0
  rts
 asm_arrival:
+ move.w #1,asm_arriving
+ moveq #4,d0
+ bsr asm_tunnel
  moveq #0,d0
  move.b asm_commander+6,d0
  cmp.b #2,asm_travel+13
@@ -2963,6 +3209,11 @@ arrival_keep_rng:
 arrival_restore_rng:
  move.b (a0)+,(a1)+
  dbra d1,arrival_restore_rng
+ ; RES2/SOLAR's restored RNG must be consumed by the real new star field.
+ moveq #3,d0
+ bsr asm_dust_run
+ moveq #0,d0
+ bsr asm_dust_run
  moveq #0,d0
  move.b asm_travel+14,d0
  move.l d0,-(sp)
@@ -3370,16 +3621,29 @@ asm_chart_page:
  moveq #4,d6
  bsr asm_text
  lea asm_travel+25,a4
- moveq #18,d6
+ moveq #14,d6
  bsr asm_text
  lea asm_travel+49,a4
- moveq #18,d6
+ moveq #14,d6
  move.w #160,d7
  bsr asm_text_at
+ pea asm_chart_cursor
  pea asm_travel
  pea 0x20000
- jsr _galaxy_chart
+ jsr _galaxy_chart_cursor
+ lea 12(sp),sp
+ pea asm_travel+40
+ pea asm_travel+16
+ jsr _galaxy_distance
  addq.l #8,sp
+ lea chart_distance_digits,a0
+ moveq #4,d1
+ bsr asm_decimal
+ move.b chart_distance_digits+3,chart_distance_digits+4
+ move.b #46,chart_distance_digits+3
+ lea chart_distance,a4
+ move.w #156,d6
+ bsr asm_text
  lea chart_help,a4
  move.w #170,d6
  bsr asm_text
@@ -3389,8 +3653,10 @@ asm_chart_page:
  rts
 .sect .data
 chart_title: .ascii "GALACTIC CHART / CURRENT > TARGET\0"
-chart_help: .ascii "ARROWS SELECT  H JUMP  G GALAXY\0"
-chart_help2: .ascii "C DATA  9 CLOSE\0"
+chart_distance: .ascii "DISTANCE "
+chart_distance_digits: .ascii "000.0 LIGHT YEARS\0"
+chart_help: .ascii "ARROWS MOVE D SELECT O HOME\0"
+chart_help2: .ascii "H JUMP G GALAXY C DATA 9 CLOSE\0"
 .align 2
 
 .sect .text
@@ -3426,8 +3692,8 @@ asm_encounters:
  clr.b asm_enc_params+7
  move.b asm_travel+23,asm_enc_params+3
  move.b asm_commander+6,asm_enc_params+4
- ; Explicit initial C boundary: original full flight-loop flag flow absent.
- clr.b asm_enc_params+6
+ ; TT100/me3 inherits the final STARS/PIXEL carry (DEC preserves C).
+ move.b asm_dust+166,asm_enc_params+6
  lea asm_vectors,a4
  lea asm_ships,a5
  lea asm_clouds,a6
@@ -3469,6 +3735,7 @@ encounter_inventory_next:
  pea asm_enc_output
  jsr _encounter_step
  lea 16(sp),sp
+ move.b d0,asm_dust+166
 encounter_emit:
  lea asm_enc_output+2,a2
  move.w asm_enc_output,d6
@@ -3595,7 +3862,7 @@ station_tick_done:
  rts
 asm_warp:
  tst.w asm_world
- beq warp_shell_done
+ beq warp_shell_return
  move.w #2,asm_warp_result
  move.w #32,asm_warp_timer
  tst.b asm_travel+11
@@ -3636,7 +3903,17 @@ warp_shell_try:
  addq.l #1,asm_warps
  move.b #1,asm_mcnt
  clr.b asm_enc_params+5
+ moveq #3,d0
+ bsr asm_dust_run
+ moveq #4,d0
+ bsr asm_dust_run
+ bra warp_shell_return
 warp_shell_done:
+ cmp.w #2,asm_warp_result
+ bne warp_shell_return
+ moveq #40,d0
+ bsr asm_sound_event
+warp_shell_return:
  rts
 
 .sect .data
@@ -3707,6 +3984,9 @@ view_select:
  move.w d2,asm_view
  bsr asm_view_label
  bsr asm_clear_view
+ moveq #2,d0
+ bsr asm_dust_run
+ move.w #1,asm_dust_valid
  clr.w asm_planet_cache+12
  lea asm_ships,a0
  lea asm_clouds,a1
@@ -3825,4 +4105,210 @@ computer_key_test:
  move.w #1,asm_docked
  addq.l #1,asm_computer_docks
 computer_key_done:
+ rts
+
+; Hardware-neutral dust wrapper, called at original end-of-flight-loop boundary.
+asm_dust_run:
+ movem.l d0-d7/a0-a6,-(sp)
+ pea 0x20000
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.w asm_view,d0
+ move.l d0,-(sp)
+ pea asm_laser+5
+ pea asm_params
+ pea asm_dust
+ jsr _dust_run
+ lea 24(sp),sp
+ movem.l (sp)+,d0-d7/a0-a6
+ rts
+
+; Original HFS2/HFS1/HFL1/HFL2 radius sequence and XOR ring accumulation.
+; QL pacing adapter yields two 50-Hz ticks per radius group; gameplay is frozen.
+asm_tunnel:
+ movem.l d0-d7/a0-a6,-(sp)
+ move.w d0,d7
+ moveq #48,d0
+ cmp.w #4,d7
+ bne tunnel_sound_ready
+ moveq #56,d0
+tunnel_sound_ready:
+ bsr asm_sound_event
+ bsr asm_clear_view
+ clr.w asm_dust_valid
+ moveq #0,d6
+ tunnel_group:
+ move.w d6,d5
+ and.w #7,d5
+ addq.w #8,d5
+ move.w d6,asm_tunnel_phase
+ addq.w #1,asm_tunnel_phase
+ tunnel_ring:
+ move.l d7,-(sp)
+ move.l d5,-(sp)
+ pea asm_planet_cache
+ pea 0x20000
+ jsr _circle_ring
+ lea 16(sp),sp
+ add.w d5,d5
+ cmp.w #160,d5
+ blo tunnel_ring
+ ; MT.SUSJB: wait only for visual pacing, with no RNG or mechanics update.
+ movem.l d5-d7,-(sp)
+ moveq #8,d0
+ moveq #-1,d1
+ moveq #2,d3
+ suba.l a1,a1
+ trap #1
+ movem.l (sp)+,d5-d7
+ bsr asm_sound_poll
+ addq.w #1,d6
+ cmp.w #16,d6
+ blo tunnel_group
+ clr.w asm_tunnel_phase
+ clr.w asm_planet_cache+12
+ movem.l (sp)+,d0-d7/a0-a6
+ rts
+
+asm_chart_from_target:
+ move.b asm_travel+43,asm_chart_cursor
+ move.b asm_travel+41,asm_chart_cursor+1
+ rts
+asm_chart_snap:
+ moveq #0,d0
+ move.b asm_chart_cursor+1,d0
+ move.l d0,-(sp)
+ move.b asm_chart_cursor,d0
+ move.l d0,-(sp)
+ pea asm_travel
+ jsr _chart_nearest
+ lea 12(sp),sp
+ move.l d0,-(sp)
+ pea asm_travel
+ jsr _travel_select
+ addq.l #8,sp
+ bra asm_chart_from_target
+asm_chart_move:
+ pea asm_chart_cursor
+ pea 0x20000
+ jsr _chart_cursor_xor
+ addq.l #8,sp
+ moveq #0,d0
+ btst #6,d4
+ beq chart_move_right
+ moveq #-1,d0
+chart_move_right:
+ btst #7,d4
+ beq chart_move_x
+ moveq #1,d0
+chart_move_x:
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b asm_chart_cursor,d0
+ move.l d0,-(sp)
+ jsr _chart_move
+ addq.l #8,sp
+ move.b d0,asm_chart_cursor
+ moveq #0,d0
+ btst #4,d4
+ beq chart_move_down
+ moveq #-1,d0
+chart_move_down:
+ btst #5,d4
+ beq chart_move_y
+ moveq #1,d0
+chart_move_y:
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b asm_chart_cursor+1,d0
+ move.l d0,-(sp)
+ jsr _chart_move
+ addq.l #8,sp
+ move.b d0,asm_chart_cursor+1
+ pea asm_chart_cursor
+ pea 0x20000
+ jsr _chart_cursor_xor
+ addq.l #8,sp
+ rts
+
+.sect .data
+.align 2
+asm_flight_messages: .data4 message_energy,message_target,message_incoming,message_jammed
+message_energy: .ascii "ENERGY LOW\0"
+message_target: .ascii "TARGET LOST\0"
+message_incoming: .ascii "INCOMING MISSILE\0"
+message_jammed: .ascii "MISSILE JAMMED\0"
+.align 2
+.sect .text
+asm_message:
+ move.b d0,asm_commander+8
+ move.b #22,asm_commander+7
+ rts
+asm_sound_event:
+ movem.l d0-d7/a0-a6,-(sp)
+ move.l asm_ticks,-(sp)
+ move.l d0,-(sp)
+ pea asm_sound
+ jsr _sound_event
+ lea 12(sp),sp
+ move.w d0,asm_sound_carry
+ bsr asm_sound_poll
+ movem.l (sp)+,d0-d7/a0-a6
+ rts
+asm_sound_poll:
+ movem.l d0-d7/a0-a6,-(sp)
+ move.l asm_ticks,-(sp)
+ pea asm_sound
+ jsr _sound_poll
+ addq.l #8,sp
+ movem.l (sp)+,d0-d7/a0-a6
+ rts
+asm_sound_hit:
+ move.l d0,-(sp)
+ moveq #24,d0
+ bsr asm_sound_event
+ moveq #16,d0
+ bsr asm_sound_event
+ move.l (sp)+,d0
+ rts
+asm_ecm_sound:
+ moveq #0,d0
+ tst.b asm_ecm
+ sne d0
+ cmp.b asm_sound_ecm,d0
+ beq ecm_sound_done
+ move.b d0,asm_sound_ecm
+ tst.b d0
+ beq ecm_sound_off
+ moveq #64,d0
+ bra ecm_sound_send
+ecm_sound_off:
+ moveq #72,d0
+ecm_sound_send:
+ bsr asm_sound_event
+ecm_sound_done:
+ rts
+
+asm_sound_explosion:
+ movem.l d0/a0,-(sp)
+ move.l (a5),a0
+ cmp.w #8,28(a0)
+ beq sound_missile_explosion
+ bsr asm_sound_hit
+ bra sound_explosion_done
+sound_missile_explosion:
+ moveq #24,d0
+ bsr asm_sound_event
+sound_explosion_done:
+ movem.l (sp)+,d0/a0
+ rts
+
+asm_sound_contact:
+ move.l d0,-(sp)
+ tst.w asm_dead
+ bne sound_contact_done
+ moveq #24,d0
+ bsr asm_sound_event
+sound_contact_done:
+ move.l (sp)+,d0
  rts

@@ -125,3 +125,26 @@ records duplicate rejection/refund; GOIN and MA68 return docking intent.
 original-bulbs.asm records ECBLB2/ECBLB/SPBLB/BULB and ECBT/SPBT glyphs.
 Native UI/save/slot allocation remain adapter boundaries. Source SHA256:
 93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf.
+
+A27 additions (supersede historical omissions above):
+- original-dust.asm retains STARS1/STARS6/STARS2, FLIP, nWq and arithmetic
+  helpers. PIXEL is an explicit QL call boundary; REDRAW is a test adapter.
+  tools/dust_native.py emits native68000; tests/dust_reference.py independently
+  executes6502 instructions. NOST=10, as declared at source line73.
+- original-tunnel.asm records LL164/LAUN/HFS2/HFS1/HFL1/HFL2.
+- original-chart.asm records long-range plotting/crosses, TT162/TT103,
+  TT123/TT124/TT125/TT180 and TT111 nearest selection.
+- original-sound.asm records SFXL, SFX/SFX2 and NOISE/NO3/NOS1, plus loader E%.
+  These three excerpts are provenance references, not independently executable
+  programs; the named fixture tests describe their actual oracle boundaries.
+- assets/electron-sfx2-addressed.bin contains73 bytes beginning at loaded
+  address3c64 (ELTF.bin offset3c64-3b40). NO3 addresses0,8,...72 of this region.
+  Original code, not the simplified table comment, determines priorities.
+- Encounter oracle fixtures additionally compare final6502 carry.
+- Sound's QL frequency conversion is a hardware adapter. Electron pitch units,
+  duration and envelope timing were checked against the Acorn User Guide:
+  https://www.acornelectron.co.uk/ugs/electron/acorn_computers/ug-english/chapter022_eng.html
+
+1-source-files/main-sources/elite-loader.asm SHA256 fb90d74d693881a687c50815d542f1a55a0c120d149058eb00f5a4f00f644b19
+3-assembled-output/ELTF.bin SHA256 709d07ad494248e4881ced065f11d740948db2750c7f5b8c3c11cc46527c3c6c
+assets/electron-sfx2-addressed.bin SHA256 7080e79ed05b1c531268158a790134fc818c2b47bc747ecf225adc98d219f001

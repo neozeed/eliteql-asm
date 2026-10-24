@@ -1,198 +1,59 @@
-# EliteQL ASM A26 — four laser fittings and Electron docking computer
+# EliteQL ASM A27 — Electron fidelity pass
 
-A26 completes rear/left/right laser fitting and connects the original Electron
-docking computer. It retains A25's hostile-station police, docking refusal,
-safe-zone pirate behaviour and all four views. The game remains native 68000
-assembly. A25 is preserved separately.
+A27 ports the Electron's four-view stardust, launch/docking/hyperspace tunnels,
+long-range chart cursor and nearest-system selection, sound control and pitch
+envelopes, and more of the message and random-number timing into native 68000
+assembly. It retains A26's four laser mounts, docking computer, station police,
+trading, travel, combat, salvage and commander saves.
 
-**Laser fittings:** dock and press **8** for equipment. **F1/F2/F3/F4** selects
-the front/rear/left/right mount; the shop names the selected direction. Select
-Extra Pulse Laser or Extra Beam Laser with Up/Down and press **B**. Each mount
-is independent. A pulse costs400Cr; a beam costs1000Cr, with400Cr refunded for
-a pulse in that same mount. As in the original, you need the full1000Cr before
-the trade-in refund. Duplicate fittings and unavailable technology do not charge.
-In flight, F1-F4 chooses the view and **F** fires that view's fitted laser.
-Unfitted views have neither a crosshair nor firing; pulse/beam heat and cooldown
-remain original. Missile lock still follows the view, while launch is forward.
+The Electron 6502 instructions are the reference. No Thargoids, Tharglets,
+witchspace misjumps or missions have been invented: those are absent from this
+Electron source. Earlier release notes incorrectly listed witchspace as a gap.
+This is a substantial fidelity pass, not a claim that every original routine or
+screen has now been ported. See docs/FIDELITY.md for the remaining boundaries.
 
-**Docking computer:** buy it for **1000Cr at displayed tech level9 or higher**.
-Lave's starting market cannot sell it, so visit a more advanced system. Press
-**C during flight when the S indicator is lit** to dock at a friendly station.
-The Electron source immediately takes the GOIN docking path; it does not fly
-an animated autopilot approach. No fitting, no station or a hostile station
-means no automatic docking. Pause and modal pages block it; C on navigation
-continues to switch the chart. Successful docking cancels hyperspace countdown,
-clears missile targeting and restores shields/energy through the existing bay
-adapter. The computer can be damaged by the existing original OUCH equipment
-loss path, and is preserved by launch, travel and saves.
+## Run
 
-**Station behaviour:** the original S safe-zone bulb now follows station
-presence; the original E bulb follows the active ECM timer. Both use the
-Electron bitmaps in their dashboard positions. Attacking a station still
-provokes its original police response (three-police cap), and hostile stations
-refuse both manual and computer docking. Ordinary pirate/bounty-hunter
-aggression is suppressed in the station's safe zone. Station generation,
-compass switching, rotation, departure, legal-status-on-launch and local
-market persistence are retained and regression-tested. No peaceful traffic
-scheduler is invented: the Electron station tactics path launches police.
-
-**Saves:** S/O in the shop now write/read EQA2,148 bytes, including all four
-laser mounts and the computer. Existing EQA1,144-byte saves load with empty
-rear/side mounts. New EQA2 saves require A26 or later; keep an older save if
-returning to A25. Invalid laser values, damaged checksums and truncated v2
-files are rejected before changing the live commander.
-
-ELITEFIT compares2,592 laser fitting/trade-in states and4,096 docking-computer
-states against executed original et3/et4/MCASH and MA64 instructions. All
-retained diagnostics and both full QDOS launch harnesses are included.
-See docs/A26-RESULTS.md for final memory and validation figures.
-
-Still unfinished: witchspace, stardust, sound, launch/hyperspace tunnel effects
-and remaining original presentation/chart interaction. QDOS UI, fixed native
-ship slots and rasterization remain documented adaptations. This release does
-not add a docking autopilot from another Elite platform.
-
-Run `EXEC_W WIN1_ELITEASM` with this archive's host directory mounted:
+With this release's host directory mounted in QLBox:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a26\host
+bin\win64\qlbox.exe --ram 640 --speed 1 --mount eliteql-asm-a27\host
 ```
 
-On a real QL, deploy **ELITEASM** as an executable with its QDOS data-space
-metadata preserved. The large diagnostic jobs and source corpus are development
-files; they are not needed on your 5MB game disk.
+Then enter `EXEC_W WIN1_ELITEASM` in BASIC. The real QL needs only ELITEASM,
+installed as a QDOS executable with its data-space metadata preserved, and an
+optional ELITESAVE. Source and large diagnostic jobs are development files;
+they do not need to fit on the QL's 5 MB disk.
 
-## Equipment and upgrades
+The game also runs in the tested 128 KB QLBox configuration. Its saved BASIC
+screen now uses lossless word-run compression when smaller than the raw bitmap.
+An unusually complex pre-launch screen may require the full 32 KB backup and
+therefore more memory. Failure to allocate exits before changing the screen.
+640 KB remains the comfortable configuration. Physical 68008 performance has
+not been measured; the emulated active-flight measurement is in A27-RESULTS.md.
 
-Dock, then press **8**. Up/Down selects an item, **B** buys it, **L** launches,
-and **8** returns to the market. The original technology rule limits available
-items to index <= internal tech + 2. Prices are the Electron PRXS values.
-Insufficient funds and duplicate/full equipment leave cash and inventory intact.
+## What's new
 
-Available equipment: fuel, up to four missiles, the 35-tonne large cargo bay,
-ECM, pulse/beam lasers for each of four views, fuel scoops, escape capsule,
-energy bomb, energy unit, docking computer and galactic hyperdrive. Select the
-laser mount with F1-F4 before buying a pulse or beam laser.
+- The original ten dust particles use STARS1/STARS6/STARS2 and FLIP, including
+  byte arithmetic, carry, shared DORND state, view changes and original dash shapes.
+  The generator emits native 68000 instructions at build time; no 6502 interpreter
+  is included in the game.
+- LAUN and LL164 use the original HFS ring-radius sequences and XOR erasure.
+  QL frame pacing and line rasterization are explicit hardware adaptations.
+- The galaxy chart uses original star positions/dashes, fuel-circle geometry,
+  cursor movement bounds and TT111 nearest-system selection.
+- SFX/NO3 priorities and SFXL lifetime gates follow the source, including the
+  original unusual priority-table addressing. Loader pitch envelopes drive QL
+  IPC sound. The QL tone output approximates Electron sound; noise is not exact.
+- ENERGY LOW, TARGET LOST, INCOMING MISSILE and MISSILE JAMMED join the existing
+  messages. Bounty presentation now displays current cash, matching the original.
+- The M% random seed update, stardust consumption, message expiry and encounter
+  carry feed the native loop in source order. Encounter fixtures check carry as
+  well as returned state.
 
-A beam costs 1000 Cr up front, with a 400 Cr refund for an installed pulse
-laser. The full 1000 Cr must be available before that refund, as in the source.
-Beam operation uses the existing original MA68 laser path: the beam flag clears
-pulse cooldown; energy consumption and overheating still apply. The larger
-hold changes both market buying and scooping. Purchased equipment survives
-launch and hyperspace, and remains subject to the existing damage rules.
-
-## Keep your commander
-
-On the equipment screen, **S saves** and **O loads** `WIN1_ELITESAVE`.
-The 148-byte EQA2 versioned file contains credits, tally, legal status, cargo,
-equipment, missiles, all four fitted lasers, hold size, escape capsule, galaxy,
-current/selected system, fuel and the station market. Load is docked-only and
-returns to the equipment page; launch normally afterwards. To resume from a
-fresh process, press7, approach/dock, press8, then O.
-
-The file is a native QDOS adapter, not the Electron tape format. It has a
-checksum and basic field validation. Missing, short or damaged files are
-rejected before any live commander state is committed. Save overwrites this
-single slot: keep a separate copy for multiple commanders or backup. It is
-not a crash-atomic save. No save file containing the test commander's injected
-credits is distributed.
-
-## Escape capsule
-
-Buy the capsule, then press **K in flight** while alive. The original ESCAPE/
-ESL2 effects clear all17 cargo stocks, legal status and the one-use capsule,
-and restore fuel to7.0. The RESET/RES4 boundary restores shields/energy and
-returns you docked. Credits, tally and other equipment are retained. Local
-objects are reset through the existing native scene adapter. There is no new
-escape animation or sound. Escape is ignored while docked, on the commander
-page, without a capsule or after death. Escape can cancel a pending jump;
-a galactic drive already consumed by starting that jump is not refunded.
-
-## Scope and verification
-
-This is another substantial step, **not feature completion**.
-Remaining special encounters,
-full chart interaction, sound and presentation still
-need work. Key7 retains the A18 approach fixture as a test shortcut.
-
-ELITESHP tests3072 source-derived transaction combinations across all12 item
-indices,16 tech values and16 cash/equipment configurations. These expectations
-are a test adapter based on the bundled original EQSHP/et0-etB source; they are
-not a full instruction-emulated shop UI. Live tests at128/640KB check buying,
-missile capacity, larger hold, beam trade-in, replacements, actual QDOS file
-round-trip, corrupt/truncated rejection, launch preservation, beam heat and
-escape recovery. All previous diagnostics and both direct-job/BASIC EXEC_W
-harnesses are retained. Current logs:docs/A26-BUILD/INTEGRATION/BASIC.log.
-
-The initial test loadout is unchanged except that the escape capsule starts
-absent. Scene reset still clears progress and restores that test loadout.
-
-## Fly somewhere
-
-**9 opens navigation.** You begin at Lave in galaxy 1 with 7.0 light years of
-fuel. Left/Right selects the previous/next system within remaining fuel;
-Up/Down browses all 256 systems. The page shows the actual generated name,
-economy, government, tech level, distance and remaining fuel. Economy and
-government use original 0–7 values; displayed tech is the original value +1.
-Navigation freezes flight and preserves an existing pause.
-
-**H starts hyperspace from flight.** You can choose a destination while docked,
-but must close navigation (9) and launch (L) before jumping. Zero-distance and
-out-of-fuel jumps are rejected. The original counters start at 15, wait 15 game
-updates for the first decrement, then 5 per decrement:85 updates in total.
-The HUD shows the countdown, flight/combat continues, and Space pauses it.
-Destination selection is frozen while the countdown runs.
-
-Arrival deducts the original rounded distance, halves legal status, preserves
-commander/cargo/ammo/equipment and generates the destination's market from its
-economy plus a new visit fluctuation. Dock, buy/sell, then open 9 and press **R**
-to buy a full tank at the original 0.2 Cr per fuel tenth. Insufficient cash
-leaves both tank and cash unchanged. The cockpit fuel gauge now tracks fuel.
-Local launches preserve the current market; a hyperspace visit regenerates it.
-
-**G uses the one-use galactic hyperdrive.** One is fitted in this test loadout.
-The Superior Electron variant rotates each of the six galaxy-seed bytes,
-advances the galaxy modulo 8, clears legal status and selects the nearest
-system to (96,96). The first jump arrives at Ororra in galaxy 2. Galactic travel
-does not consume normal fuel. The drive is spent when the countdown begins.
-A20 can sell replacement drives at sufficiently advanced stations for 5000 Cr. **N/scene reset still erases progress**, returns to
-Lave and restores the test loadout. Use the equipment screen to save before resetting.
-
-## What is original, and what is still a test scene
-
-travel.s translates TT54/TT20 seed twisting, cpl names, TT24 economy/government/
-tech, TT111 distance, hyp/wW/TT107 countdown, Ghy seed rotation/selection,
-TT18 fuel deduction and SOLAR legal decay. No C game loop or 6502 interpreter
-is linked into ELITEASM. Original instruction interpreters are test tools only.
-
-The navigation directory is a QL UI, not a recreation of the chart crosshairs.
-Arrivals use original SOLAR planet placement, clear staged fighters and enable
-original ambient spawning. Station creation uses original main-loop part14. No hyperspace tunnel, witchspace, sound or complete
-universe lifecycle is claimed. Galactic seed/location/legal changes commit at
-countdown completion rather than immediately in Ghy. GVL uses the existing
-DORND routine with explicit carry0 at the missing whole-game RNG boundary.
-
-Docking retains original alignment, hostility, proximity and failed-approach
-speed checks. A bad approach below speed 5 dents the ship; at 5 or above it is
-fatal. Docked Up/Down selects cargo, B buys one, S sells all selected stock,
-and L launches. Docking replenishes shields and energy; launches do not grant
-new missiles, bombs or equipment. Station compass selection follows the live allocated station.
-
-## A19 validation
-
-- All 2,048 systems across eight galaxies: original-instruction seed/name,
-  economy, government and tech comparisons.
-- 2,048 original SQUA2/LL5 distance comparisons, including 16-bit sum wrapping.
-- Native checks for countdown length, rejection, fuel purchase, legal decay,
-  destination locking and all eight galactic transitions.
-- Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
-  direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
-
-See docs/A26-RESULTS.md for current size and validation. The passive benchmark is not an
-active-game performance claim.
-SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
-captures. Tests inject cargo/equipment/legal states for preservation checks and
-disable nearby fighter AI during the travel test; combat is tested separately.
+EQA2 saves remain 148 bytes and include rear/side laser fittings and the docking
+computer. EQA1 saves load with empty rear/side mounts. Keep a backup when moving
+between versions. Invalid or truncated files are rejected before commander commit.
 
 ## Controls
 
@@ -211,8 +72,10 @@ disable nearby fighter AI during the travel test; combat is tested separately.
 | K in flight | Use a fitted escape capsule |
 | 9 | Navigation page; press again to return |
 | F1 / F2 / F3 / F4 | Front / rear / left / right during live flight |
-| Navigation: Left/Right | Previous/next system within remaining fuel |
-| Navigation: Up/Down | Browse all 256 systems |
+| Navigation data page: Left/Right | Previous/next system within remaining fuel |
+| Navigation data page: Up/Down | Browse all 256 systems |
+| Navigation: C | Switch data/chart; closing the chart selects its nearest system |
+| Chart: arrows / D / O | Move cursor / select nearest system / return cursor to current system |
 | H / G | Hyperspace to selected system / use galactic hyperdrive |
 | Navigation while docked: R | Buy enough fuel to fill the tank |
 | Docked: Up/Down, B, S, L | Select commodity, buy one, sell all selected, launch |
@@ -235,136 +98,18 @@ It does not allocate another screen buffer: existing line, particle, laser and
 sight caches restore the flight view. The page is a native QL presentation
 adapter, not a recreation of the original STATUS screen's system-name layout.
 
-## Retained commander behavior
+## Build and verify
 
-Each reset starts this test commander with **100.0 Cr**, zero kills and clean
-legal status. Credits, tally and cargo persist through docking, launch and hyperspace.
-N/scene reset clears the live state; load a saved commander from the docked equipment screen to restore progress.
-
-Laser kills execute original EXNO2 tally arithmetic, including 16-bit wrap and
-"RIGHT ON COMMANDER!" at each low-byte wrap. The original TA35 missile
-self-destruction/ECM path also earns one tally point; a hostile TA34 impact on
-the player does not. A player missile impact counts its missile destruction,
-not an invented second tally increment for the target. Collisions and scooping
-do not increment the tally. Native fixed-pool target invalidation remains an
-adapter boundary and does not award an extra tally for each invalidated missile.
-
-When an explosion finishes, the original MA15/q2 settlement sets FIST bit 6
-for a Viper and considers the original blueprint bounty. Payment happens once,
-not once per explosion frame. The source's DLY check gates MCASH itself: when a
-commander message is already active, that settlement pays no bounty. Its other
-quirk is retained too: a zero bounty LOW byte suppresses payment even if the
-high byte is nonzero. Current blueprint bounties are 5.0 Cr Sidewinder, 15.0 Cr
-Mamba, 20.0 Cr Python, 0.5 Cr asteroid, and zero for the other supplied models.
-The status strip briefly displays bounty or encouragement messages.
-
-Native CASH is the original big-endian four-byte total in tenths of a credit;
-TALLY retains its original little-endian byte pair. STATUS rank decisions are
-ported, with thresholds 8,16,32,64,128,512,2560,6400. Legal presentation uses
-Clean at zero, Offender at 1–49, and Fugitive at 50+. Killing a Viper makes this
-commander a fugitive; police spawning and docking fines are absent; hyperspace now halves legal status.
-
-DLY is shared by the two new commander messages and decremented once per
-simulation update. The complete original text-token/message system is not
-ported; scoop and collision messages remain absent; OUCH destruction now shares DLY
-with these commander messages. Consequently, whole-game message interference with bounty
-payment is not yet reproduced. The bundled oracle explicitly ends at MESS,
-with a 22-tick presentation adapter. There is no new sound implementation.
-
-## Existing combat and salvage
-
-Scenes 4 and 5 use three original fighters plus nine reusable child slots for
-missiles, pods and canisters. TACTICS decides missile launches and escape-pod
-launches from the original energy/random conditions. There is no periodic
-launch script or automatic fighter respawn. Weaken a Viper and stop firing to
-give it an opportunity to eject. ECM destroys active missiles and costs energy.
-Player missiles use HITCH targeting and original relative-coordinate homing;
-a full pool preserves the player's inventory and lock.
-
-Scene 5 offers more debris: laser kills run the original MA47 canister-mask
-rule. Cargo inherits the parent's pose and original SFS1 random tumble. Fuel
-scoops are fitted: approach slowly with a canister below the nose to collect it.
-The original proximity and tnpr capacity checks govern the 20-tonne hold.
-Canisters produce an original random commodity 0–7; pods become commodity 3
-(slaves), as in the source. A full hold removes the attempted scoop without
-adding cargo. Approaching above the nose causes original MA58 collision damage.
-
-The manifest displays the seventeen original stocks. Gold/platinum are kg,
-gem-stones are g, and the other commodities are t. It preserves the source's
-unusual tnpr special branch for indices 13–16; the underlying hold arithmetic
-was not changed to match a newly invented capacity model. N resets all stocks.
-
-The live planet follows player-relative movement and drives the
-original pod navigation routines. Inter-system and galactic travel now work with destination markets. A complete
-universe lifecycle, sound and presentation remain unfinished. Key7 retains the station-approach fixture. Native projection/clipping and fixed slots
-remain adaptations; see docs/FIDELITY.md for inherited arithmetic boundaries.
-
-## Validation and build
-
-ELITEASM's gameplay and shell are entirely native 68000 assembly. C is used
-only for diagnostics and benchmarks. Physical 68008 performance is unmeasured.
-
-ELITECMD compares **all 65,536 tally/rank values** and **4,096 settlement,
-tally and countdown states** against executed original 6502 instruction
-excerpts. It includes cash overflow/carry propagation, police legal flags,
-zero-low-byte bounties, busy-message suppression and tally overflow. This large
-fixture diagnostic needs 640 KB; the game itself is tested at 128 and 640 KB.
-
-Both live-job harnesses exercise delayed bounty, one-time settlement, tally,
-ECM tally, police status, all cargo display units, frozen state, exact viewport
-restoration (including an active explosion), reset, and inherited combat,
-scanner, controls, inverted pitch, keyboard/EXEC_W and clean-exit behavior.
-Current BASIC EXEC_W memory measurements are recorded in docs/A26-BASIC.log.
-Current logs are docs/A26-*.log. Current captures are docs/A26-fittings.png
-and docs/A26-rear-laser.png; SCREENS.png retains earlier travel captures.
-Screenshots containing every commodity or Elite rank use injected test states;
-these are display tests, not claims of completing those achievements in play.
-
-Build using the recovered GCC 2.95.3 R2 signed-remainder-fix toolchain:
+Use the recovered GCC 2.95.3 R2 signed-remainder-fix QDOS toolchain:
 
 ```
 make QCC=/absolute/path/to/qdos-gcc
-bash tests/run-qlbox.sh /absolute/path/to/qlbox-r9
-bash tests/run-basic.sh /absolute/path/to/qlbox-r9
+sh tests/run-qlbox.sh /absolute/path/to/qlbox-r9
+sh tests/run-basic.sh /absolute/path/to/qlbox-r9
 ```
 
-Keep `-fno-omit-frame-pointer` for C diagnostics. Regenerate modified reference
-fixtures BEFORE building. `run-qlbox.sh` normally regenerates fixtures but runs
-already-built jobs; `SKIP_REFERENCES=1` skips that generation when already done.
-The A19 release was rebuilt after generation and tested with that setting.
-QLBox sources, JS ROM and compiler are external and not bundled. No compiler is
-needed to run ELITEASM. Attribution: NOTICE.md.
-
-Blueprint headers append the original bounty word at offset 38 (40-byte header),
-preserving earlier offsets. Stats magic is EQBB/6800. Pointers at offsets 138
-and 142 expose the 10-byte commander record and modal-page word. Commander
-layout: CASH[4], TALLY[2], FIST, DLY, native message ID, padding. The source
-excerpts describe logic; native presentation and test-scene reset are explicit
-adapters. No modern combat-rating table replaces the Electron thresholds.
-
-A17 appends debug pointers at 146 (equipment[5]),150 (compass cache[4]) and
-154 (loss count). Cargo[17] and equipment[5] are contiguous in original QQ20
-order: ECM,scoops,bomb,energy-unit,docking-computer. The new jobs are ELITEEQP,
-ELITECMP and ELITEPLN; the large fixture jobs should be run with640KB.
-
-A18 appends pointers at 158 (docked word),162 (market34 bytes),166 (selection
-word). New jobs ELITEMKT and ELITEDCK use large fixtures and run at 640 KB.
-
-A19 adds debug pointers170(travel64),174(navigation word),178(arrival word).
-ELITETRV contains the large original-source travel fixture corpus; run at 640 KB.
-
-A20 adds stats pointers182(ship_fit[4]) and186(equipment-page word).
-The focused A20-SHOP.log additionally verifies file restoration after scene reset.
-
-ELITEENC needs 640 KB for its diagnostic fixture corpus. Regenerate it with
-`python3 tests/encounters_reference.py` before rebuilding. `ONLY_ENCOUNTERS=1`
-selects the focused live check in either harness.
-
-ELITESTA needs640KB for the original station/WARP/orientation diagnostic corpus.
-Regenerate with `python3 tests/station_reference.py` before rebuilding.
-`ONLY_STATION=1` selects the focused live world checks in either harness.
-
-
-ELITEPV needs640KB for its diagnostic corpus. Regenerate with
-`python3 tests/planet_view_reference.py` before building.
-`ONLY_PLANET_VIEW=1` selects focused live tests in either harness.
+ELITEASM's game and shell are native 68000 assembly. C is used for host diagnostic
+jobs and benchmarks only. Fixture interpreters execute bundled original 6502
+excerpts on the development machine. See docs/TESTING.md and A27-RESULTS.md for
+coverage and actual results. Historical release notes are explicitly labelled;
+they are not the current feature list.
