@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514245,0x36383030
+ .data4 0x45514246,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -73,6 +73,14 @@ asm_warps_debug: .data4 asm_warps
 asm_placeholder_debug: .data4 asm_placeholder
 asm_planet_cache_debug: .data4 asm_planet_cache
 asm_altitude_debug: .data4 asm_altitude
+asm_view_debug: .data4 asm_view
+asm_police_debug: .data4 asm_police_launches
+asm_sight_debug: .data4 asm_sight
+asm_view: .data2 0
+asm_view_keys: .data2 0
+asm_police_launches: .data4 0
+asm_view_inwk: .space 36
+asm_planet_view: .space 36
 asm_altitude: .data2 255
 asm_planet_cache: .space 80
 asm_placeholder: .space 9
@@ -149,7 +157,9 @@ asm_dead_text: .ascii "DESTROYED - N / 1 / 2 / 3\0"
 .align 2
 asm_fps_text: .ascii "FPS 00.0  SPEED 00"
 asm_msl_text: .ascii " M4 -"
-asm_cargo_text: .ascii " C00\0"
+asm_cargo_text: .ascii " C00"
+asm_view_text: .ascii " FRONT\0"
+asm_view_names: .ascii "FRONTREAR LEFT RIGHT"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
@@ -278,6 +288,7 @@ asm_loop:
  bsr asm_dock_keys
  bra asm_update_stats
 asm_flight_keys:
+ bsr asm_view_keys_poll
  moveq #6,d0
  bsr asm_keyrow
  and.w #32,d0
@@ -568,7 +579,14 @@ planet_tidy_done:
 planet_rotation_done:
  tst.w asm_world
  beq planet_draw_done
+ moveq #0,d0
+ move.w asm_view,d0
+ move.l d0,-(sp)
  pea asm_planet
+ pea asm_planet_view
+ jsr _view_transform
+ lea 12(sp),sp
+ pea asm_planet_view
  pea asm_planet_cache
  pea 0x20000
  jsr _planet_frame
@@ -578,6 +596,10 @@ planet_draw_done:
  clr.l -(sp)
  moveq #0,d0
  move.b _ship_fit+1,d0
+ tst.w asm_view
+ beq view_laser_ready
+ moveq #0,d0
+view_laser_ready:
  move.l d0,-(sp)
  moveq #0,d0
  move.b asm_fire_key,d0
@@ -681,6 +703,8 @@ asm_no_tidy:
  tst.w asm_dead
  bne asm_ai_done
  move.l (a5),a0
+ cmp.w #7,28(a0)
+ beq asm_station_ai
  cmp.w #11,28(a0)
  beq asm_pod_ai
  cmp.w #8,28(a0)
@@ -698,6 +722,11 @@ asm_pod_ai:
  lea 12(sp),sp
  bra asm_ai_done
 asm_ai_allowed:
+ clr.b asm_ai_params+3
+ tst.l asm_station
+ beq station_zone_ready
+ move.b #1,asm_ai_params+3
+station_zone_ready:
  move.w 28(a0),d0
  move.b d0,asm_ai_params
  move.w 24(a0),d0
@@ -832,6 +861,7 @@ asm_ai_alive:
  move.b 31(a4),d0
  and.b #160,d0
  bne asm_no_hit
+ bsr asm_view_ship
  tst.b asm_player+1
  beq asm_lock_done
  move.l (a5),a0
@@ -841,7 +871,7 @@ asm_ai_alive:
  moveq #0,d0
  move.w 28(a0),d0
  move.l d0,-(sp)
- move.l a4,-(sp)
+ pea asm_view_inwk
  jsr _laser_hit
  lea 12(sp),sp
  tst.l d0
@@ -850,7 +880,7 @@ asm_ai_alive:
  move.b d0,asm_player+2
  clr.b asm_player+1
 asm_lock_done:
- ; Original HITCH runs on world-space INWK, independently of line projection.
+ ; Original HITCH follows PLUT: test view-space INWK, damage world state.
  tst.b asm_laser+1
  beq asm_no_hit
  move.l (a5),a0
@@ -860,7 +890,7 @@ asm_lock_done:
  moveq #0,d0
  move.w 28(a0),d0
  move.l d0,-(sp)
- move.l a4,-(sp)
+ pea asm_view_inwk
  jsr _laser_hit
  lea 12(sp),sp
  tst.l d0
@@ -902,14 +932,15 @@ asm_hit_survived:
  jsr _ship_angry
  lea 12(sp),sp
 asm_no_hit:
+asm_render_current:
+ bsr asm_view_ship
  pea asm_matrix
- move.l a4,-(sp)
+ pea asm_view_inwk
  jsr _motion_matrix
  addq.l #8,sp
  move.l #asm_matrix,_live_matrix
-asm_render_current:
  clr.w _render_exploding
- move.l a4,_render_inwk
+ move.l #asm_view_inwk,_render_inwk
  btst #5,31(a4)
  beq asm_render_effect_ready
  move.w #1,_render_exploding
@@ -918,6 +949,7 @@ asm_render_effect_ready:
  pea 0x20000
  jsr _render_ship
  addq.l #8,sp
+ move.b asm_view_inwk+31,31(a4)
  clr.l _live_matrix
  clr.l _render_inwk
  clr.w _render_exploding
@@ -928,10 +960,11 @@ asm_render_effect_ready:
  beq asm_cloud_done
  pea asm_laser+5
  move.l a0,-(sp)
- move.l a4,-(sp)
+ pea asm_view_inwk
  pea 0x20000
  jsr _explosion_frame
  lea 16(sp),sp
+ move.b asm_view_inwk+31,31(a4)
  btst #7,31(a4)
  beq asm_cloud_done
  move.l asm_cloud,a0
@@ -1124,6 +1157,9 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w asm_view
+ clr.l asm_police_launches
+ bsr asm_view_label
  pea asm_planet_cache
  pea 0x20000
  jsr _render_cache
@@ -1327,6 +1363,8 @@ asm_port_models_done:
  move.b #96,asm_vectors+16
  move.b #224,asm_vectors+24
 asm_port_pose_done:
+ cmp.w #3,asm_mode
+ bne asm_not_deep_setup
  cmp.w #3,asm_salvage
  bne asm_not_deep_setup
  lea asm_vectors,a0
@@ -3528,3 +3566,129 @@ copy_placeholder_loop:
  move.b (a0)+,(a1)+
  dbra d0,copy_placeholder_loop
  rts
+
+.sect .text
+asm_view_ship:
+ moveq #0,d0
+ move.w asm_view,d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ pea asm_view_inwk
+ jsr _view_transform
+ lea 12(sp),sp
+ pea 4(a5)
+ pea asm_view_inwk
+ jsr _motion_position
+ addq.l #8,sp
+ eor.w #1,d0
+ move.w d0,14(a5)
+ move.b 31(a4),d0
+ and.b #160,d0
+ cmp.b #160,d0
+ bne view_ship_done
+ move.w #1,14(a5)
+view_ship_done:
+ rts
+asm_view_keys_poll:
+ moveq #0,d0
+ bsr asm_keyrow
+ and.w #27,d0
+ move.w asm_view_keys,d1
+ eor.w d0,d1
+ move.w d0,asm_view_keys
+ and.w d0,d1
+ beq view_keys_done
+ tst.w asm_page
+ bne view_keys_done
+ tst.w asm_paused
+ bne view_keys_done
+ tst.w asm_dead
+ bne view_keys_done
+ moveq #0,d2
+ btst #1,d1
+ bne view_select
+ moveq #1,d2
+ btst #3,d1
+ bne view_select
+ moveq #2,d2
+ btst #4,d1
+ bne view_select
+ moveq #3,d2
+view_select:
+ cmp.w asm_view,d2
+ beq view_keys_done
+ move.w d2,asm_view
+ bsr asm_view_label
+ bsr asm_clear_view
+ clr.w asm_planet_cache+12
+ lea asm_ships,a0
+ lea asm_clouds,a1
+ moveq #11,d0
+view_clear_cache:
+ clr.w 12(a0)
+ clr.w 56(a1)
+ lea 272(a0),a0
+ lea 448(a1),a1
+ dbra d0,view_clear_cache
+ clr.b asm_laser+9
+ clr.b asm_laser+1
+ clr.b asm_laser+2
+ clr.b asm_sight
+ tst.w asm_view
+ bne view_keys_done
+ tst.b _ship_fit+1
+ beq view_keys_done
+ pea 0x20000
+ jsr _sight_xor
+ addq.l #4,sp
+ move.b #1,asm_sight
+view_keys_done:
+ rts
+asm_view_label:
+ move.w asm_view,d0
+ mulu.w #5,d0
+ lea asm_view_names,a0
+ adda.w d0,a0
+ lea asm_view_text+1,a1
+ moveq #4,d0
+view_label_copy:
+ move.b (a0)+,(a1)+
+ dbra d0,view_label_copy
+ rts
+asm_station_ai:
+ movem.l d2-d7/a2-a6,-(sp)
+ moveq #0,d2
+ lea asm_vectors,a0
+ lea asm_ships,a1
+ moveq #11,d1
+station_count_police:
+ move.b 31(a0),d0
+ and.b #160,d0
+ cmp.b #160,d0
+ beq station_count_next
+ move.l (a1),a2
+ cmp.w #2,28(a2)
+ bne station_count_next
+ addq.w #1,d2
+station_count_next:
+ lea 36(a0),a0
+ lea 272(a1),a1
+ dbra d1,station_count_police
+ move.l d2,-(sp)
+ pea asm_laser+5
+ move.l a4,-(sp)
+ pea asm_enc_output+4
+ jsr _station_police
+ lea 16(sp),sp
+ tst.w d0
+ beq station_ai_restore
+ move.l asm_enc_spawns,d2
+ move.w #1,asm_enc_output
+ move.w #2,asm_enc_output+2
+ bsr encounter_emit
+ cmp.l asm_enc_spawns,d2
+ beq station_ai_restore
+ addq.l #1,asm_police_launches
+station_ai_restore:
+ movem.l (sp)+,d2-d7/a2-a6
+ bra asm_ai_done

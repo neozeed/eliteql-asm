@@ -111,3 +111,10 @@ TT110 launch values and KS4 placeholder reset derive from the same checkout.
 A24 original-planet-view.asm and original-circle.asm preserve PLANET,PROJ,
 PLS6,DVID3B2,LL31,CIRCLE/CIRCLE2,MA22,MAS2/MAS3,SQUA2/MU11 and LL5.
 SNE table follows the source ABS(SIN) rounded256 construction.
+
+A25: original-views.asm extracts PLUT/PUS1 ending at its fall-through RTS.
+original-station-police.asm extracts TACTICS station branch, station SFS1
+geometry/roll/AI, SFS2, MVT1 and DORND. ENTRY supplies carry1 from equal CPX#SST;
+SFS1 adapter takes an already copied parent, omits allocator and saves/restores,
+and returns a boolean intent. Parent source remains immutable in native ABI.
+Source SHA256 remains 93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf.

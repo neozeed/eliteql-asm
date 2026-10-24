@@ -1,3 +1,30 @@
+# A25 current update
+
+See README.md and A25-RESULTS.md for the current release. Earlier milestone
+sections below are retained historical notes, not the current completion list.
+
+src/views.s ports PLUT/PUS1 into a separate 36-byte render workspace. Original
+world INWK stays authoritative. Renderer beam-consumption and explosion flags
+are copied back to world INWK. Both player hit tests use transformed geometry;
+front-only equipment remains explicit. Planet rendering uses another 36-byte
+view copy; altitude and station generation use the original world planet.
+
+src/station_ai.s ports the hostile station branch and SFS2 launch geometry.
+The shell counts live/exploding cops and inserts the result through its existing
+ship-pool adapter. Normal ship tactics receives station presence as SSPR.
+
+Stats magic is EQBF/6800. New pointers:230 view word,234 police-launch long,
+238 crosshair byte. Earlier offsets are unchanged. F1-F4 map to QL IPC row0
+bits1,3,4,0, respectively. View changes are rising-edge actions during live
+flight, and scene/launch initialization resets to front.
+
+ELITEVW uses tests/views_reference.py, original-views.asm and
+original-station-police.asm. The oracle uses extracted source instructions,
+with a caller-supplied carry1 at the equal CPX #SST boundary and allocation/
+workspace adapters. It verifies output bytes and RNG, not CPU timing.
+ONLY_VIEWS=1 selects the shared focused live test. run-qlbox.sh and run-basic.sh
+also run it in the full suite. Generate fixtures before building changed jobs.
+
 # A15 update
 
 See README.md for the native cargo/debris/collision path and explicit remaining

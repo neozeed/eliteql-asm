@@ -1,56 +1,67 @@
-# EliteQL ASM A24 — visible planets and original altitude checks
+# EliteQL ASM A25 — station police and four flight views
 
-A24 draws the live planet and connects original altitude/surface collision logic.
-The Electron PLANET path draws a simple circle for both planet types128/130;
-it does not draw the equator/crater detail suggested by their type names.
+A25 adds the original Electron station tactics and front/rear/left/right views,
+all in native 68000 assembly. A24 is preserved separately; existing commander
+saves are compatible. The archive includes the complete integrated source,
+built QDOS jobs, source excerpts, diagnostics and test logs.
 
-Projection follows original PLANET/PROJ/PLS6/DVID3B2, including the deliberately
-approximate top-byte division, forced odd numerator, signed coordinates, distance
-rejection,1024-pixel projection limit and248-pixel radius cap. CIRCLE uses the
-original SNE values and step8 below radius9, otherwise step4. Final segment
-clipping and pixel rasterization use the existing QL backend. This is not a
-claim of pixel-identical Electron BLINE/LOIN output.
+**Try it:** press **7** for the aligned station approach. Fire **F** at the
+station to provoke its police response, or dock normally and press **L** to
+launch; **F2** then looks back at the station. Use **F1** front, **F2** rear,
+**F3** left and **F4** right during live flight. The bottom status strip names
+the current view. Views do not switch while paused, on a modal page or docked.
+The existing inverted pitch controls are unchanged.
 
-The planet has an80-byte XOR line cache: old segments erase before new ones are
-drawn. It survives navigation/commander-page restore and clears on launch/reset.
-There is no extra framebuffer. All gameplay remains native68000 assembly.
+The hostile station uses TACTICS' original eight-update scheduling, DORND
+threshold140 and cap of three police already present. SFS1/SFS2 place each
+Viper along the station's nose, with speed32, AI225 (ECM and aggression), and
+roll damping. Launches use the existing twelve-slot native ship pool; a full
+pool declines insertion. Friendly stations do not launch this response.
+Station presence now also connects TA13's suppression of ordinary pirate and
+bounty-hunter aggression. Hostile stations refuse docking through the existing
+ISDK path. The Electron source has no separate peaceful-station traffic
+scheduler in this path; this pass does not invent one.
 
-The AL gauge now displays original ALTIT. Every32 updates at counter phase10,
-MA22/MAS2/MAS3/LL5 logic checks distance, sums individually truncated coordinate
-squares, subtracts37 with the original carry rule and computes altitude.
-The original radius is24576; crossing the source collision threshold enters
-player death, with the existing restart controls. As elsewhere in this port,
-the untracked incoming scratch Q for LL5 is explicitly zero in live play;
-the diagnostic covers all256 Q values. The adjacent ENERGY LOW message/sound
-branch is not newly implemented by this pass.
+PLUT/PUS1 transform both ship position and all three orientation vectors. Ships,
+planets, enemy beams, explosion clouds and missile targeting follow the selected
+view. Physics, AI, docking, altitude and the scanner retain ship-relative world
+state. Switching clears old XOR drawing and rebuilds the view without resetting
+the universe, cargo or commander. There is no extra framebuffer.
+A retained deep-space scene flag is now scoped to deep-space mode, fixing
+a return-to-solo reset that could leave the solo ship marked absent.
 
-Use **0** for a commander-preserving deep-space sortie, follow the compass to
-find the planet, and use **J** for in-system jumps when clear. **7** retains the
-quick aligned station approach. Hyperspace arrivals use original SOLAR placement;
-stations spawn from the moving planet's orientation as in A23. Fly toward the
-station once the compass changes target rather than continuing into the planet.
+The current equipment/save adapter still stores a **front laser only**. Rear
+and side views have no crosshair or player laser, as for unfitted original
+views. Directional laser purchases and saving four laser fittings remain to be
+ported. Missiles can lock in any view, while launch geometry remains forward.
 
-The test captures A24-planet.png and A24-planet-limb.png use injected positions
-for repeatable visibility and clipping checks. Production uses live positions.
-ELITEPV compares2048 projection and4096 altitude cases with executed original
-6502 excerpts. Live tests check circle endpoints, edge clipping, behind-view
-erasure, exact view restoration, the altitude gauge and collision/restart.
+ELITEVW compares 2,048 PLUT/PUS1 transforms and 4,096 station TACTICS/DORND/SFS2/
+MVT1 cases against executed original 6502 excerpts, including negative zero,
+overflow, RNG state and the police cap. QDOS allocation is an explicit adapter
+boundary. Live tests cover all four views, exact XOR reconstruction, modal
+restoration, unfitted lasers, missile locks, explosion lifetime across views,
+rear-view planets, police provocation/launch/cap, safe-zone aggression and
+hostile docking denial. Source constants and geometry are not newly imagined.
 
-A23 is preserved separately; commander saves remain compatible. ELITEASM is
-42,972 bytes plus8,148 bytes QDOS data space. Full direct-job and BASIC EXEC_W
-regressions pass at128KB and640KB; BASIC at128KB leaves a2,560-byte largest
-free block after startup. Physical68008 timing remains
-unmeasured. Release logs are docs/A24-BUILD/INTEGRATION/BASIC/PLANET.log.
+Release validation and memory figures are in docs/A25-RESULTS.md. Physical
+68008 timing remains unmeasured. The 640KB target has ample room; 128KB remains
+a tight configuration with little room for extra resident software.
 
-Still unfinished: original station traffic/tactics, other views and their
-weapons, docking computer, witchspace, sound, stardust and remaining presentation.
-The native ship pool, UI and raster backend remain documented adaptations.
+Still unfinished: directional laser fitting, docking computer, witchspace,
+sound, stardust and remaining presentation. The fixed ship pool, QL UI and
+raster backend remain adaptations, rather than a complete instruction-for-
+instruction translation. A24 planet rendering/altitude is retained; its source
+boundaries are in docs/A24-RETAINED-NOTES.md.
 
 Run `EXEC_W WIN1_ELITEASM` with this archive's host directory mounted:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a24\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a25\host
 ```
+
+On a real QL, deploy **ELITEASM** as an executable with its QDOS data-space
+metadata preserved. The large diagnostic jobs and source corpus are development
+files; they are not needed on your 5MB game disk.
 
 ## Equipment and upgrades
 
@@ -63,7 +74,7 @@ Available equipment: fuel, up to four missiles, the 35-tonne large cargo bay,
 ECM, forward pulse/beam laser, fuel scoops, escape capsule, energy bomb,
 energy unit and galactic hyperdrive. The docking computer remains unavailable
 and cannot take your money. Laser purchases currently apply to the forward
-view only; the other views are still unfinished.
+view only; fitting lasers to the other views is still unfinished.
 
 A beam costs 1000 Cr up front, with a 400 Cr refund for an installed pulse
 laser. The full 1000 Cr must be available before that refund, as in the source.
@@ -103,7 +114,7 @@ a galactic drive already consumed by starting that jump is not refunded.
 
 This is another substantial step, **not feature completion**.
 Remaining special encounters,
-full charts and views, docking-computer operation, sound and presentation still
+full chart interaction, directional laser fitting, docking-computer operation, sound and presentation still
 need work. Key7 retains the A18 approach fixture as a test shortcut.
 
 ELITESHP tests3072 source-derived transaction combinations across all12 item
@@ -113,7 +124,7 @@ not a full instruction-emulated shop UI. Live tests at128/640KB check buying,
 missile capacity, larger hold, beam trade-in, replacements, actual QDOS file
 round-trip, corrupt/truncated rejection, launch preservation, beam heat and
 escape recovery. All previous diagnostics and both direct-job/BASIC EXEC_W
-harnesses are retained. Logs:docs/A20-BUILD/INTEGRATION/BASIC.log.
+harnesses are retained. Current logs:docs/A25-BUILD/INTEGRATION/BASIC.log.
 
 The initial test loadout is unchanged except that the escape capsule starts
 absent. Scene reset still clears progress and restores that test loadout.
@@ -179,7 +190,7 @@ new missiles, bombs or equipment. Station compass selection follows the live all
 - Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
   direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
 
-See the A24 size and validation notes above. The passive benchmark is not an
+See docs/A25-RESULTS.md for current size and validation. The passive benchmark is not an
 active-game performance claim.
 SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
 captures. Tests inject cargo/equipment/legal states for preservation checks and
@@ -199,6 +210,7 @@ disable nearby fighter AI during the travel test; combat is tested separately.
 | Shop: B / S / O | Buy selected item / save / load |
 | K in flight | Use a fitted escape capsule |
 | 9 | Navigation page; press again to return |
+| F1 / F2 / F3 / F4 | Front / rear / left / right during live flight |
 | Navigation: Left/Right | Previous/next system within remaining fuel |
 | Navigation: Up/Down | Browse all 256 systems |
 | H / G | Hyperspace to selected system / use galactic hyperdrive |
@@ -284,7 +296,7 @@ was not changed to match a newly invented capacity model. N resets all stocks.
 
 The live planet follows player-relative movement and drives the
 original pod navigation routines. Inter-system and galactic travel now work with destination markets. A complete
-universe, station traffic/tactics, docking-computer operation and sound remain unfinished. Key7 retains the station-approach fixture. Native projection/clipping and fixed slots
+universe lifecycle, directional laser fitting, docking-computer operation and sound remain unfinished. Key7 retains the station-approach fixture. Native projection/clipping and fixed slots
 remain adaptations; see docs/FIDELITY.md for inherited arithmetic boundaries.
 
 ## Validation and build
@@ -302,8 +314,9 @@ Both live-job harnesses exercise delayed bounty, one-time settlement, tally,
 ECM tally, police status, all cargo display units, frozen state, exact viewport
 restoration (including an active explosion), reset, and inherited combat,
 scanner, controls, inverted pitch, keyboard/EXEC_W and clean-exit behavior.
-Current BASIC EXEC_W memory measurements are recorded in docs/A24-BASIC.log.
-Logs and actual emulator captures are in docs/A19-*.log and docs/SCREENS.png.
+Current BASIC EXEC_W memory measurements are recorded in docs/A25-BASIC.log.
+Current logs are docs/A25-*.log. Current captures are docs/A25-views.png
+and docs/A25-station-police.png; SCREENS.png retains earlier travel captures.
 Screenshots containing every commodity or Elite rank use injected test states;
 these are display tests, not claims of completing those achievements in play.
 
