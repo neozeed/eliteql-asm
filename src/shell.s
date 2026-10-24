@@ -85,6 +85,8 @@ asm_snapshot_rle_debug: .data4 asm_snapshot_rle
 asm_tunnel_debug: .data4 asm_tunnel_phase
 asm_chart_cursor_debug: .data4 asm_chart_cursor
 asm_sound_debug: .data4 asm_sound
+release_debug: .data4 _release_mode
+local_debug: .data4 asm_local_chart
 asm_snapshot_size: .data4 32768
 asm_snapshot_rle: .data2 0
 asm_tunnel_phase: .data2 0
@@ -175,7 +177,7 @@ asm_keys: .data1 0,0,0,0,0,0
 asm_status: .data1 255,255,255,0,0
 asm_mcnt: .data1 0
 .align 2
-asm_dead_text: .ascii "DESTROYED - N / 1 / 2 / 3\0"
+asm_dead_text: .ascii "DESTROYED - N NEW COMMANDER\0"
 .align 2
 asm_fps_text: .ascii "FPS 00.0  SPEED 00"
 asm_msl_text: .ascii " M4 -"
@@ -310,6 +312,10 @@ asm_clear_screen:
  dbra d0,asm_clear_screen
  bsr asm_labels
  bsr asm_setup
+ tst.w _release_mode
+ beq startup_ready
+ bsr release_commander
+startup_ready:
  lea asm_poll,a0
  moveq #0x1c,d0
  trap #1
@@ -339,6 +345,9 @@ asm_loop:
  bne asm_update_stats
  tst.w asm_docked
  beq asm_flight_keys
+ bsr dock_status_keys
+ tst.w asm_page
+ bne asm_update_stats
  bsr asm_dock_keys
  bra asm_update_stats
 asm_flight_keys:
@@ -346,6 +355,8 @@ asm_flight_keys:
  tst.w asm_docked
  bne asm_dock_commit
  bsr asm_view_keys_poll
+ tst.w _release_mode
+ bne asm_deep_done
  moveq #6,d0
  bsr asm_keyrow
  and.w #32,d0
@@ -413,6 +424,8 @@ asm_page_key_done:
  beq asm_bench_done
  btst #4,asm_old2+1
  bne asm_bench_done
+ tst.w _release_mode
+ bne asm_bench_done
  eor.w #1,asm_uncapped
 asm_bench_done:
  move.w asm_row2,asm_old2
@@ -435,6 +448,14 @@ asm_pause_done:
  beq asm_next_done
  btst #6,asm_old7+1
  bne asm_next_done
+ tst.w _release_mode
+ beq dev_next_model
+ tst.w asm_dead
+ beq asm_next_done
+ bsr asm_setup
+ bsr release_commander
+ bra asm_update_stats
+dev_next_model:
  addq.w #1,asm_model
  cmp.w #10,asm_model
  blt asm_next_valid
@@ -447,6 +468,8 @@ asm_next_valid:
  bsr asm_setup
 asm_next_done:
  move.w asm_row7,asm_old7
+ tst.w _release_mode
+ bne asm_port_key_done
  moveq #4,d0
  bsr asm_keyrow
  btst #3,d0
@@ -1309,6 +1332,7 @@ dust_setup_clean:
  clr.w asm_planet_cache+12
  move.w #255,asm_altitude
  clr.w asm_chart
+ clr.w asm_local_chart
  clr.w asm_shop
  clr.w asm_docked
  clr.w asm_market_keys
@@ -2088,6 +2112,10 @@ asm_hud_cargo_sum:
  add.b #48,d0
  move.b d0,asm_cargo_text+3
  lea asm_fps_text,a4
+ tst.w _release_mode
+ beq hud_release_ready
+ lea asm_fps_text+9,a4
+hud_release_ready:
  tst.b asm_commander+7
  beq asm_hud_message_done
  moveq #0,d0
@@ -2826,7 +2854,7 @@ asm_clouds: .space 5376
 .sect .data
 .align 2
 asm_page_item: .data2 0
-asm_page_title: .ascii "COMMANDER / CARGO - 6 TO RETURN\0"
+asm_page_title: .ascii "COMMANDER JAMESON / 6 RETURN\0"
 asm_cash_line: .ascii "CASH "
 asm_cash_digits: .ascii "000000000.0 CR\0"
 asm_tally_line: .ascii "KILLS "
@@ -2959,6 +2987,12 @@ nav_right:
  beq nav_chart_key
  bset #7,d4
 nav_chart_key:
+ moveq #7,d0
+ bsr asm_keyrow
+ btst #3,d0
+ beq nav_no_local
+ bset #12,d4
+nav_no_local:
  moveq #2,d0
  bsr asm_keyrow
  btst #3,d0
@@ -2997,7 +3031,9 @@ nav_no_cursor_repeat:
  move.w #3,asm_mode
  move.w #2,asm_salvage
  move.w #12,asm_count
+ move.w #1,asm_arriving
  bsr asm_launch
+ clr.w asm_arriving
  move.w #1,asm_docked
  bsr asm_clear_view
  bsr asm_market_page
@@ -3049,6 +3085,13 @@ nav_refueled:
  bsr asm_draw_dials
  bra nav_redraw
 nav_select:
+ btst #12,d4
+ beq nav_not_local
+ eor.w #1,asm_local_chart
+ move.w #1,asm_chart
+ bsr asm_chart_from_target
+ bra nav_redraw
+nav_not_local:
  btst #9,d4
  beq nav_select_system
  eor.w #1,asm_chart
@@ -3224,6 +3267,8 @@ arrival_restore_rng:
  lea 12(sp),sp
  bra asm_update_stats
 asm_nav_page:
+ bra presentation_system
+legacy_nav_page:
  moveq #0,d0
  move.b asm_travel+6,d0
  addq.w #1,d0
@@ -3617,6 +3662,8 @@ load_error: .ascii "LOAD FAILED - STATE UNCHANGED\0"
 
 .sect .text
 asm_chart_page:
+ tst.w asm_local_chart
+ bne presentation_local
  lea chart_title,a4
  moveq #4,d6
  bsr asm_text
@@ -4189,10 +4236,14 @@ asm_chart_snap:
  addq.l #8,sp
  bra asm_chart_from_target
 asm_chart_move:
+ bsr presentation_cursor
+ bra chart_movement
+chart_movement_unused:
  pea asm_chart_cursor
  pea 0x20000
  jsr _chart_cursor_xor
  addq.l #8,sp
+chart_movement:
  moveq #0,d0
  btst #6,d4
  beq chart_move_right
@@ -4225,10 +4276,7 @@ chart_move_y:
  jsr _chart_move
  addq.l #8,sp
  move.b d0,asm_chart_cursor+1
- pea asm_chart_cursor
- pea 0x20000
- jsr _chart_cursor_xor
- addq.l #8,sp
+ bsr presentation_cursor
  rts
 
 .sect .data
@@ -4312,3 +4360,429 @@ asm_sound_contact:
 sound_contact_done:
  move.l (sp)+,d0
  rts
+
+.sect .text
+release_commander:
+ ; Default NA% (Q%=FALSE):100Cr, four missiles, pulse front, no upgrades.
+ clr.b asm_travel+10
+ lea asm_equipment,a0
+ moveq #4,d0
+release_clear_equipment:
+ clr.b 0(a0,d0.w)
+ dbra d0,release_clear_equipment
+ move.b #22,_ship_fit
+ move.b #15,_ship_fit+1
+ clr.w _ship_fit+2
+ clr.l _ship_fit+4
+ move.w #3,asm_mode
+ move.w #2,asm_salvage
+ move.w #12,asm_count
+ move.w #1,asm_docked
+ move.w #1,asm_page
+ bsr asm_clear_view
+ bsr asm_commander_page
+ rts
+dock_status_keys:
+ moveq #6,d0
+ bsr asm_keyrow
+ and.w #4,d0
+ move.w asm_page_key,d1
+ eor.w d0,d1
+ move.w d0,asm_page_key
+ and.w d0,d1
+ beq dock_status_done
+ eor.w #1,asm_page
+ bsr asm_clear_view
+ tst.w asm_page
+ beq dock_status_market
+ bsr asm_commander_page
+ rts
+dock_status_market:
+ bsr asm_market_page
+dock_status_done:
+ rts
+.sect .data
+.align 2
+asm_local_chart: .data2 0
+.sect .text
+presentation_cursor:
+ tst.w asm_local_chart
+ bne local_cursor
+ pea asm_chart_cursor
+ pea 0x20000
+ jsr _chart_cursor_xor
+ addq.l #8,sp
+ rts
+; TT105 uses wrapped byte differences, then explicit CLC before projection.
+local_cursor:
+ moveq #0,d0
+ move.b asm_chart_cursor,d0
+ sub.b asm_travel+19,d0
+ cmp.b #38,d0
+ blo local_cursor_x
+ cmp.b #230,d0
+ blo local_cursor_done
+local_cursor_x:
+ lsl.b #2,d0
+ add.b #104,d0
+ move.w d0,local_cross_x
+ moveq #0,d1
+ move.b asm_chart_cursor+1,d1
+ sub.b asm_travel+17,d1
+ cmp.b #38,d1
+ blo local_cursor_y
+ cmp.b #220,d1
+ blo local_cursor_done
+local_cursor_y:
+ add.b d1,d1
+ add.b #90,d1
+ move.w local_cross_x,d0
+ moveq #8,d5
+ bra local_cross
+local_cursor_done:
+ rts
+; Source TT15 cross geometry, native QL line rasterizer.
+local_cross:
+ movem.l d0-d7/a0-a6,-(sp)
+ move.w d0,local_cross_x
+ move.w d1,local_cross_y
+ move.w d5,local_cross_size
+ move.w d0,d2
+ move.w d1,d3
+ sub.w d5,d0
+ bpl local_left_ok
+ clr.w d0
+local_left_ok:
+ add.w d5,d2
+ cmp.w #255,d2
+ bls local_right_ok
+ move.w #255,d2
+local_right_ok:
+ move.l #0x20000,a0
+ jsr xor_segment
+ move.w local_cross_x,d0
+ move.w d0,d2
+ move.w local_cross_y,d1
+ move.w d1,d3
+ sub.w local_cross_size,d1
+ bpl local_top_ok
+ clr.w d1
+local_top_ok:
+ add.w local_cross_size,d3
+ move.l #0x20000,a0
+ jsr xor_segment
+ movem.l (sp)+,d0-d7/a0-a6
+ rts
+presentation_local:
+ lea local_title,a4
+ moveq #4,d6
+ bsr asm_text
+ move.l #2,-(sp)
+ moveq #0,d0
+ move.b asm_travel+9,d0
+ move.l d0,-(sp)
+ move.l #90,-(sp)
+ move.l #104,-(sp)
+ pea local_circle
+ pea 0x20000
+ jsr _circle_xy
+ lea 24(sp),sp
+ moveq #104,d0
+ moveq #90,d1
+ moveq #16,d5
+ bsr local_cross
+ bsr local_cursor
+ lea local_rows,a0
+ moveq #24,d0
+local_clear_rows:
+ clr.b 0(a0,d0.w)
+ dbra d0,local_clear_rows
+ clr.w local_index
+ pea local_record
+ clr.l -(sp)
+ pea asm_travel
+ jsr _galaxy_system
+ lea 12(sp),sp
+local_system_loop:
+ pea local_xy
+ pea asm_travel+16
+ pea local_record
+ jsr _local_position
+ lea 12(sp),sp
+ tst.w d0
+ beq local_next
+ move.w local_xy+2,d0
+ lsr.w #3,d0
+ lea local_rows,a0
+ tst.b 0(a0,d0.w)
+ beq local_label
+ addq.w #1,d0
+ tst.b 0(a0,d0.w)
+ beq local_label
+ subq.w #2,d0
+ tst.b 0(a0,d0.w)
+ bne local_dot
+local_label:
+ cmp.w #3,d0
+ blo local_next
+ move.b #255,0(a0,d0.w)
+ move.w d0,d6
+ lsl.w #3,d6
+ move.w local_xy,d7
+ lsr.w #3,d7
+ addq.w #1,d7
+ lsl.w #3,d7
+ lea local_record+9,a4
+ bsr asm_text_at
+local_dot:
+ ; CPIX4/CPIX2 original three-pixel double-height dot, native word-pixel adapter.
+ move.w local_xy,d0
+ move.w d0,d2
+ addq.w #2,d2
+ move.w local_xy+2,d1
+ move.w d1,d3
+ move.l #0x20000,a0
+ jsr xor_segment
+ move.w local_xy,d0
+ move.w d0,d2
+ addq.w #2,d2
+ move.w local_xy+2,d1
+ subq.w #1,d1
+ move.w d1,d3
+ move.l #0x20000,a0
+ jsr xor_segment
+local_next:
+ pea local_record
+ move.l #1,-(sp)
+ pea local_record
+ jsr _galaxy_system
+ lea 12(sp),sp
+ addq.w #1,local_index
+ cmp.w #256,local_index
+ blo local_system_loop
+ lea local_help,a4
+ move.w #176,d6
+ moveq #4,d7
+ bsr asm_text_at
+ rts
+presentation_system:
+ pea system_info
+ pea asm_travel+40
+ jsr _system_details
+ addq.l #8,sp
+ lea system_title,a4
+ moveq #4,d6
+ bsr asm_text
+ lea asm_travel+49,a4
+ moveq #16,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+46,d0
+ lsl.w #2,d0
+ lea system_economies,a0
+ move.l 0(a0,d0.w),a4
+ moveq #34,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+47,d0
+ lsl.w #2,d0
+ lea system_governments,a0
+ move.l 0(a0,d0.w),a4
+ moveq #46,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+48,d0
+ addq.w #1,d0
+ lea system_tech,a0
+ moveq #2,d1
+ bsr asm_decimal
+ lea system_tech_line,a4
+ moveq #58,d6
+ bsr asm_text
+ moveq #0,d0
+ move.w system_info,d0
+ lea system_population,a0
+ moveq #2,d1
+ bsr asm_decimal
+ move.b system_population+1,system_population+2
+ move.b #46,system_population+1
+ lea system_pop_line,a4
+ moveq #70,d6
+ bsr asm_text
+ lea system_species,a1
+ btst #7,asm_travel+44
+ bne system_alien
+ lea system_human,a0
+ bsr system_append
+ bra system_species_ready
+system_alien:
+ moveq #0,d0
+ move.b system_info+6,d0
+ cmp.w #3,d0
+ bhs system_second
+ lsl.w #2,d0
+ lea system_first_words,a0
+ move.l 0(a0,d0.w),a0
+ bsr system_append
+system_second:
+ moveq #0,d0
+ move.b system_info+7,d0
+ cmp.w #6,d0
+ bhs system_third
+ lsl.w #2,d0
+ lea system_second_words,a0
+ move.l 0(a0,d0.w),a0
+ bsr system_append
+system_third:
+ moveq #0,d0
+ move.b system_info+8,d0
+ cmp.w #6,d0
+ bhs system_animal
+ lsl.w #2,d0
+ lea system_third_words,a0
+ move.l 0(a0,d0.w),a0
+ bsr system_append
+system_animal:
+ moveq #0,d0
+ move.b system_info+9,d0
+ lsl.w #2,d0
+ lea system_animal_words,a0
+ move.l 0(a0,d0.w),a0
+ bsr system_append
+system_species_ready:
+ clr.b (a1)
+ lea system_species,a4
+ moveq #82,d6
+ moveq #4,d7
+ bsr asm_text_at
+ moveq #0,d0
+ move.w system_info+2,d0
+ lea system_product,a0
+ moveq #5,d1
+ bsr asm_decimal
+ lea system_product_line,a4
+ moveq #94,d6
+ bsr asm_text
+ moveq #0,d0
+ move.w system_info+4,d0
+ lea system_radius,a0
+ moveq #5,d1
+ bsr asm_decimal
+ lea system_radius_line,a4
+ moveq #106,d6
+ bsr asm_text
+ pea asm_travel+40
+ pea asm_travel+16
+ jsr _galaxy_distance
+ addq.l #8,sp
+ lea system_distance,a0
+ moveq #4,d1
+ bsr asm_decimal
+ move.b system_distance+3,system_distance+4
+ move.b #46,system_distance+3
+ lea system_distance_line,a4
+ moveq #118,d6
+ bsr asm_text
+ lea system_help,a4
+ move.w #140,d6
+ bsr asm_text
+ lea nav_help3,a4
+ move.w #152,d6
+ bsr asm_text
+ lea nav_help4,a4
+ move.w #164,d6
+ bsr asm_text
+ moveq #0,d0
+ move.b asm_travel+15,d0
+ lsl.w #2,d0
+ lea nav_errors,a0
+ move.l 0(a0,d0.w),a4
+ move.w #180,d6
+ bsr asm_text
+ rts
+system_append:
+ move.b (a0)+,d0
+ beq system_append_done
+ move.b d0,(a1)+
+ bra system_append
+system_append_done:
+ rts
+.sect .data
+.align 2
+local_index: .data2 0
+local_cross_x: .data2 0
+local_cross_y: .data2 0
+local_cross_size: .data2 0
+local_xy: .space 4
+local_record: .space 24
+local_rows: .space 26
+local_circle: .space 144
+system_info: .space 10
+system_species: .space 48
+local_title: .ascii "SHORT RANGE CHART\0"
+local_help: .ascii "ARROWS MOVE D SELECT O HOME V GALAXY\0"
+system_title: .ascii "DATA ON SYSTEM\0"
+system_tech_line: .ascii "TECH.LEVEL: "
+system_tech: .ascii "00\0"
+system_pop_line: .ascii "POPULATION: "
+system_population: .ascii "0.0 BILLION\0"
+system_product_line: .ascii "PRODUCTIVITY: "
+system_product: .ascii "00000 M CR\0"
+system_radius_line: .ascii "AVERAGE RADIUS: "
+system_radius: .ascii "00000 KM\0"
+system_distance_line: .ascii "DISTANCE: "
+system_distance: .ascii "000.0 LIGHT YEARS\0"
+system_help: .ascii "ARROWS BROWSE C GALAXY V LOCAL\0"
+system_human: .ascii "HUMAN COLONIALS\0"
+.align 2
+.align 2
+system_economies: .data4 system_economies0,system_economies1,system_economies2,system_economies3,system_economies4,system_economies5,system_economies6,system_economies7
+system_economies0: .ascii "RICH INDUSTRIAL\0"
+system_economies1: .ascii "AVERAGE INDUSTRIAL\0"
+system_economies2: .ascii "POOR INDUSTRIAL\0"
+system_economies3: .ascii "MAINLY INDUSTRIAL\0"
+system_economies4: .ascii "MAINLY AGRICULTURAL\0"
+system_economies5: .ascii "RICH AGRICULTURAL\0"
+system_economies6: .ascii "AVERAGE AGRICULTURAL\0"
+system_economies7: .ascii "POOR AGRICULTURAL\0"
+.align 2
+system_governments: .data4 system_governments0,system_governments1,system_governments2,system_governments3,system_governments4,system_governments5,system_governments6,system_governments7
+system_governments0: .ascii "ANARCHY\0"
+system_governments1: .ascii "FEUDAL\0"
+system_governments2: .ascii "MULTI-GOVERNMENT\0"
+system_governments3: .ascii "DICTATORSHIP\0"
+system_governments4: .ascii "COMMUNIST\0"
+system_governments5: .ascii "CONFEDERACY\0"
+system_governments6: .ascii "DEMOCRACY\0"
+system_governments7: .ascii "CORPORATE STATE\0"
+.align 2
+system_first_words: .data4 system_first_words0,system_first_words1,system_first_words2
+system_first_words0: .ascii "LARGE \0"
+system_first_words1: .ascii "FIERCE \0"
+system_first_words2: .ascii "SMALL \0"
+.align 2
+system_second_words: .data4 system_second_words0,system_second_words1,system_second_words2,system_second_words3,system_second_words4,system_second_words5
+system_second_words0: .ascii "GREEN \0"
+system_second_words1: .ascii "RED \0"
+system_second_words2: .ascii "YELLOW \0"
+system_second_words3: .ascii "BLUE \0"
+system_second_words4: .ascii "BLACK \0"
+system_second_words5: .ascii "HARMLESS \0"
+.align 2
+system_third_words: .data4 system_third_words0,system_third_words1,system_third_words2,system_third_words3,system_third_words4,system_third_words5
+system_third_words0: .ascii "SLIMY \0"
+system_third_words1: .ascii "BUG-EYED \0"
+system_third_words2: .ascii "HORNED \0"
+system_third_words3: .ascii "BONY \0"
+system_third_words4: .ascii "FAT \0"
+system_third_words5: .ascii "FURRY \0"
+.align 2
+system_animal_words: .data4 system_animal_words0,system_animal_words1,system_animal_words2,system_animal_words3,system_animal_words4,system_animal_words5,system_animal_words6,system_animal_words7
+system_animal_words0: .ascii "RODENTS\0"
+system_animal_words1: .ascii "FROGS\0"
+system_animal_words2: .ascii "LIZARDS\0"
+system_animal_words3: .ascii "LOBSTERS\0"
+system_animal_words4: .ascii "BIRDS\0"
+system_animal_words5: .ascii "HUMANOIDS\0"
+system_animal_words6: .ascii "FELINES\0"
+system_animal_words7: .ascii "INSECTS\0"

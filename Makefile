@@ -13,8 +13,13 @@ host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEDEV
+host/ELITEDEV: src/shell.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -161,4 +166,9 @@ host/ELITEDST: tests/dust_test.c tests/dust_fixtures.h src/dust.s src/dust_gener
 all: host/ELITEFID
 host/ELITEFID: tests/fidelity_test.c tests/travel_fixtures.h src/travel.s src/screen_store.s src/sound.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/fidelity_test.c src/travel.s src/screen_store.s src/sound.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEPRE
+host/ELITEPRE: tests/presentation_test.c tests/presentation_fixtures.h src/presentation.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/presentation_test.c src/presentation.s -o $@
 	$(PYTHON) tools/qlmeta.py $@

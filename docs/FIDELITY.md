@@ -1,3 +1,7 @@
+# RC1 current update
+
+README.md, RELEASE-AUDIT.md and RC1-RESULTS.md supersede the A27 completion list below. Short-range chart/system data and production startup are now implemented. Name search and animated escape flight are absent from the Electron source, not pending features.
+
 # A27 fidelity and remaining work
 
 The source of authority is the supplied Acorn Electron Elite disassembly, not

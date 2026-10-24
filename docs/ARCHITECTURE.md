@@ -1,3 +1,7 @@
+# RC1 current update
+
+README.md, RELEASE-AUDIT.md and RC1-RESULTS.md supersede the A27 completion list below. Short-range chart/system data and production startup are now implemented. Name search and animated escape flight are absent from the Electron source, not pending features.
+
 # A27 native architecture
 
 ELITEASM links only assembly modules. src/shell.s owns the QDOS job, keys, native

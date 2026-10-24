@@ -148,3 +148,16 @@ A27 additions (supersede historical omissions above):
 1-source-files/main-sources/elite-loader.asm SHA256 fb90d74d693881a687c50815d542f1a55a0c120d149058eb00f5a4f00f644b19
 3-assembled-output/ELTF.bin SHA256 709d07ad494248e4881ced065f11d740948db2750c7f5b8c3c11cc46527c3c6c
 assets/electron-sfx2-addressed.bin SHA256 7080e79ed05b1c531268158a790134fc818c2b47bc747ecf225adc98d219f001
+
+RC1: tests/original-presentation.asm contains actual TT24, MULTU/MU11/MU1,
+and TT182 through STA Y1, ending at explicit visible/outside return adapters.
+presentation_reference.py executes these with the retained instruction oracle.
+original-presentation-ui.asm records TT25, TT105/TT23 and ESCAPE boundaries.
+original-nearest-reference.asm supplies the complete TT111 reference tail.
+Native src/presentation.s implements these arithmetic routines; shell.s owns
+native QL text/raster presentation. Species words follow TT25 tokens67..89.
+CPIX4 draws three pixels on Y1 and Y1-1 in the actual instruction stream,
+not the width described in its prose comment. TT23 label selection tries the
+same row, then below, then above; row<3 skips the system when a row is chosen.
+Normal startup values follow NA% with Q%=FALSE. See RELEASE-AUDIT.md for the
+remaining FRIN/UNIV capacity/order qualification and corrected feature scope.
