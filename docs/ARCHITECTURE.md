@@ -122,3 +122,13 @@ and an active bomb countdown is preserved. Normal save/load records these ordina
 commander fields. No default equipment, economic prices or Electron combat rules
 were changed. This menu is a user-requested extension outside fidelity claims.
 The debug header adds cheat_active at offset 326 for harness verification.
+
+
+## RC5a menu Escape routing
+
+Production menus now route Esc through menu_escape: clear page/shop/navigation/
+chart/cheat state, redraw bay market or cached cockpit, and require key release.
+In-game filename prompts use the same path; title-load cancellation still returns
+to the title. Station-root Esc stays in the bay. Pause state is preserved, and
+bare-cockpit/title exit semantics remain unchanged. Cheat key 0 keeps the earlier
+return-to-previous-screen behavior. This is an explicit user-requested QL UI fix.

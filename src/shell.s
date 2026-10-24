@@ -11,7 +11,7 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .ascii "EliteQL 1.0 RC5\0"
+__prog_name: .ascii "EliteQL 1.0 RC5a\0"
 .align 2
 asm_stats:
  .data4 0x45514248,0x36383030
@@ -375,6 +375,16 @@ cheat_poll_done:
  bsr asm_keyrow
  btst #3,d0
  beq flow_not_escape
+ tst.w _release_mode
+ beq flow_escape_legacy
+ move.w asm_docked,d0
+ or.w asm_nav,d0
+ or.w asm_page,d0
+ or.w asm_shop,d0
+ beq flow_escape_legacy
+ bsr menu_escape
+ bra asm_update_stats
+flow_escape_legacy:
  tst.w asm_paused
  beq asm_finish
  tst.w _release_mode
@@ -5440,7 +5450,10 @@ flow_name_market_only:
  bra asm_wait
 flow_name_cancel:
  tst.w flow_from_title
- beq flow_name_bay
+ bne flow_cancel_title
+ bsr menu_escape
+ bra asm_wait
+flow_cancel_title:
  bsr flow_title_load
  bra asm_wait
 ; FREEZE/DKS3 options: configuration bytes persist across death/restart.
@@ -6214,7 +6227,7 @@ cheat_keys:
  cmp.w #48,d0
  beq cheat_close
  cmp.w #27,d0
- beq cheat_close
+ beq menu_escape
  cmp.w #49,d0
  blo cheat_consumed
  cmp.w #54,d0
@@ -6311,4 +6324,28 @@ cheat_ecm:
  rts
 cheat_drive:
  move.b #255,asm_travel+10
+ rts
+
+; Esc from any normal menu returns to the station bay or cockpit.
+; Release gating prevents the held key reaching the outer exit/restart action.
+menu_escape:
+ clr.w cheat_active
+ clr.w flow_state
+ clr.w asm_nav
+ clr.w asm_chart
+ clr.w asm_local_chart
+ clr.w asm_shop
+ clr.w asm_page
+ move.w #1,flow_release_gate
+ move.w #1,flow_held
+ bsr asm_clear_view
+ tst.w asm_docked
+ beq menu_escape_cockpit
+ bsr asm_market_page
+ bra menu_escape_done
+menu_escape_cockpit:
+ bsr asm_restore_view
+menu_escape_done:
+ bsr asm_draw_dials
+ moveq #1,d0
  rts

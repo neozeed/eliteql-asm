@@ -102,3 +102,13 @@ paused flight simulation freeze, byte-exact viewport restoration and resume.
 The complete production lifecycle and RC4 universe probes run before this test
 at 128KB and 640KB. RC4's full development/module logs remain historical evidence;
 RC5 does not relabel those runs. RC5-PRODUCTION.log is the actual BASIC EXEC_W run.
+
+
+## RC5a menu Escape routing
+
+Production menus now route Esc through menu_escape: clear page/shop/navigation/
+chart/cheat state, redraw bay market or cached cockpit, and require key release.
+In-game filename prompts use the same path; title-load cancellation still returns
+to the title. Station-root Esc stays in the bay. Pause state is preserved, and
+bare-cockpit/title exit semantics remain unchanged. Cheat key 0 keeps the earlier
+return-to-previous-screen behavior. This is an explicit user-requested QL UI fix.

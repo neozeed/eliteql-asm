@@ -1,9 +1,21 @@
-# EliteQL 1.0 RC5
+# EliteQL 1.0 RC5a
 
 Native 68000/QDOS adaptation of Acorn Electron Elite. RC4 replaces the production
 fixed ship pool with the source-derived compact universe list. All gameplay is
 assembly; RC3a remains an independent fallback. This is still a release candidate:
 whole-game RNG identity and real-hardware timing are not claimed.
+
+## RC5a menu Escape fix
+
+**Esc backs out of menus:** docked, it returns to the station bay/market;
+in flight, it returns to the cockpit. This applies to status, cargo, equipment,
+navigation/charts, cheats, and in-game save/load prompts. The station root also
+ignores Esc as an exit command. A held Esc must be released before another action,
+so backing out cannot accidentally quit or restart. Existing pause state is kept.
+
+The cheat menu's **0** still closes to its previous screen; **Esc** goes directly
+to the bay/cockpit. Title-screen Escape and the existing bare-cockpit exit/restart
+commands remain available. RC5 is preserved as a separate fallback.
 
 ## RC5 optional cheat menu
 
@@ -18,7 +30,8 @@ The labelled **CHEAT MENU - QL EXTRAS** freezes simulation until closed:
 | 4 | Replenish the single energy bomb |
 | 5 | Fit ECM |
 | 6 | Fit the galactic hyperdrive |
-| 0 / Esc | Close and return to the previous screen |
+| 0 | Close and return to the previous screen |
+| Esc | Return to station bay or cockpit |
 
 Cash adds once per fresh press and saturates instead of overflowing. Equipment
 is granted, not toggled off. An already detonating bomb's countdown is preserved.
@@ -181,7 +194,7 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is 62,514 bytes with 7,198 bytes of declared QDOS data space. The game is
+ELITEASM is 62,670 bytes with 7,182 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
 Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not

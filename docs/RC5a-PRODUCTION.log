@@ -1,0 +1,16 @@
+PASS RC2 Electron keys: ram=128 KB; shifted <> roll, X/S pitch, Space/? speed, A fire without acceleration, F5 pause/resume, Space never toggles pause
+PASS RC4 live universe: ram=128 KB; slot/heap limits, failed allocation unchanged, INWK/render/cloud compaction, missile remap/drift, original player-lock semantics, pending target retained, shifted ship and appended missile processed in same frame
+PASS RC3a death hold: ram=128 KB; held Space ignored, final frame stable, other keys ignored, fresh Space returns to title only
+PASS RC3 flow: ram=128 KB; Cobra/Mamba, named ALEX save/load, four-canister death, saved-state restart, missing/corrupt-load rollback, legacy ELITESAVE import, full status/cargo, pause sound/damping/recentre/credits/inert FLH, paused ESC restart
+PASS RC5a station Esc: ram=128 KB; status/cargo/equipment/navigation/cheats/save/load return to bay, held Esc never exits
+PASS RC5 cheats: ram=128 KB; docked/paused-flight menu, all six grants, fresh-key cash, saturating cash, idempotent fittings, active bomb preserved, simulation freeze, exact viewport/nav restore, save/load persistence, resume
+PASS RC5a flight Esc: ram=128 KB; status/cargo/navigation/nested cheats return to cockpit, long hold release-gated, pause preserved, resume
+PASS production RC3: ram=128 KB; stock Jameson, docked startup, status/market/system/local chart, cursor, trade, save/load, no free equipment, dev keys disabled, launch/jump/real docking/exit
+PASS RC2 Electron keys: ram=640 KB; shifted <> roll, X/S pitch, Space/? speed, A fire without acceleration, F5 pause/resume, Space never toggles pause
+PASS RC4 live universe: ram=640 KB; slot/heap limits, failed allocation unchanged, INWK/render/cloud compaction, missile remap/drift, original player-lock semantics, pending target retained, shifted ship and appended missile processed in same frame
+PASS RC3a death hold: ram=640 KB; held Space ignored, final frame stable, other keys ignored, fresh Space returns to title only
+PASS RC3 flow: ram=640 KB; Cobra/Mamba, named ALEX save/load, four-canister death, saved-state restart, missing/corrupt-load rollback, legacy ELITESAVE import, full status/cargo, pause sound/damping/recentre/credits/inert FLH, paused ESC restart
+PASS RC5a station Esc: ram=640 KB; status/cargo/equipment/navigation/cheats/save/load return to bay, held Esc never exits
+PASS RC5 cheats: ram=640 KB; docked/paused-flight menu, all six grants, fresh-key cash, saturating cash, idempotent fittings, active bomb preserved, simulation freeze, exact viewport/nav restore, save/load persistence, resume
+PASS RC5a flight Esc: ram=640 KB; status/cargo/navigation/nested cheats return to cockpit, long hold release-gated, pause preserved, resume
+PASS production RC3: ram=640 KB; stock Jameson, docked startup, status/market/system/local chart, cursor, trade, save/load, no free equipment, dev keys disabled, launch/jump/real docking/exit
