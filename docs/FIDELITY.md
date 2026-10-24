@@ -221,3 +221,28 @@ The 6-key page is a native modal display with all seventeen stocks and original
 commodity units. It clears only the viewport and restores cached drawing with
 no simulation step or extra framebuffer. Exact source STATUS layout, condition,
 system names and equipment listing are not claimed. OUCH remains unconnected.
+
+## A17 equipment and planet corrections
+
+OUCH, MA24/MA18 and bomb ship eligibility are translated in equipment.s.
+The 22-byte original QQ20 layout includes cargo plus ECM/BST/BOMB/ENGY/DKCMP.
+Surviving OOPS energy damage returns through the shared native OUCH adapter
+from enemy lasers, missiles and collision paths. Missing EXNO3 sound supplies
+explicit DORND carry1; whole-game RNG sequencing is not claimed. Destruction
+messages share DLY with commander rewards. Bomb kills tally once; stations
+and already exploding records are immune. Passive/fighter scenes start with
+one fitted bomb, an explicit test-loadout choice. Existing active ECM is not
+cancelled on loss; subsequent activation is blocked.
+
+SPS2/SP2/DOT/CPIX2 now draws the planet compass with exact original pixel
+results translated to QL words. Only the planet target is supported; no station
+safe-zone selector. DVID4's unused fractional-return path is a clear-carry
+oracle boundary, while its integer quotient executes original instructions.
+
+MV40/MULT3/MVT3/MV45/MVT1 now advances planet coordinates instead of the
+ship-only 16-bit rotation path used in A14–A16. That older planet update could
+lose high coordinate bits. The new entry is tested against1024 original cases
+and trajectories. K2-low is explicit and shell supplies0; original incidental
+shared scratch state is not recreated. Planet orientation/rendering remains
+absent. This supersedes earlier claims that the old planet movement was fully
+original player-relative movement. Ship movement itself is unchanged.

@@ -13,8 +13,8 @@ host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -85,4 +85,17 @@ host/ELITECRG: tests/cargo_test.c tests/cargo_fixtures.h src/cargo.s src/combat.
 all: host/ELITECMD
 host/ELITECMD: tests/commander_test.c tests/commander_fixtures.h src/commander.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/commander_test.c src/commander.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEEQP host/ELITECMP
+host/ELITEEQP: tests/equipment_test.c tests/equipment_fixtures.h src/equipment.s src/combat.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/equipment_test.c src/equipment.s src/combat.s src/line.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+host/ELITECMP: tests/compass_test.c tests/compass_fixtures.h src/compass.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/compass_test.c src/compass.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEPLN
+host/ELITEPLN: tests/planet_test.c tests/planet_fixtures.h src/planet.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/planet_test.c src/planet.s -o $@
 	$(PYTHON) tools/qlmeta.py $@

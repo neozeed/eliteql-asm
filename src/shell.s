@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514236,0x36383030
+ .data4 0x45514237,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -52,12 +52,19 @@ asm_debris_debug: .data4 asm_debris
 asm_full_debug: .data4 asm_full
 asm_commander_debug: .data4 asm_commander
 asm_page_debug: .data4 asm_page
+asm_equipment_debug: .data4 asm_equipment
+asm_compass_debug: .data4 asm_compass
+asm_losses_debug: .data4 asm_losses
+asm_compass: .data1 0,0,0,0
+asm_losses: .data4 0
+asm_bomb_held: .data2 0
 asm_commander: .data4 1000
  .data1 0,0,0,0,0,0
 asm_page: .data2 0
 asm_page_key: .data2 0
 asm_salvage: .data2 0
-asm_cargo: .space 18
+asm_cargo: .space 17
+asm_equipment: .data1 255,255,127,0,0
 asm_scooped: .data4 0
 asm_debris: .data4 0
 asm_full: .data4 0
@@ -97,6 +104,12 @@ asm_cargo_text: .ascii " C00\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _equipment_damage
+.extern _bomb_key
+.extern _bomb_ship
+.extern _bomb_tick
+.extern _move_planet
+.extern _compass_frame
 .extern _commander_tally
 .extern _commander_settle
 .extern _commander_rank
@@ -327,6 +340,8 @@ asm_salvage_scene:
  move.w #3,asm_mode
  bsr asm_setup
 asm_check_ecm:
+ tst.b asm_equipment
+ beq asm_ecm_key_done
  moveq #6,d0
  bsr asm_keyrow
  btst #4,d0
@@ -336,6 +351,10 @@ asm_check_ecm:
  move.b #32,asm_ecm
  move.b #255,asm_ecm+1
 asm_ecm_key_done:
+ moveq #5,d0
+ bsr asm_keyrow
+ and.w #32,d0
+ move.w d0,asm_bomb_held
  moveq #6,d0
  bsr asm_keyrow
  btst #6,d0
@@ -380,6 +399,12 @@ asm_draw_begin:
  bne asm_update_stats
  tst.w asm_paused
  bne asm_update_stats
+ moveq #0,d0
+ move.w asm_bomb_held,d0
+ move.l d0,-(sp)
+ pea asm_equipment+2
+ jsr _bomb_key
+ addq.l #8,sp
  bsr asm_player_input
  pea asm_keys
  pea asm_controls
@@ -390,10 +415,11 @@ asm_draw_begin:
  move.b asm_controls+12,asm_params+2
  ; Test-scene planet follows original player-relative movement.
  clr.b asm_params+3
+ clr.l -(sp)
  pea asm_params
  pea asm_planet
- jsr _move_ship
- addq.l #8,sp
+ jsr _move_planet
+ lea 12(sp),sp
  ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
  clr.l -(sp)
  move.l #15,-(sp)
@@ -429,6 +455,21 @@ asm_draw_loop:
  mulu.w #36,d0
  adda.l d0,a0
  move.l a0,a4
+ moveq #0,d0
+ move.b asm_equipment+2,d0
+ move.l d0,-(sp)
+ move.l (a5),a0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _bomb_ship
+ lea 12(sp),sp
+ tst.l d0
+ beq asm_bomb_ship_done
+ pea asm_commander
+ jsr _commander_tally
+ addq.l #4,sp
+asm_bomb_ship_done:
  btst #7,31(a4)
  beq asm_pending_done
  btst #5,31(a4)
@@ -594,6 +635,11 @@ asm_ai_not_escape:
  blo asm_ai_not_hit
  addq.l #1,asm_ai_events
 asm_ai_not_hit:
+ cmp.w #4,d0
+ bne asm_ai_no_ouch
+ bsr asm_equipment_ouch
+ moveq #4,d0
+asm_ai_no_ouch:
  cmp.w #5,d0
  bne asm_ai_done
  move.w #1,asm_dead
@@ -751,6 +797,7 @@ asm_cloud_done:
  moveq #0,d0
  move.b asm_mcnt,d0
  move.l d0,-(sp)
+ move.b asm_equipment+3,asm_status+4
  pea asm_status
  jsr _energy_step
  addq.l #8,sp
@@ -770,6 +817,9 @@ asm_laser_end:
  pea asm_laser
  jsr _laser_tick
  addq.l #8,sp
+ pea asm_equipment+2
+ jsr _bomb_tick
+ addq.l #4,sp
  pea asm_commander
  jsr _commander_tick
  addq.l #4,sp
@@ -887,10 +937,16 @@ asm_cloud_zero:
  clr.l (a0)+
  dbra d0,asm_cloud_zero
  lea asm_cargo,a0
- moveq #17,d0
+ moveq #21,d0
 asm_cargo_zero:
  clr.b 0(a0,d0.w)
  dbra d0,asm_cargo_zero
+ move.b #255,asm_equipment
+ move.b #255,asm_equipment+1
+ move.b #127,asm_equipment+2
+ clr.l asm_losses
+ clr.w asm_bomb_held
+ clr.l asm_compass
  move.l #1000,asm_commander
  clr.l asm_commander+4
  clr.w asm_commander+8
@@ -1063,13 +1119,48 @@ asm_drop_restore:
  movem.l (sp)+,d2-d7/a2-a3
 asm_drop_done:
  rts
+asm_equipment_ouch:
+ movem.l d2-d7/a2-a6,-(sp)
+ ; Missing EXNO3 sound boundary: incoming DORND carry explicitly 1.
+ move.l #1,-(sp)
+ moveq #0,d0
+ move.b asm_commander+7,d0
+ move.l d0,-(sp)
+ pea asm_laser+5
+ pea asm_cargo
+ jsr _equipment_damage
+ lea 16(sp),sp
+ tst.l d0
+ beq asm_equipment_ouch_done
+ addq.l #1,asm_losses
+ subq.w #1,d0
+ lea asm_commodity_names,a0
+ cmp.w #17,d0
+ blo asm_loss_name
+ sub.w #17,d0
+ lea asm_equipment_names,a0
+asm_loss_name:
+ lsl.w #4,d0
+ adda.w d0,a0
+ lea asm_loss_text,a1
+ moveq #15,d0
+asm_loss_copy:
+ move.b (a0)+,(a1)+
+ dbra d0,asm_loss_copy
+ move.b #22,asm_commander+7
+ move.b #3,asm_commander+8
+asm_equipment_ouch_done:
+ movem.l (sp)+,d2-d7/a2-a6
+ rts
 asm_contact:
  cmp.w #3,asm_mode
  bne asm_contact_done
  move.l #22,-(sp)
  pea asm_laser+5
  pea asm_cargo
- move.l #255,-(sp)
+ moveq #0,d0
+ move.b asm_equipment+1,d0
+ move.l d0,-(sp)
  move.l (a5),a0
  moveq #0,d0
  move.w 28(a0),d0
@@ -1106,6 +1197,11 @@ asm_collision:
  pea asm_status
  jsr _player_damage
  lea 16(sp),sp
+ cmp.w #1,d0
+ bne asm_collision_no_ouch
+ bsr asm_equipment_ouch
+ moveq #1,d0
+asm_collision_no_ouch:
  cmp.w #2,d0
  bne asm_collision_alive
  move.w #1,asm_dead
@@ -1266,6 +1362,11 @@ asm_draw_dials:
  pea 0x20000
  jsr _missile_icons
  addq.l #8,sp
+ pea asm_compass
+ pea asm_planet
+ pea 0x20000
+ jsr _compass_frame
+ lea 12(sp),sp
  rts
 asm_reset_vectors:
  clr.b asm_params
@@ -1422,6 +1523,11 @@ asm_hud_cargo_sum:
  tst.b asm_commander+7
  beq asm_hud_message_done
  lea asm_bounty_message,a4
+ cmp.b #3,asm_commander+8
+ bne asm_hud_not_loss
+ lea asm_loss_text,a4
+ bra asm_hud_message_done
+asm_hud_not_loss:
  cmp.b #2,asm_commander+8
  bne asm_hud_message_done
  lea asm_rank_message,a4
@@ -1562,6 +1668,7 @@ asm_page_copy_name:
  move.b (a5)+,(a0)+
  dbra d0,asm_page_copy_name
  addq.l #4,a5
+ move.b #32,(a0)+
  moveq #0,d0
  move.b (a6)+,d0
  moveq #3,d1
@@ -1593,6 +1700,22 @@ asm_page_cargo_unit:
  addq.w #1,asm_page_item
  cmp.w #17,asm_page_item
  blo asm_page_cargo_loop
+ lea asm_equipment,a0
+ lea asm_equipment_line,a1
+ lea asm_equipment_fields,a2
+ moveq #3,d1
+asm_page_equipment_loop:
+ moveq #0,d0
+ move.b (a2)+,d0
+ move.b #78,0(a1,d0.w)
+ tst.b (a0)+
+ beq asm_page_equipment_next
+ move.b #89,0(a1,d0.w)
+asm_page_equipment_next:
+ dbra d1,asm_page_equipment_loop
+ lea asm_equipment_line,a4
+ move.w #184,d6
+ bsr asm_text
  rts
 
 ; Original dashboard is copied by scanner_reset during scene setup.
@@ -1793,7 +1916,7 @@ asm_cash_line: .ascii "CASH "
 asm_cash_digits: .ascii "000000000.0 CR\0"
 asm_tally_line: .ascii "KILLS "
 asm_tally_digits: .ascii "00000  /  HOLD 20 T\0"
-asm_cargo_line: .ascii "            000 "
+asm_cargo_line: .ascii "             000 "
 asm_cargo_unit: .ascii "T \0"
 asm_clean: .ascii "LEGAL: CLEAN\0"
 asm_offender: .ascii "LEGAL: OFFENDER\0"
@@ -1830,4 +1953,16 @@ asm_commodity_names:
  .ascii "GEM-STONES      "
  .ascii "ALIEN ITEMS     "
 
+.align 2
+
+.sect .data
+asm_equipment_line: .ascii "ECM N SCOOPS N BOMB N UNIT N\0"
+asm_equipment_fields: .data1 4,13,20,27
+asm_equipment_names:
+ .ascii "ECM SYSTEM      "
+ .ascii "FUEL SCOOPS     "
+ .ascii "ENERGY BOMB     "
+ .ascii "ENERGY UNIT     "
+ .ascii "DOCK COMPUTER   "
+asm_loss_text: .ascii "                DESTROYED\0"
 .align 2

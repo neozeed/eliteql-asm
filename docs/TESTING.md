@@ -161,3 +161,19 @@ See A16-BUILD.log,A16-INTEGRATION.log,A16-BASIC.log. Screen captures use
 injected cargo/tally values to cover every commodity and high-value formatting.
 SKIP_REFERENCES=1 allows a regression run after reference generation/rebuild
 without regenerating unchanged fixture data. It does not skip diagnostics.
+
+## A17 original-source and connected tests
+
+ELITEEQP:2048 OUCH cases,4096 bomb targets,512 key states,256 expiry values.
+ELITECMP:512 source-derived compass projection/full-dashboard hashes, XOR
+involution and buffer guards. ELITEPLN:1024 MV40/MULT3/MVT3/MV45 cases including
+large coordinates, trajectories and every K2-low input. Raw excerpts are bundled.
+
+equipment_check.h runs under direct-job and BASIC EXEC_W harnesses at128/640KB.
+It verifies compass front/rear, station survival,11 bomb kills, one-time tally,
+cargo/ECM/scoop/bomb/unit destruction, disabled actions (including a real
+canister collision after scoop loss), state/page display and reset. The older
+recharge test now sets the authoritative equipment ENGY byte as well as its
+status mirror. All inherited viewport/dashboard checks include the compass.
+ONLY_EQUIPMENT=1 is an optional focused harness mode; release logs use the full
+suite without it. Logs:A17-BUILD/INTEGRATION/BASIC.log.

@@ -71,3 +71,10 @@ A16 original-commander.asm extracts EXNO2, MCASH, MA15/q2, STATUS st4/st5L
 and TT100 DLY decrement from the same verified Electron source. EXNO-2 is
 renamed EXNO_DONE as a sound boundary; MESS is a 22-tick test presentation stub.
 Blueprint extraction adds the original Bounty word at native offset38.
+
+A17 adds original-equipment.asm (OUCH through the mutation boundary, DORND,
+MA24, energy-bomb ship gate and MA18), original-compass.asm (SPS2/SP2/DOT/
+CPIX4/CPIX2/DVID4), and original-planet.asm (MV40/MULT3/MVT3/MVT1/MU5/MV45).
+Compass DVID4 fractional return is replaced by CLC/RTS because only P and
+clear carry are consumed. Equipment oracle ends before text rendering. Planet
+oracle ends after coordinate translation; render/orientation paths are absent.

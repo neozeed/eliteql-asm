@@ -301,3 +301,23 @@ without changing the pause flag. Exit restores line heaps through render_cache,
 cloud points through cloud_xor, then the sight and optional live laser. Original
 QDOS screen snapshot/poll cleanup are unchanged. Formatting is integer 68000
 assembly, including full unsigned32 decimal division using two DIVU.W steps.
+
+## A17 equipment, compass and planet coordinate path
+
+New modules:equipment.s,compass.s,planet.s. All are native68000 and use the
+existing QDOS C ABI for testability. The shell now owns contiguous cargo[17]
+and equipment[5] in QQ20 order. It gates ECM/scoops/bomb on those bytes and
+mirrors ENGY into status[4] before recharge. OUCH is wired only for surviving
+shield penetration, not shield-only hits or DEATH.
+
+compass_frame erases its cached dash, computes the planet vector, projects it
+and draws a new dash. scanner_reset rewrites the dashboard before a cleared
+compass cache is repopulated on scene setup. Page6 does not touch the dashboard.
+move_planet uses four split32-bit native multiplies and full sign-magnitude
+coordinate sums; no generic6502 interpreter is linked. K2-low is an explicit
+third argument. Only the nine position bytes change.
+
+Stats EQB7/6800 retains old offsets and appends equipment ptr146,compass ptr150,
+loss counter ptr154. Compass cache:COMX,COMY,COMC,valid. Commander message ID3
+selects the formatted destruction message. Equipment page uses four state
+indicators; docking computer remains an unsupported zero flag.
