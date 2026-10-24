@@ -1,0 +1,2 @@
+PASS equipment/save: ram=128 KB; missile cap, hold upgrade, beam trade-in, bomb/unit/galactic replacements, QDOS save/load, preservation, live beam, corrupt/truncated rejection, escape recovery, load after reset
+PASS equipment/save: ram=640 KB; missile cap, hold upgrade, beam trade-in, bomb/unit/galactic replacements, QDOS save/load, preservation, live beam, corrupt/truncated rejection, escape recovery, load after reset

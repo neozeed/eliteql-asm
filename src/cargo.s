@@ -142,3 +142,8 @@ tumble_speed:
  move.b d0,27(a2)
  move.l (sp)+,a2
  rts
+
+.sect .data
+.align 2
+.globl _ship_fit
+_ship_fit: .data1 22,15,0,0

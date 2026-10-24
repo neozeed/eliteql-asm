@@ -1,14 +1,80 @@
-# EliteQL ASM A19 — hyperspace and eight galaxies
+# EliteQL ASM A20 — equipment, commander files and escape recovery
 
-A19 connects original Electron galaxy generation and hyperspace logic to the
-native 68000 flight, docking and trading loop. A18 is preserved separately.
-The archive contains all source, runnable QDOS jobs and test fixtures.
+A20 adds original equipment-purchase rules, a working forward beam-laser
+upgrade, the larger cargo hold, repeatable galactic-drive purchases, player
+escape recovery, and native QDOS commander save/load. A19 remains unchanged.
 
-Mount this folder's host directory and run `EXEC_W WIN1_ELITEASM`:
+Run `EXEC_W WIN1_ELITEASM` with this archive's host directory mounted:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a19\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a20\host
 ```
+
+## Equipment and upgrades
+
+Dock, then press **8**. Up/Down selects an item, **B** buys it, **L** launches,
+and **8** returns to the market. The original technology rule limits available
+items to index <= internal tech + 2. Prices are the Electron PRXS values.
+Insufficient funds and duplicate/full equipment leave cash and inventory intact.
+
+Available equipment: fuel, up to four missiles, the 35-tonne large cargo bay,
+ECM, forward pulse/beam laser, fuel scoops, escape capsule, energy bomb,
+energy unit and galactic hyperdrive. The docking computer remains unavailable
+and cannot take your money. Laser purchases currently apply to the forward
+view only; the other views are still unfinished.
+
+A beam costs 1000 Cr up front, with a 400 Cr refund for an installed pulse
+laser. The full 1000 Cr must be available before that refund, as in the source.
+Beam operation uses the existing original MA68 laser path: the beam flag clears
+pulse cooldown; energy consumption and overheating still apply. The larger
+hold changes both market buying and scooping. Purchased equipment survives
+launch and hyperspace, and remains subject to the existing damage rules.
+
+## Keep your commander
+
+On the equipment screen, **S saves** and **O loads** `WIN1_ELITESAVE`.
+The 144-byte versioned file contains credits, tally, legal status, cargo,
+equipment, missiles, fitted forward laser, hold size, escape capsule, galaxy,
+current/selected system, fuel and the station market. Load is docked-only and
+returns to the equipment page; launch normally afterwards. To resume from a
+fresh process, press7, approach/dock, press8, then O.
+
+The file is a native QDOS adapter, not the Electron tape format. It has a
+checksum and basic field validation. Missing, short or damaged files are
+rejected before any live commander state is committed. Save overwrites this
+single slot: keep a separate copy for multiple commanders or backup. It is
+not a crash-atomic save. No save file containing the test commander's injected
+credits is distributed.
+
+## Escape capsule
+
+Buy the capsule, then press **K in flight** while alive. The original ESCAPE/
+ESL2 effects clear all17 cargo stocks, legal status and the one-use capsule,
+and restore fuel to7.0. The RESET/RES4 boundary restores shields/energy and
+returns you docked. Credits, tally and other equipment are retained. Local
+objects are reset through the existing native scene adapter. There is no new
+escape animation or sound. Escape is ignored while docked, on the commander
+page, without a capsule or after death. Escape can cancel a pending jump;
+a galactic drive already consumed by starting that jump is not refunded.
+
+## Scope and verification
+
+This is another substantial step, **not feature completion**. Original universe
+placement and encounter generation, rendered planets/environment interactions,
+full charts and views, docking-computer operation, sound and presentation still
+need work. Arrivals continue to use the A18 station-approach fixture.
+
+ELITESHP tests3072 source-derived transaction combinations across all12 item
+indices,16 tech values and16 cash/equipment configurations. These expectations
+are a test adapter based on the bundled original EQSHP/et0-etB source; they are
+not a full instruction-emulated shop UI. Live tests at128/640KB check buying,
+missile capacity, larger hold, beam trade-in, replacements, actual QDOS file
+round-trip, corrupt/truncated rejection, launch preservation, beam heat and
+escape recovery. All previous diagnostics and both direct-job/BASIC EXEC_W
+harnesses are retained. Logs:docs/A20-BUILD/INTEGRATION/BASIC.log.
+
+The initial test loadout is unchanged except that the escape capsule starts
+absent. Scene reset still clears progress and restores that test loadout.
 
 ## Fly somewhere
 
@@ -38,10 +104,8 @@ The Superior Electron variant rotates each of the six galaxy-seed bytes,
 advances the galaxy modulo 8, clears legal status and selects the nearest
 system to (96,96). The first jump arrives at Ororra in galaxy 2. Galactic travel
 does not consume normal fuel. The drive is spent when the countdown begins.
-There is no drive-purchase screen yet, so only the initially fitted drive is
-available in an uninterrupted game; native tests refit it to verify all eight
-transitions and wraparound. **N/scene reset still erases progress**, returns to
-Lave and restores the test loadout. There is no disk save yet.
+A20 can sell replacement drives at sufficiently advanced stations for 5000 Cr. **N/scene reset still erases progress**, returns to
+Lave and restores the test loadout. Use the equipment screen to save before resetting.
 
 ## What is original, and what is still a test scene
 
@@ -74,10 +138,10 @@ new missiles, bombs or equipment. Station compass selection is scene-based.
 - Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
   direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
 
-The game is 40,440 bytes plus 8,456 bytes QDOS data space. BASIC EXEC_W leaves a
-5,120-byte largest free block at 128 KB. Physical 68008 timing remains unmeasured;
+The A20 game is 42,914 bytes plus 8,330 bytes QDOS data space. BASIC EXEC_W leaves a
+2,560-byte largest free block at 128 KB. Physical 68008 timing remains unmeasured;
 the passive benchmark is not an active-game performance claim. Logs are in
-A19-BUILD/INTEGRATION/BASIC.log, with focused travel checks in A19-TRAVEL.log.
+A20-BUILD/INTEGRATION/BASIC.log, with focused travel checks in A20-SHOP.log.
 SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
 captures. Tests inject cargo/equipment/legal states for preservation checks and
 disable nearby fighter AI during the travel test; combat is tested separately.
@@ -90,6 +154,9 @@ disable nearby fighter AI during the travel test; combat is tested separately.
 | 5 | Python/Cobra/Mamba salvage encounter |
 | 6 | Open/close commander status and cargo manifest |
 | 7 | Reset to station approach encounter at Lave |
+| 8 while docked | Equipment shop; press again for market |
+| Shop: B / S / O | Buy selected item / save / load |
+| K in flight | Use a fitted escape capsule |
 | 9 | Navigation page; press again to return |
 | Navigation: Left/Right | Previous/next system within remaining fuel |
 | Navigation: Up/Down | Browse all 256 systems |
@@ -119,7 +186,7 @@ adapter, not a recreation of the original STATUS screen's system-name layout.
 
 Each reset starts this test commander with **100.0 Cr**, zero kills and clean
 legal status. Credits, tally and cargo persist through docking, launch and hyperspace.
-There is no disk save or continuity across N/scene reset yet.
+N/scene reset clears the live state; load a saved commander from the docked equipment screen to restore progress.
 
 Laser kills execute original EXNO2 tally arithmetic, including 16-bit wrap and
 "RIGHT ON COMMANDER!" at each low-byte wrap. The original TA35 missile
@@ -176,9 +243,7 @@ was not changed to match a newly invented capacity model. N resets all stocks.
 
 The unrendered test planet follows player-relative movement and drives the
 original pod navigation routines. Inter-system and galactic travel now work with destination markets. A complete
-universe, rendered planets, original station-safe-zone selection, equipment
-purchases beyond refuelling, player escape launch, sound and commander saves
-are unfinished. Arrivals still use the station-approach encounter fixture. Native projection/clipping and fixed slots
+universe, rendered planets, original station-safe-zone selection, docking-computer operation and sound remain unfinished. Arrivals still use the station-approach encounter fixture. Native projection/clipping and fixed slots
 remain adaptations; see docs/FIDELITY.md for inherited arithmetic boundaries.
 
 ## Validation and build
@@ -196,7 +261,7 @@ Both live-job harnesses exercise delayed bounty, one-time settlement, tally,
 ECM tally, police status, all cargo display units, frozen state, exact viewport
 restoration (including an active explosion), reset, and inherited combat,
 scanner, controls, inverted pitch, keyboard/EXEC_W and clean-exit behavior.
-A BASIC EXEC_W launch at 128 KB leaves a 5,120-byte largest free block.
+A BASIC EXEC_W launch at 128 KB leaves a 2,560-byte largest free block.
 Logs and actual emulator captures are in docs/A19-*.log and docs/SCREENS.png.
 Screenshots containing every commodity or Elite rank use injected test states;
 these are display tests, not claims of completing those achievements in play.
@@ -217,7 +282,7 @@ QLBox sources, JS ROM and compiler are external and not bundled. No compiler is
 needed to run ELITEASM. Attribution: NOTICE.md.
 
 Blueprint headers append the original bounty word at offset 38 (40-byte header),
-preserving earlier offsets. Stats magic is EQB9/6800. Pointers at offsets 138
+preserving earlier offsets. Stats magic is EQBA/6800. Pointers at offsets 138
 and 142 expose the 10-byte commander record and modal-page word. Commander
 layout: CASH[4], TALLY[2], FIST, DLY, native message ID, padding. The source
 excerpts describe logic; native presentation and test-scene reset are explicit
@@ -233,3 +298,6 @@ word). New jobs ELITEMKT and ELITEDCK use large fixtures and run at 640 KB.
 
 A19 adds debug pointers170(travel64),174(navigation word),178(arrival word).
 ELITETRV contains the large original-source travel fixture corpus; run at 640 KB.
+
+A20 adds stats pointers182(ship_fit[4]) and186(equipment-page word).
+The focused A20-SHOP.log additionally verifies file restoration after scene reset.

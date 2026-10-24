@@ -289,3 +289,15 @@ equipment claim. It cannot yet be purchased again in the UI.
 Arrival geometry, fighters, modal directory and station selection are QL/test
 adapters. SOLAR universe placement, actual charts, tunnel, planet rendering,
 witchspace, equipment shop and disk saves remain absent.
+
+## A20 equipment/escape/save boundary
+PRXS prices and EQSHP tech range are original. Duplicate/full purchases validate
+before debit, matching the final state of original eq/pres charge/refund. Beam
+requires gross affordability then refunds pulse400Cr. Only forward lasers are
+connected. Docking computers remain unavailable; no charge is possible.
+CRGO22/37 values are retained and used by original tnpr for buying and scooping.
+ESCAPE/ESL2 cargo/legal/pod/fuel effects are translated; RESET/RES4 uses the
+native scene/docking adapter. Credits, tally, other equipment and missile stock
+are preserved. No escape animation or sound is added.
+QDOS commander files and checksum are native adapters, not original cassette
+format. Universe/encounter generation and original SOLAR geometry remain absent.

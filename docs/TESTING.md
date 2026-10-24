@@ -219,3 +219,20 @@ dashboard oracle. ONLY_TRAVEL=1 runs this focused check.
 
 Release logs:A19-BUILD/INTEGRATION/BASIC.log; A19-TRAVEL.log adds focused checks.
 BASIC largest free blocks:5120 bytes at128KB,520192 bytes at640KB.
+
+## A20 equipment and persistence
+ELITESHP exercises3072 source-derived transaction states (12 items x16 tech x16
+loadouts/cash states), including unsupported docking computers and original
+pulse trade-in affordability. It compares all commander, cargo/equipment,
+missile, travel and fit bytes. Original EQSHP and ESCAPE excerpts are bundled.
+shop_check.h runs under both harnesses at128/640KB: purchase/full rejection,
+hold and beam upgrades, bomb/unit/drive replacement, QDOS save/load, corruption
+and truncation rejection, launch preservation, live beam heating and escape.
+Tests inject cash and technology to exercise expensive equipment; screenshot
+credits are fixture values. ONLY_SHOP=1 runs the focused test. Release logs
+A20-BUILD/INTEGRATION/BASIC.log cover the combined regression. Test save files
+are deliberately excluded from the release.
+
+Final A20:42914-byte job,8330-byte QDOS data space. BASIC largest free block
+2560 bytes at128KB,517632 at640KB. Focused A20-SHOP.log also checks loading
+a saved commander after resetting all live commander/equipment state.

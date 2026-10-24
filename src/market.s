@@ -69,7 +69,9 @@ _market_trade:
  bne trade_sell
  tst.b 17(a4,d7.w)
  beq trade_stock
- move.l #22,-(sp)
+ moveq #0,d0
+ move.b _ship_fit,d0
+ move.l d0,-(sp)
  move.l #1,-(sp)
  move.l d7,-(sp)
  move.l a3,-(sp)

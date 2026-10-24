@@ -359,3 +359,17 @@ the RNG, then replaces the market from destination economy/fluctuation. Flight
 objects are reset. Docking clears pending countdown. Fuel is drawn through the
 new dials_fuel entry using original DILX+2 scaling and the existing DIL writer.
 Stats EQB9/6800 appends travel ptr170,nav word ptr174,arrival word ptr178.
+
+## A20 equipment and saves
+shop.s implements supported EQSHP transaction effects using PRXS prices and
+original technology gate. _ship_fit[4] in cargo.s holds CRGO,forward LASER,ESCP,
+padding. Market and scoop capacity consume CRGO; live laser fire consumes LASER.
+Scene reset initializes22/15/0/0; local launches preserve all four bytes.
+Stats EQBA/6800 adds pointers182(ship_fit) and186(shop word).
+save.s performs QDOS IO.OPEN, IO.FSTRG/IO.SSTRG and IO.CLOSE. Shell packs a144-byte
+record: EQA1 magic4, checksum4, commander10,cargo/equipment22,travel64,market34,
+missiles1,fit4,padding1. Checksum rotates a32-bit accumulator left1 and adds each
+of136 payload bytes. Load stages and validates before copying. Save overwrites
+a single WIN1_ELITESAVE slot and is not crash-atomic.
+ESCAPE state changes are in shop.s; the shell performs native scene/reset and
+docked presentation. K is ignored on the commander page, docked or dead.

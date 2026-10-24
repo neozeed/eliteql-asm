@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514239,0x36383030
+ .data4 0x45514241,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -61,6 +61,9 @@ asm_selection_debug: .data4 asm_market_selection
 asm_travel_debug: .data4 asm_travel
 asm_nav_debug: .data4 asm_nav
 asm_arrival_debug: .data4 asm_arriving
+asm_fit_debug: .data4 _ship_fit
+asm_shop_debug: .data4 asm_shop
+asm_shop: .data2 0
 asm_travel: .space 64
 asm_nav: .data2 0
 asm_nav_keys: .data2 0
@@ -480,7 +483,9 @@ asm_draw_begin:
  lea 12(sp),sp
  ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
  clr.l -(sp)
- move.l #15,-(sp)
+ moveq #0,d0
+ move.b _ship_fit+1,d0
+ move.l d0,-(sp)
  moveq #0,d0
  move.b asm_fire_key,d0
  move.l d0,-(sp)
@@ -996,12 +1001,16 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w asm_shop
  clr.w asm_docked
  clr.w asm_market_keys
  clr.w asm_market_selection
  clr.w asm_market_result
  tst.w asm_keep_launch
  bne asm_market_kept
+ move.b #22,_ship_fit
+ move.b #15,_ship_fit+1
+ clr.w _ship_fit+2
  pea asm_travel
  jsr _travel_init
  addq.l #4,sp
@@ -1325,7 +1334,9 @@ asm_dock_dent_alive:
 asm_contact_nonstation:
  cmp.w #3,asm_mode
  bne asm_contact_done
- move.l #22,-(sp)
+ moveq #0,d0
+ move.b _ship_fit,d0
+ move.l d0,-(sp)
  pea asm_laser+5
  pea asm_cargo
  moveq #0,d0
@@ -1761,8 +1772,20 @@ dock_key_launch:
  moveq #4,d0
  bsr asm_keyrow
  btst #0,d0
- beq dock_key_edges
+ beq dock_key_shop
  bset #4,d4
+dock_key_shop:
+ moveq #6,d0
+ bsr asm_keyrow
+ btst #0,d0
+ beq dock_key_load
+ bset #5,d4
+dock_key_load:
+ moveq #5,d0
+ bsr asm_keyrow
+ btst #7,d0
+ beq dock_key_edges
+ bset #6,d4
 dock_key_edges:
  move.w asm_market_keys,d0
  eor.w d4,d0
@@ -1770,6 +1793,13 @@ dock_key_edges:
  move.w d4,asm_market_keys
  move.w d0,d4
  beq dock_keys_done
+ btst #5,d4
+ beq dock_not_shop_toggle
+ eor.w #1,asm_shop
+ clr.w asm_market_selection
+ clr.w asm_market_result
+ bra dock_page_refresh
+dock_not_shop_toggle:
  btst #4,d4
  bne asm_launch
  btst #0,d4
@@ -1777,14 +1807,24 @@ dock_key_edges:
  subq.w #1,asm_market_selection
  bpl dock_select_down
  move.w #16,asm_market_selection
+ tst.w asm_shop
+ beq dock_select_down
+ move.w #11,asm_market_selection
 dock_select_down:
  btst #1,d4
  beq dock_transaction
  addq.w #1,asm_market_selection
- cmp.w #17,asm_market_selection
- blo dock_transaction
+ moveq #17,d0
+ tst.w asm_shop
+ beq dock_select_limit
+ moveq #12,d0
+dock_select_limit:
+ cmp.w asm_market_selection,d0
+ bhi dock_transaction
  clr.w asm_market_selection
 dock_transaction:
+ tst.w asm_shop
+ bne asm_shop_transaction
  move.w d4,d0
  and.w #12,d0
  beq dock_page_refresh
@@ -1805,6 +1845,11 @@ dock_trade_args:
  move.w d0,asm_market_result
 dock_page_refresh:
  bsr asm_clear_view
+ tst.w asm_shop
+ beq dock_show_market
+ bsr asm_shop_page
+ bra dock_keys_done
+dock_show_market:
  bsr asm_market_page
 dock_keys_done:
  rts
@@ -2423,6 +2468,10 @@ nav_h:
 nav_g:
  moveq #3,d0
  bsr asm_keyrow
+ btst #2,d0
+ beq nav_gal_key
+ bset #8,d4
+nav_gal_key:
  btst #6,d0
  beq nav_r
  bset #2,d4
@@ -2453,6 +2502,31 @@ nav_edges:
  and.w d4,d0
  move.w d4,asm_nav_keys
  move.w d0,d4
+ btst #8,d4
+ beq nav_no_escape
+ tst.w asm_page
+ bne nav_no_escape
+ tst.w asm_docked
+ bne nav_no_escape
+ tst.w asm_dead
+ bne nav_no_escape
+ pea asm_travel
+ pea asm_cargo
+ pea asm_commander
+ jsr _escape_commander
+ lea 12(sp),sp
+ tst.w d0
+ beq nav_no_escape
+ clr.w asm_nav
+ move.w #3,asm_mode
+ move.w #2,asm_salvage
+ move.w #12,asm_count
+ bsr asm_launch
+ move.w #1,asm_docked
+ bsr asm_clear_view
+ bsr asm_market_page
+ bra nav_consumed
+nav_no_escape:
  ; Countdown is live flight, selection remains frozen until arrival.
  tst.b asm_travel+11
  bne nav_not_consumed
@@ -2466,6 +2540,7 @@ nav_edges:
  bne nav_redraw
  tst.w asm_docked
  beq nav_close_flight
+ clr.w asm_shop
  bsr asm_market_page
  bra nav_consumed
 nav_close_flight:
@@ -2494,6 +2569,7 @@ nav_no_start:
  move.b #6,asm_travel+15
  bra nav_redraw
 nav_refueled:
+ clr.b asm_mcnt
  bsr asm_draw_dials
  bra nav_redraw
 nav_select:
@@ -2726,4 +2802,222 @@ nav_zero: .ascii "SELECT ANOTHER SYSTEM\0"
 nav_far: .ascii "HYPERSPACE RANGE?\0"
 nav_no: .ascii "NO GALACTIC HYPERDRIVE\0"
 nav_cash: .ascii "NOT ENOUGH CASH FOR FUEL\0"
+.align 2
+
+.sect .text
+asm_shop_transaction:
+ btst #3,d4
+ bne asm_save_commander
+ btst #6,d4
+ bne asm_load_commander
+ btst #2,d4
+ beq dock_page_refresh
+ moveq #0,d0
+ move.w asm_market_selection,d0
+ move.l d0,-(sp)
+ pea asm_travel
+ pea asm_player
+ pea asm_cargo
+ pea asm_commander
+ jsr _shop_buy
+ lea 20(sp),sp
+ move.w d0,asm_market_result
+ bne shop_no_fuel_reset
+ tst.w asm_market_selection
+ bne shop_no_fuel_reset
+ clr.b asm_mcnt
+shop_no_fuel_reset:
+ bsr asm_draw_dials
+ bra dock_page_refresh
+asm_shop_page:
+ lea shop_title,a4
+ moveq #0,d6
+ bsr asm_text
+ move.l asm_commander,d0
+ lea asm_cash_digits,a0
+ moveq #10,d1
+ bsr asm_decimal
+ move.b asm_cash_digits+9,asm_cash_digits+10
+ move.b #46,asm_cash_digits+9
+ lea asm_cash_line,a4
+ moveq #10,d6
+ bsr asm_text
+ clr.w asm_page_item
+shop_page_loop:
+ move.w asm_page_item,d0
+ lsl.w #2,d0
+ lea shop_names,a0
+ move.l 0(a0,d0.w),a4
+ move.w asm_page_item,d6
+ mulu.w #12,d6
+ add.w #28,d6
+ bsr asm_text
+ cmp.w asm_market_selection,d0
+ ; Text routines clobber data registers, so compare authoritative indices.
+ move.w asm_page_item,d0
+ cmp.w asm_market_selection,d0
+ bne shop_page_next
+ lea shop_arrow,a4
+ move.w asm_page_item,d6
+ mulu.w #12,d6
+ add.w #28,d6
+ moveq #24,d7
+ bsr asm_text_at
+shop_page_next:
+ addq.w #1,asm_page_item
+ cmp.w #12,asm_page_item
+ blo shop_page_loop
+ lea shop_help,a4
+ move.w #174,d6
+ bsr asm_text
+ move.w asm_market_result,d0
+ lsl.w #2,d0
+ lea shop_messages,a0
+ move.l 0(a0,d0.w),a4
+ move.w #184,d6
+ bsr asm_text
+ rts
+.sect .data
+shop_title: .ascii "EQUIP SHIP / 8 RETURNS TO MARKET\0"
+shop_arrow: .ascii ">\0"
+shop_help: .ascii "B BUY S SAVE O LOAD 8 BACK L GO\0"
+.align 2
+shop_names: .data4 shop0,shop1,shop2,shop3,shop4,shop5,shop6,shop7,shop8,shop9,shop10,shop11
+shop0: .ascii "FUEL              0.2 CR/UNIT\0"
+shop1: .ascii "MISSILE                30 CR\0"
+shop2: .ascii "LARGE CARGO BAY       400 CR\0"
+shop3: .ascii "ECM SYSTEM            600 CR\0"
+shop4: .ascii "FORWARD PULSE LASER   400 CR\0"
+shop5: .ascii "FORWARD BEAM LASER   1000 CR\0"
+shop6: .ascii "FUEL SCOOPS           525 CR\0"
+shop7: .ascii "ESCAPE POD           1000 CR\0"
+shop8: .ascii "ENERGY BOMB           900 CR\0"
+shop9: .ascii "ENERGY UNIT          1500 CR\0"
+shop10: .ascii "DOCK COMPUTER    UNAVAILABLE\0"
+shop11: .ascii "GALACTIC DRIVE      5000 CR\0"
+.align 2
+shop_messages: .data4 shop_ok,shop_cash,shop_present,shop_tech,shop_absent,save_ok,load_ok,save_error,load_error
+shop_ok: .ascii "READY / PRICES SUBJECT TO TECH\0"
+shop_cash: .ascii "NOT ENOUGH CASH\0"
+shop_present: .ascii "ALREADY PRESENT / MISSILES FULL\0"
+shop_tech: .ascii "NOT AVAILABLE AT THIS TECH LEVEL\0"
+shop_absent: .ascii "NOT IMPLEMENTED - NO CHARGE\0"
+.align 2
+
+.sect .text
+asm_save_commander:
+ lea save_buffer,a0
+ moveq #35,d0
+save_zero:
+ clr.l (a0)+
+ dbra d0,save_zero
+ move.l #0x45514131,save_buffer
+ moveq #0,d6
+ bsr save_copy
+ bsr save_checksum
+ move.l d0,save_buffer+4
+ move.l #1,-(sp)
+ pea save_buffer
+ jsr _commander_io
+ addq.l #8,sp
+ move.w #5,asm_market_result
+ tst.l d0
+ beq dock_page_refresh
+ move.w #7,asm_market_result
+ bra dock_page_refresh
+asm_load_commander:
+ clr.l -(sp)
+ pea save_buffer
+ jsr _commander_io
+ addq.l #8,sp
+ tst.l d0
+ bne save_bad_load
+ cmp.l #0x45514131,save_buffer
+ bne save_bad_load
+ bsr save_checksum
+ cmp.l save_buffer+4,d0
+ bne save_bad_load
+ ; Payload: commander10,cargo22,travel64,market34,missile1,fit2.
+ cmp.b #7,save_buffer+46
+ bhi save_bad_load
+ cmp.b #70,save_buffer+49
+ bhi save_bad_load
+ tst.b save_buffer+51
+ bne save_bad_load
+ cmp.b #4,save_buffer+138
+ bhi save_bad_load
+ move.b save_buffer+139,d0
+ cmp.b #22,d0
+ beq save_fit_valid
+ cmp.b #37,d0
+ bne save_bad_load
+save_fit_valid:
+ move.b save_buffer+140,d0
+ beq save_laser_valid
+ cmp.b #15,d0
+ beq save_laser_valid
+ cmp.b #143,d0
+ bne save_bad_load
+save_laser_valid:
+ moveq #1,d6
+ bsr save_copy
+ clr.b asm_commander+7
+ clr.b asm_commander+8
+ clr.b asm_player+1
+ move.b #255,asm_player+2
+ bsr asm_draw_dials
+ move.w #6,asm_market_result
+ bra dock_page_refresh
+save_bad_load:
+ move.w #8,asm_market_result
+ bra dock_page_refresh
+save_copy:
+ lea save_parts,a2
+ lea save_buffer+8,a1
+ moveq #5,d7
+save_part:
+ move.l (a2)+,a0
+ move.w (a2)+,d0
+ subq.w #1,d0
+save_byte:
+ tst.w d6
+ bne save_restore_byte
+ move.b (a0)+,(a1)+
+ bra save_byte_done
+save_restore_byte:
+ move.b (a1)+,(a0)+
+save_byte_done:
+ dbra d0,save_byte
+ dbra d7,save_part
+ rts
+save_checksum:
+ lea save_buffer+8,a0
+ moveq #0,d0
+ move.w #135,d1
+save_sum:
+ rol.l #1,d0
+ moveq #0,d2
+ move.b (a0)+,d2
+ add.l d2,d0
+ dbra d1,save_sum
+ rts
+.sect .data
+.align 2
+save_parts: .data4 asm_commander
+ .data2 10
+ .data4 asm_cargo
+ .data2 22
+ .data4 asm_travel
+ .data2 64
+ .data4 asm_market
+ .data2 34
+ .data4 asm_player
+ .data2 1
+ .data4 _ship_fit
+ .data2 4
+save_buffer: .space 144
+save_ok: .ascii "SAVED WIN1_ELITESAVE\0"
+load_ok: .ascii "COMMANDER LOADED\0"
+save_error: .ascii "SAVE FAILED - CHECK WIN1\0"
+load_error: .ascii "LOAD FAILED - STATE UNCHANGED\0"
 .align 2

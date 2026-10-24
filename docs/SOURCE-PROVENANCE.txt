@@ -90,3 +90,8 @@ original-travel-transitions.asm retains hyp/wW/Ghy, TT107, TT18 fuel deduction
 and SOLAR legal decay for review. Native travel.s follows these; QL UI and
 arrival fixtures remain adapters. Fuel purchase derives from PRXS setup in
 EQSHP and fuel application in equipment selection et0.
+
+A20: original-shop.asm contains EQSHP through etB/pres; original-escape.asm
+contains ESCAPE/ESL2. Native shop.s translates these effects, with a forward-view
+laser adapter and deferred docking computer. PRXS prices are retained. QDOS
+save.s/file packing/checksum are native platform adaptation, not6502 conversion.
