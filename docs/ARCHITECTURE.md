@@ -109,3 +109,16 @@ asteroid/cop counts include explosions until actual removal.
 Debug ABI additions: 298 universe state, 302 active flag, 306 current physical
 slot, 310 allocation routine, 314 removal routine, 318 current-cloud pointer,
 322 model table. These are harness inspection pointers, not gameplay hotkeys.
+
+
+## RC5 optional cheats (intentional QL extension)
+
+0 opens the labelled cheat menu in normal production play. Simulation is held
+without changing pause state, cached ship images or the current screen selection.
+1 adds 1,000 credits; 2 refills four missiles; 3 fits docking computer; 4 refills
+the single bomb; 5 fits ECM; 6 fits galactic hyperdrive. 0/Esc returns to the
+previous screen with a release gate. Fittings are idempotent, cash saturates,
+and an active bomb countdown is preserved. Normal save/load records these ordinary
+commander fields. No default equipment, economic prices or Electron combat rules
+were changed. This menu is a user-requested extension outside fidelity claims.
+The debug header adds cheat_active at offset 326 for harness verification.

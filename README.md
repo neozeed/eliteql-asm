@@ -1,9 +1,33 @@
-# EliteQL 1.0 RC4
+# EliteQL 1.0 RC5
 
 Native 68000/QDOS adaptation of Acorn Electron Elite. RC4 replaces the production
 fixed ship pool with the source-derived compact universe list. All gameplay is
 assembly; RC3a remains an independent fallback. This is still a release candidate:
 whole-game RNG identity and real-hardware timing are not claimed.
+
+## RC5 optional cheat menu
+
+Press **0** during normal play, in flight, paused, docked or on navigation pages.
+The labelled **CHEAT MENU - QL EXTRAS** freezes simulation until closed:
+
+| Key | Action |
+| --- | --- |
+| 1 | Add 1,000 credits |
+| 2 | Refill missiles to four |
+| 3 | Fit the docking computer |
+| 4 | Replenish the single energy bomb |
+| 5 | Fit ECM |
+| 6 | Fit the galactic hyperdrive |
+| 0 / Esc | Close and return to the previous screen |
+
+Cash adds once per fresh press and saturates instead of overflowing. Equipment
+is granted, not toggled off. An already detonating bomb's countdown is preserved.
+Normal hyperspace is already part of the ship; option 6 grants the consumable
+**galactic** drive. The docking computer is the Electron's immediate docking
+mechanic, not an invented autopilot. Cheats modify normal commander state and
+are retained by ordinary named saves; opening the menu does not save anything.
+Stock startup remains unchanged. This menu is an explicitly requested QL extra,
+not an original Electron feature. RC4 is preserved as the no-cheat fallback.
 
 ## RC4 universe allocation and processing
 
@@ -157,7 +181,7 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is 61,762 bytes with 7,238 bytes of declared QDOS data space. The game is
+ELITEASM is 62,514 bytes with 7,198 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
 Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not

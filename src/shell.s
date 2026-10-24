@@ -11,7 +11,7 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .ascii "EliteQL 1.0 RC4\0"
+__prog_name: .ascii "EliteQL 1.0 RC5\0"
 .align 2
 asm_stats:
  .data4 0x45514248,0x36383030
@@ -97,6 +97,7 @@ universe_add_debug: .data4 uni_allocate
 universe_remove_debug: .data4 uni_remove_current
 universe_cloud_debug: .data4 asm_cloud
 universe_models_debug: .data4 _models
+cheat_debug: .data4 cheat_active
 asm_snapshot_size: .data4 32768
 asm_snapshot_rle: .data2 0
 asm_tunnel_phase: .data2 0
@@ -363,6 +364,12 @@ flow_normal:
  bne asm_update_stats
  clr.w flow_release_gate
 flow_release_clear:
+ tst.w _release_mode
+ beq cheat_poll_done
+ bsr cheat_poll
+ tst.w d0
+ bne asm_update_stats
+cheat_poll_done:
  ; Modal commander page: freezes simulation, preserves the pre-existing pause.
  moveq #1,d0
  bsr asm_keyrow
@@ -720,6 +727,8 @@ release_fire:
  beq asm_draw_begin
  move.b #255,asm_fire_key
 asm_draw_begin:
+ tst.w cheat_active
+ bne asm_update_stats
  tst.w flow_state
  bne asm_wait
  tst.w asm_nav
@@ -5870,7 +5879,7 @@ flow_pulse: .ascii "PULSE LASER "
 flow_beam: .ascii "BEAM LASER  "
 flow_laser_line: .ascii "PULSE LASER FRONT\0"
 flow_laser_offsets: .data1 1,4,5,6
-flow_status_help: .ascii "6 MARKET/STATUS   7 CARGO\0"
+flow_status_help: .ascii "6 MARKET/STATUS  7 CARGO  0 CHEATS\0"
 .align 2
 .sect .text
 flow_cargo_keys:
@@ -6164,4 +6173,142 @@ uni_station_zero:
  ; KS4 returns before KS2: no missile remapping on placeholder replacement.
 uni_remove_done:
  movem.l (sp)+,d0-d7/a0-a6
+ rts
+
+; Optional QL cheat interface, explicitly outside Electron gameplay rules.
+.sect .data
+.align 2
+cheat_active: .data2 0
+cheat_old: .data2 0
+cheat_row: .data2 0
+cheat_title: .ascii "CHEAT MENU - QL EXTRAS\0"
+cheat_help: .ascii "1-6 APPLY    0/ESC CLOSE\0"
+cheat_note: .ascii "CHANGES CAN BE SAVED NORMALLY\0"
+cheat_applied: .ascii "APPLIED\0"
+cheat_1: .ascii "1  ADD 1000 CREDITS\0"
+cheat_2: .ascii "2  REFILL MISSILES TO FOUR\0"
+cheat_3: .ascii "3  FIT DOCKING COMPUTER\0"
+cheat_4: .ascii "4  REPLENISH ENERGY BOMB\0"
+cheat_5: .ascii "5  FIT ECM\0"
+cheat_6: .ascii "6  FIT GALACTIC HYPERDRIVE\0"
+.align 2
+cheat_lines: .data4 cheat_1,cheat_2,cheat_3,cheat_4,cheat_5,cheat_6
+.sect .text
+cheat_poll:
+ tst.w cheat_active
+ bne cheat_keys
+ moveq #6,d0
+ bsr asm_keyrow
+ and.w #32,d0
+ move.w cheat_old,d1
+ eor.w d0,d1
+ move.w d0,cheat_old
+ and.w d0,d1
+ beq cheat_idle
+ move.w #1,cheat_active
+ move.w #1,flow_held
+ bsr cheat_paint
+ bra cheat_consumed
+cheat_keys:
+ bsr flow_read_key
+ cmp.w #48,d0
+ beq cheat_close
+ cmp.w #27,d0
+ beq cheat_close
+ cmp.w #49,d0
+ blo cheat_consumed
+ cmp.w #54,d0
+ bhi cheat_consumed
+ sub.w #49,d0
+ add.w d0,d0
+ lea cheat_actions,a0
+ move.w 0(a0,d0.w),d0
+ jsr 0(a0,d0.w)
+ bsr cheat_paint
+ lea cheat_applied,a4
+ move.w #152,d6
+ bsr asm_text
+ bra cheat_consumed
+cheat_close:
+ clr.w cheat_active
+ move.w #32,cheat_old
+ move.w #1,flow_release_gate
+ bsr asm_clear_view
+ tst.w asm_nav
+ bne nav_redraw
+ tst.w asm_page
+ beq cheat_restore_shop
+ bsr asm_commander_page
+ bra cheat_restore_done
+cheat_restore_shop:
+ tst.w asm_shop
+ beq cheat_restore_dock
+ bsr asm_shop_page
+ bra cheat_restore_done
+cheat_restore_dock:
+ tst.w asm_docked
+ beq cheat_restore_flight
+ bsr asm_market_page
+ bra cheat_restore_done
+cheat_restore_flight:
+ bsr asm_restore_view
+cheat_restore_done:
+ bsr asm_draw_dials
+cheat_consumed:
+ moveq #1,d0
+ rts
+cheat_idle:
+ moveq #0,d0
+ rts
+cheat_paint:
+ bsr asm_clear_view
+ lea cheat_title,a4
+ moveq #16,d6
+ bsr asm_text
+ clr.w cheat_row
+cheat_paint_loop:
+ move.w cheat_row,d0
+ lsl.w #2,d0
+ lea cheat_lines,a0
+ move.l 0(a0,d0.w),a4
+ move.w cheat_row,d6
+ mulu.w #16,d6
+ add.w #40,d6
+ bsr asm_text
+ addq.w #1,cheat_row
+ cmp.w #6,cheat_row
+ blo cheat_paint_loop
+ lea cheat_help,a4
+ move.w #168,d6
+ bsr asm_text
+ lea cheat_note,a4
+ move.w #180,d6
+ bsr asm_text
+ rts
+cheat_actions:
+ .data2 cheat_cash-cheat_actions,cheat_missiles-cheat_actions,cheat_computer-cheat_actions,cheat_bomb-cheat_actions,cheat_ecm-cheat_actions,cheat_drive-cheat_actions
+cheat_cash:
+ add.l #10000,asm_commander
+ bcc cheat_cash_done
+ move.l #-1,asm_commander
+cheat_cash_done:
+ rts
+cheat_missiles:
+ move.b #4,asm_player
+ rts
+cheat_computer:
+ move.b #255,asm_equipment+4
+ rts
+cheat_bomb:
+ ; Do not replace the negative countdown while a bomb is already active.
+ tst.b asm_equipment+2
+ bmi cheat_bomb_done
+ move.b #127,asm_equipment+2
+cheat_bomb_done:
+ rts
+cheat_ecm:
+ move.b #255,asm_equipment
+ rts
+cheat_drive:
+ move.b #255,asm_travel+10
  rts

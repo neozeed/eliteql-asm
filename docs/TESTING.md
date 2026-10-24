@@ -91,3 +91,14 @@ failure, state/cache compaction, missile drift/remapping, original player-lock
 behavior, same-frame shifted-ship processing and a real Viper missile launch.
 These are fixture-driven integration checks, not an unmodified human playthrough.
 Production title/trade/save/load/travel/docking/death checks still run normally.
+
+
+## RC5 menu validation
+
+`cheat_check.h`, in both production harnesses, exercises every grant, repeated
+held-key rejection, cash overflow saturation, duplicate fitting, active-bomb
+countdown preservation, save/load persistence, docked access, navigation return,
+paused flight simulation freeze, byte-exact viewport restoration and resume.
+The complete production lifecycle and RC4 universe probes run before this test
+at 128KB and 640KB. RC4's full development/module logs remain historical evidence;
+RC5 does not relabel those runs. RC5-PRODUCTION.log is the actual BASIC EXEC_W run.

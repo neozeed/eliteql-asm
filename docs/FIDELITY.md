@@ -85,3 +85,16 @@ RC3a: at the user’s request, the completed ten-update DEATH animation now
 holds its final frame until a fresh Space press. Held Space is release-gated;
 other keys are ignored. This is an intentional QL presentation difference from
 the Electron timed transition. The subsequent saved-commander flow is unchanged.
+
+
+## RC5 optional cheats (intentional QL extension)
+
+0 opens the labelled cheat menu in normal production play. Simulation is held
+without changing pause state, cached ship images or the current screen selection.
+1 adds 1,000 credits; 2 refills four missiles; 3 fits docking computer; 4 refills
+the single bomb; 5 fits ECM; 6 fits galactic hyperdrive. 0/Esc returns to the
+previous screen with a release gate. Fittings are idempotent, cash saturates,
+and an active bomb countdown is preserved. Normal save/load records these ordinary
+commander fields. No default equipment, economic prices or Electron combat rules
+were changed. This menu is a user-requested extension outside fidelity claims.
+The debug header adds cheat_active at offset 326 for harness verification.
