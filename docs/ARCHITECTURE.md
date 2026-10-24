@@ -1,3 +1,14 @@
+# A11 update
+
+See README.md for the connected hostile missile/ECM implementation and its
+explicit sound-carry, slot-allocation and missing player-missile boundaries.
+New native code is src/missile.s; missile_check.h exercises the live application.
+ELITETAC adds 1,024 original-instruction homing cases. ELITEMSL adds boundary
+tests, not an instruction oracle. A11 logs record the current build.
+Stats magic is EQB1/6800; pointers at offsets 102 and 106 expose ECM and launches.
+
+The following describes the inherited A9 implementation and validation.
+
 # Native implementation and next boundary
 
 | Source | Responsibility |

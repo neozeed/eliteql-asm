@@ -1,162 +1,103 @@
-# EliteQL ASM A9 — enemy tactics and original explosions
+# EliteQL ASM A11 — enemy missiles and ECM
 
-A9 adds a connected native 68000 port of **normal-ship TACTICS, TAS2/TAS3 vector
-maths, enemy laser fire and OOPS damage**, plus **DOEXP/PTCLS/EXS1 explosion
-clouds and PIXEL particle drawing**. A8 remains a separate working baseline.
+A11 connects the A10 missile-homing kernel to a playable encounter. A9 remains
+the separate stable baseline. This archive includes the complete project source,
+generated data, original instruction excerpts, diagnostics and QDOS executables.
 
-Press **3** for a three-fighter hostile encounter. Ships use the original aim,
-pursuit/avoidance, pitch/roll, acceleration and energy-recharge decisions.
-Enemy beams originate at the blueprint gun vertex and reach toward a screen
-edge as in LL9 part 9. Hits drain the appropriate shield and then energy.
-When the original OOPS code reaches DEATH, this test scene freezes and displays
-`DESTROYED`; **3** or **N** restarts it. Escape still returns cleanly to BASIC.
+Launch `EXEC_W WIN1_ELITEASM` after mounting this folder's `host` directory.
+For example, from QLBox on Windows:
 
-Killed targets now produce the original expanding, thinning particle clouds
-around their projected vertices. Cloud lifetime, distance scaling, random
-spread, particle count, clipping and two/four-pixel shapes follow the source.
-The cloud is erased when it expires or the scene resets. Ships continue their
-original movement during the explosion, while tactics and TIDY are skipped.
-
-**This is still a flight/combat test scene, not complete Elite.** The encounter
-is deterministic test setup. Universe spawning, missile homing/launching,
-station police, debris/cargo spawning, bounty/rank, cargo loss, the original
-player-death animation, sound, travel, markets, docking and saves remain
-unfinished. Normal-ship missile and escape decisions are ported through event
-boundaries; child objects are not spawned yet. Encounter ships start with zero
-missiles. A ship deciding to escape loses AI as in the source, but no escape
-pod is added. Fuel, cabin temperature, altitude and compass remain unconnected.
-
-## Run
-
-Extract the full folder beside QLBox:
-
-```bat
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a9\host
+```
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a11\host
 ```
 
-At BASIC:
-
-```text
-EXEC_W WIN1_ELITEASM
-```
-
-640 KB is also tested. No compiler or external game data is needed to run it.
-ELITEASM is **28,236 bytes**, with **9,040 bytes of QDOS data space**.
-A BASIC launch at 128 KB leaves a largest free block of **16,384 bytes** after
-startup, including the old-screen snapshot. The finished game may need more RAM.
+## Controls
 
 | Key | Action |
 | --- | --- |
-| F | Hold to fire the original 15-power forward pulse laser |
-| Left / right | Build roll rate; release to damp back toward centre |
-| Up / down | Build pitch rate |
-| A / Z | Increase / decrease player speed, 1–40 |
-| 1 | Passive solo target scene |
+| 1 | Passive solo target |
 | 2 | Passive twelve-ship scene |
-| 3 | Hostile three-fighter encounter; also restarts after player destruction |
-| N | Reset scene/status; advance the model used in solo mode |
-| Space | Pause / resume simulation, including beams and clouds |
-| B | Uncap simulation and drawing; default cap is 10 Hz |
-| Escape | Wait for all keys to be released, restore the screen and exit |
+| 3 | Three-fighter laser encounter, as in A9 |
+| 4 | Missile-enabled encounter; restart this scene after destruction |
+| E | Activate fitted test-scene ECM; holding E repeats when it expires |
+| F | Hold to fire the forward pulse laser |
+| Arrows | Accumulate pitch/roll rates; release to damp |
+| A / Z | Increase / decrease player speed |
+| Space | Pause / resume |
+| N | Reset; advance the solo model |
+| B | Toggle the 10 Hz cap; uncapping also speeds up simulation |
+| Escape | Release held keys, restore the screen and exit |
 
-Scenes 1 and 2 retain A8's passive targets for comparison. Scene 3 gives the
-first three models active AI with aggression byte 240, at preset positions.
-Those are test initial conditions, not a substitute for Elite's universe
-spawner. There is no automatic respawn. N resets the encounter in mode 3;
-select 1 to see the newly selected solo model.
+Scene 4 starts the same three fighters, with their original blueprint missile
+stocks: Sidewinder zero, Viper one, Mamba two. Original TACTICS decides when to
+launch as their energy drops. Damage a fighter with F to provoke a launch;
+missiles are not fired on an invented periodic timer. Nine extra slots are
+reserved for missiles and become reusable after their explosion cache expires.
+There is no automatic fighter respawn.
 
-The original keyboard-rate accumulation and damping remain unchanged. B speeds
-up the simulation as well as rendering. FPS includes paused time. The shell
-writes directly to QL screen memory at 0x20000; the 32 KB snapshot restores
-BASIC on exit and is not a drawing backbuffer.
+Hostile missiles inherit the parent's position, orientation and speed through
+the normal-parent SFS1 path. NWSHP initializes energy and missile flags from the
+missile blueprint. Each update runs the original homing/steering and acceleration
+logic, including stronger missile braking. The original high-coordinate-byte
+proximity test triggers a 250-point OOPS hit, then an explosion. Lasers can shoot
+missiles down. E starts a 32-count ECM cycle; each simulation update drains one
+energy and decrements the timer by two. ECM destroys active missiles. Pause
+freezes simulation, although E can arm the countdown while paused.
 
-## What is original, and what is adapted
+This is still a flight/combat test scene. Player missile inventory/locking,
+friendly target-relative missile tracking, escape-pod spawning/navigation,
+station police, debris, rewards/rank, sound, docking, travel, markets and saves
+are not finished. The ECM lamp and incoming-missile text/sound are not connected.
 
-Tactics run at the original `(MCNT XOR slot) AND 7` cadence, after the existing
-TIDY schedule and before movement. The translated normal-ship path covers safe
-zone suppression, recharge, aim, occasional roll, low-energy escape/missile
-decisions, laser checks, steering and acceleration. It preserves the original
-byte arithmetic, sign-magnitude values and carry-sensitive OOPS damage. For
-example, a Sidewinder's blueprint weapon byte makes a hit drain nine shield
-units, not eight, because its LSR supplies clear carry to OOPS.
+## Source fidelity and adapter boundaries
 
-TAS2 normalises original position bytes; TAS3 computes original signed dot
-products. The earlier native NORM/MULT1/ADD helpers are reused. The source's
-normal ships are supported here (types 1–6); missile homing, escape-to-planet
-navigation and hostile-station spawning need universe context still absent.
+Missile steering executes the port of TA21/TA19/TA20/TA15 through TA10, checked
+against 1,024 original 6502 instruction cases. Normal-ship tactics retains its
+1,536 source comparisons. Hostile proximity, ECM destruction, child initialization
+and countdown follow TA18/TA34/TA35, SFS1/NWSHP and MA16/MA69. Original excerpts
+are bundled in `tests/original-missile-boundaries.asm` for inspection.
 
-The original explosion particle generator is tested by executing its 6502
-instructions, including original Electron PIXEL framebuffer writes. The QL
-particle output matches those pixels after format conversion. Vertex positions
-still use the existing native renderer, whose projection, clipping and line
-rounding are documented adaptations rather than exact original LL9 arithmetic.
-Enemy beams and sights use that native line backend too.
+The sound paths are absent. OOPS is called with explicit carry=1 at missile
+impact and the rare ECM blast boundary; this is an adapter choice, not a claim
+that the surrounding original sound code preserves that carry. The ECM blast
+checks the original OR of coordinate low bytes, including its surprising behavior
+at distant positions with zero low bytes. Tally/rewards from EXNO2 are absent.
 
-A native cache replaces re-running PTCLS to erase the old cloud. Each slot has
-448 bytes for the original cloud heap plus up to 96 cached particle records.
-Initial cloud setup and the existing laser adapter use explicit carry inputs
-at unported boundaries. The missing planet contributes zero as the PTCLS
-planet-z seed byte. Lasers, tactics and clouds now share one RNG state. This is
-not a claim of the complete original game's global random sequence or timing.
+Slot allocation uses twelve fixed native records and cached line/cloud storage,
+not the original UNIV table and dynamic line heap. Child INWK heap-pointer bytes
+33/34 are zeroed because native heaps are stored separately. A full pool rejects
+a launch after TACTICS has consumed the parent's missile, matching the existing
+external spawn-failure boundary. Stations are not supported as parents here.
+The absent planet prevents correct escape-pod navigation, so it remains outside
+this pass. Existing renderer adaptation and random-state limits remain as
+documented in FIDELITY.md.
 
-On player DEATH, the shell freezes the encounter and offers reset/exit. It does
-not invent a replacement for the original death animation. Cargo-loss and
-spawn events remain explicit unfinished boundaries. Killed slots remain
-inactive until scene reset; universe compaction and rewards are not implemented.
+## Validation and build
 
-## Validation
+ELITEASM is entirely native assembly. C is used only for diagnostics/benchmarks.
+At 128 KB a BASIC EXEC_W launch leaves a largest free block of 15,872 bytes;
+640 KB is also tested. Physical 68008 timing has not been measured.
 
-New source comparisons cover:
+The new `ELITEMSL` diagnostic tests 65,536 ECM states and 1,024 sets of impact,
+ECM destruction and child initialization cases. These are independent boundary
+checks, not a full original-instruction missile-system oracle. The homing
+comparisons in `ELITETAC` do execute original 6502 instructions.
 
-- **512 TAS2 vectors and 1,536 TAS3 dot products**.
-- **1,536 complete normal-ship tactics cases**, comparing every ship, RNG and
-  player-status byte plus returned events, including 30 DEATH cases.
-- **2,048 DOEXP states**, including near/far carry differences and expiry.
-- **256 PTCLS/PIXEL cases**, comparing particle records, RNG state, original
-  framebuffer pixels, exact XOR erasure and buffer bounds.
-- **3,072 scheduling combinations** for original AI cadence and dead/AI flags.
+Both live-job harnesses check launch, homing, E activation, countdown expiry,
+explosion, slot reuse, fatal impact and restart, together with the earlier combat,
+framebuffer, scanner, controls, keyboard and clean-exit regressions at 128/640 KB.
+Logs are in docs/A11-*.log. Older architecture/testing sections describe inherited
+milestones; the A11 notes in those documents specify changes and limits.
 
-All A8 combat, movement, TIDY, controls, scanner, gauges and renderer regressions
-also pass. Native integration at **128 KB and 640 KB**, through direct loading
-and BASIC `EXEC_W`, checks cloud lifetime and pixels, steering, enemy fire,
-exact shield/recharge state, player destruction, restart, key draining and exit.
+Build with the recovered GCC 2.95.3 R2 signed-remainder-fix cross toolchain:
 
-The passive fleet benchmark is recorded in `docs/A9-BENCHMARK.log`. It includes
-idle AI scheduling and laser dispatch along with the previous movement/rendering
-work, but no active AI, clouds or firing. These are QLBox R9 speed-1 measurements,
-not physical 68008 timing or a full-combat performance claim.
-
-## Build and tests
-
-The full source, generated data, original instruction excerpts, fixtures,
-Makefile and twelve QDOS executables are included. ELITEASM is entirely assembly.
-C is used only for independent diagnostics/benchmarks. Use 640 KB for those.
-The new test jobs are `ELITETAC` and `ELITEEXP`.
-
-```bat
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a9\host\ELITETAC
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a9\host\ELITEEXP
 ```
-
-Build with the recovered QDOS GCC 2.95.3 R2 signed-remainder-fix toolchain:
-
-```sh
-make QCC=/absolute/path/to/qdos-gcc-linux-x86_64/bin/qdos-gcc
+make QCC=/absolute/path/to/qdos-gcc
 bash tests/run-qlbox.sh /absolute/path/to/qlbox-r9
 bash tests/run-basic.sh /absolute/path/to/qlbox-r9
 ```
 
-Keep `-fno-omit-frame-pointer` on C diagnostics for the recovered compiler bug.
-The integration tests require QLBox R9 sources, Musashi, Linux runner and JS ROM;
-these and the compiler are not bundled. ELITEASM ignores command-line arguments.
-
-Run `python3 tests/NAME_reference.py` to regenerate fixtures, where NAME is
-`motion`, `flight`, `tidy`, `controls`, `scanner`, `dials`, `combat`, `tactics`
-or `explosion`. Supplying `/path/to/elite-source.asm` re-extracts original
-instructions. Run generators before rebuilding diagnostics. Blueprints use
-`python3 tools/extract.py /path/to/elite-source.asm`; the original dashboard
-uses `python3 tools/dashboard.py`; legacy renderer fixtures use
-`python3 tests/reference.py`.
-
-See `docs/` for logs, emulator captures, ABI notes and fidelity limits.
-Attribution is in `NOTICE.md`; file checksums are in `SHA256SUMS`.
+Keep `-fno-omit-frame-pointer` for C diagnostics. Regenerate changed reference
+fixtures before building their tests. The test runner regenerates reference data
+but runs already-built jobs. QLBox sources, JS ROM and compiler are external;
+no compiler is needed to run ELITEASM. Attribution: NOTICE.md.

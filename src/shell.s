@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514139,0x36383030
+ .data4 0x45514231,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -41,6 +41,10 @@ asm_mode_debug: .data4 asm_mode
 asm_rng_debug: .data4 asm_laser+5
 asm_ai_calls_debug: .data4 asm_ai_calls
 asm_ai_events_debug: .data4 asm_ai_events
+asm_ecm_debug: .data4 asm_ecm
+asm_launch_debug: .data4 asm_launches
+asm_ecm: .data1 0,0
+asm_launches: .data4 0
 asm_dead: .data2 0
 asm_mode: .data2 0
 asm_ai_calls: .data4 0
@@ -68,6 +72,9 @@ asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _hostile_missile
+.extern _spawn_child
+.extern _ecm_step
 .extern _tactics_step
 .extern _tactics_due
 .extern _explosion_start
@@ -218,12 +225,34 @@ asm_check_two:
  bsr asm_keyrow
  btst #1,d0
  beq asm_move
- cmp.w #12,asm_count
+ cmp.w #1,asm_mode
  beq asm_move
  move.w #12,asm_count
  move.w #1,asm_mode
  bsr asm_setup
 asm_move:
+ moveq #0,d0
+ bsr asm_keyrow
+ btst #6,d0
+ beq asm_check_ecm
+ cmp.w #3,asm_mode
+ bne asm_missile_scene
+ tst.w asm_dead
+ beq asm_check_ecm
+asm_missile_scene:
+ move.w #12,asm_count
+ move.w #3,asm_mode
+ bsr asm_setup
+asm_check_ecm:
+ moveq #6,d0
+ bsr asm_keyrow
+ btst #4,d0
+ beq asm_ecm_key_done
+ tst.b asm_ecm
+ bne asm_ecm_key_done
+ move.b #32,asm_ecm
+ move.b #255,asm_ecm+1
+asm_ecm_key_done:
  ; Map raw QL keys to original DOKEY/KY1/KY2 held states.
  ; Rate updates run once per simulation frame below, not per scan.
  lea asm_keys,a0
@@ -340,21 +369,36 @@ asm_no_tidy:
  tst.w asm_dead
  bne asm_ai_done
  move.l (a5),a0
+ cmp.w #8,28(a0)
+ beq asm_ai_allowed
  cmp.w #6,28(a0)
  bhi asm_ai_done
+asm_ai_allowed:
  move.w 28(a0),d0
  move.b d0,asm_ai_params
  move.w 24(a0),d0
  move.b d0,asm_ai_params+1
  move.w 30(a0),d0
  move.b d0,asm_ai_params+2
+ move.b asm_ecm,asm_ai_params+4
  pea asm_status
  pea asm_laser+5
  pea asm_ai_params
  move.l a4,-(sp)
+ cmp.b #8,asm_ai_params
+ bne asm_normal_ai
+ jsr _hostile_missile
+ bra asm_ai_return
+asm_normal_ai:
  jsr _tactics_step
+asm_ai_return:
  lea 16(sp),sp
  addq.l #1,asm_ai_calls
+ cmp.w #1,d0
+ bne asm_ai_not_launch
+ bsr asm_spawn_missile
+ moveq #0,d0
+asm_ai_not_launch:
  cmp.w #3,d0
  blo asm_ai_not_hit
  addq.l #1,asm_ai_events
@@ -363,6 +407,15 @@ asm_ai_not_hit:
  bne asm_ai_done
  move.w #1,asm_dead
 asm_ai_done:
+ btst #7,31(a4)
+ beq asm_ai_alive
+ pea asm_laser+5
+ move.l (a5),-(sp)
+ move.l asm_cloud,-(sp)
+ move.l a4,-(sp)
+ jsr _explosion_start
+ lea 16(sp),sp
+asm_ai_alive:
  move.l (a5),a0
  move.w 22(a0),d0
  move.b d0,asm_params+3
@@ -472,6 +525,10 @@ asm_cloud_done:
  pea asm_status
  jsr _energy_step
  addq.l #8,sp
+ pea asm_status
+ pea asm_ecm
+ jsr _ecm_step
+ addq.l #8,sp
  ; MA23 erases pulse lines when LASCT falls below 8.
  tst.b asm_laser+9
  beq asm_laser_end
@@ -479,7 +536,7 @@ asm_cloud_done:
  bhs asm_laser_end
  bsr asm_erase_laser
 asm_laser_end:
- ; Spawn/ECM branches are not ported; explicit C=1 MLOOP cadence (10,6,2,0).
+ ; Laser-counter adapter retains explicit C=1 MLOOP cadence (10,6,2,0).
  move.l #1,-(sp)
  pea asm_laser
  jsr _laser_tick
@@ -597,6 +654,8 @@ asm_cloud_reset_loop:
 asm_cloud_zero:
  clr.l (a0)+
  dbra d0,asm_cloud_zero
+ clr.w asm_ecm
+ clr.l asm_launches
  clr.w asm_dead
  clr.l asm_ai_calls
  clr.l asm_ai_events
@@ -662,7 +721,7 @@ asm_setup_model:
  move.w #640,asm_ships+8
 asm_setup_done:
  cmp.w #2,asm_mode
- bne asm_encounter_ready
+ blo asm_encounter_ready
  move.w #-160,asm_ships+4
  clr.w asm_ships+6
  move.w #1400,asm_ships+8
@@ -681,6 +740,42 @@ asm_encounter_ready:
  clr.b asm_status+4
  clr.b asm_mcnt
  bsr asm_draw_dials
+ rts
+asm_spawn_missile:
+ cmp.w #3,asm_mode
+ bne asm_spawn_return
+ movem.l d2-d7/a2-a6,-(sp)
+ lea asm_vectors+108,a2
+ lea asm_ships+816,a3
+ lea asm_clouds+1344,a6
+ moveq #8,d6
+asm_spawn_find:
+ move.b 31(a2),d0
+ and.b #160,d0
+ cmp.b #160,d0
+ bne asm_spawn_next
+ tst.w 56(a6)
+ bne asm_spawn_next
+ ; An expired slot's line heap is already empty; retain its native cache header.
+ lea _models,a0
+ move.l 24(a0),(a3)
+ move.l (a3),-(sp)
+ move.l a2,-(sp)
+ move.l a4,-(sp)
+ jsr _spawn_child
+ lea 12(sp),sp
+ clr.w 14(a3)
+ clr.b 2(a6)
+ addq.l #1,asm_launches
+ bra asm_spawn_end
+asm_spawn_next:
+ lea 36(a2),a2
+ lea 272(a3),a3
+ lea 448(a6),a6
+ dbra d6,asm_spawn_find
+asm_spawn_end:
+ movem.l (sp)+,d2-d7/a2-a6
+asm_spawn_return:
  rts
 asm_draw_dials:
  moveq #0,d0
@@ -750,9 +845,20 @@ asm_seed_energy_done:
  clr.b 27(a0)
 asm_seed_station_done:
  cmp.w #2,asm_mode
- bne asm_seed_passive
+ blo asm_seed_passive
  ; Deterministic aggressive encounter initialization, not a universe spawner.
  move.b #240,32(a0)
+ cmp.w #3,asm_mode
+ bne asm_seed_passive
+ cmp.w #9,d0
+ blo asm_seed_unused
+ move.w 30(a3),d2
+ and.b #7,d2
+ move.b d2,31(a0)
+ bra asm_seed_passive
+asm_seed_unused:
+ move.b #160,31(a0)
+ clr.b 32(a0)
 asm_seed_passive:
  move.b #32,29(a0)
  move.b #16,30(a0)

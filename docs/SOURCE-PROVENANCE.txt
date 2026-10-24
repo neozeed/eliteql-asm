@@ -50,3 +50,6 @@ screen stores and captures PIXEL call coordinates. Regenerate with
 LL9 kill initialization, all-faces explosion handling and enemy-beam endpoint
 logic are translated in the native renderer/adapter. Blueprint weapon byte,
 explosion count and gun-vertex offset are now extracted by tools/extract.py.
+
+A11 adds original-missile-boundaries.asm: TA34/TA18, SESCP/SFS1, NW6,
+ECBLB2, DENGY, MA16/MA69. Homing corpus starts at original TA21 with TYPE=8.
