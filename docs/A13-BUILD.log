@@ -1,0 +1,60 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a13'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/target.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 8942 (22ee)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 30228 bytes, QDOS data space 8942
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEBEN
+host/ELITEBEN: dataspace 4524 (11ac)
+python3 tools/qlmeta.py host/ELITEBEN
+host/ELITEBEN: 42682 bytes, QDOS data space 4524
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITETST
+host/ELITETST: dataspace 4426 (114a)
+python3 tools/qlmeta.py host/ELITETST
+host/ELITETST: 53182 bytes, QDOS data space 4426
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/motion_test.c src/motion.s src/flight.s -o host/ELITEMOT
+host/ELITEMOT: dataspace 652 (28c)
+python3 tools/qlmeta.py host/ELITEMOT
+host/ELITEMOT: 70386 bytes, QDOS data space 652
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/flight_test.c src/motion.s src/flight.s -o host/ELITEFLT
+host/ELITEFLT: dataspace 638 (27e)
+python3 tools/qlmeta.py host/ELITEFLT
+host/ELITEFLT: 73600 bytes, QDOS data space 638
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/tidy_test.c src/tidy.s src/motion.s src/flight.s -o host/ELITETDY
+host/ELITETDY: dataspace 712 (2c8)
+python3 tools/qlmeta.py host/ELITETDY
+host/ELITETDY: 54034 bytes, QDOS data space 712
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/controls_test.c src/controls.s -o host/ELITECTL
+host/ELITECTL: dataspace 530 (212)
+python3 tools/qlmeta.py host/ELITECTL
+host/ELITECTL: 102510 bytes, QDOS data space 530
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/scanner_test.c src/scanner.s src/dashboard.s -o host/ELITESCN
+host/ELITESCN: dataspace 33560 (8318)
+python3 tools/qlmeta.py host/ELITESCN
+host/ELITESCN: 46704 bytes, QDOS data space 33560
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/dials_test.c src/dials.s -o host/ELITEDIL
+host/ELITEDIL: dataspace 33458 (82b2)
+python3 tools/qlmeta.py host/ELITEDIL
+host/ELITEDIL: 59642 bytes, QDOS data space 33458
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/combat_test.c src/combat.s src/line.s -o host/ELITECBT
+host/ELITECBT: dataspace 32412 (7e9c)
+python3 tools/qlmeta.py host/ELITECBT
+host/ELITECBT: 313970 bytes, QDOS data space 32412
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/tactics_test.c src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITETAC
+host/ELITETAC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITETAC
+host/ELITETAC: 291090 bytes, QDOS data space 100
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/explosion_test.c src/explosion.s src/combat.s src/line.s -o host/ELITEEXP
+host/ELITEEXP: dataspace 33594 (833a)
+python3 tools/qlmeta.py host/ELITEEXP
+host/ELITEEXP: 54694 bytes, QDOS data space 33594
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/missile_test.c src/missile.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITEMSL
+host/ELITEMSL: dataspace 840 (348)
+python3 tools/qlmeta.py host/ELITEMSL
+host/ELITEMSL: 20306 bytes, QDOS data space 840
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/target_test.c src/target.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o host/ELITETGT
+host/ELITETGT: dataspace 306 (132)
+python3 tools/qlmeta.py host/ELITETGT
+host/ELITETGT: 152382 bytes, QDOS data space 306
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a13'
+
+PASS: all 14 rebuilt executable hashes match the tested binaries.

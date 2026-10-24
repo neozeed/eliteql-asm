@@ -13,8 +13,8 @@ host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/target.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/target.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -65,4 +65,9 @@ host/ELITEEXP: tests/explosion_test.c tests/explosion_fixtures.h src/explosion.s
 all: host/ELITEMSL
 host/ELITEMSL: tests/missile_test.c src/missile.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/missile_test.c src/missile.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITETGT
+host/ELITETGT: tests/target_test.c tests/target_fixtures.h src/target.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/target_test.c src/target.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
 	$(PYTHON) tools/qlmeta.py $@

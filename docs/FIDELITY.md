@@ -1,3 +1,11 @@
+# A13 update
+
+Current behavior and limits are documented in README.md. Native target.s
+adds TAS1/MVT3, friendly missile tactics and FRS1 initialization. Shell T/U/M
+state is {inventory,armed,target,internalLaunchFlag}; stats offset110 points
+to this four-byte block. Magic is EQB3/6800. A13 logs supersede earlier logs.
+The text HUD is an adapter; original missile bitmap drawing is not connected.
+
 # A11 update
 
 See README.md for the connected hostile missile/ECM implementation and its

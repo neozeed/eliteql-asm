@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514231,0x36383030
+ .data4 0x45514233,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -43,6 +43,9 @@ asm_ai_calls_debug: .data4 asm_ai_calls
 asm_ai_events_debug: .data4 asm_ai_events
 asm_ecm_debug: .data4 asm_ecm
 asm_launch_debug: .data4 asm_launches
+asm_player_debug: .data4 asm_player
+asm_player: .data1 4,0,255,0
+asm_mkeys: .data1 0,0,0,0
 asm_ecm: .data1 0,0
 asm_launches: .data4 0
 asm_dead: .data2 0
@@ -67,11 +70,14 @@ asm_mcnt: .data1 0
 .align 2
 asm_dead_text: .ascii "DESTROYED - N / 1 / 2 / 3\0"
 .align 2
-asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
+asm_fps_text: .ascii "FPS 00.0  SPEED 00"
+asm_msl_text: .ascii " M4 -\0"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _friendly_missile
+.extern _player_missile_init
 .extern _hostile_missile
 .extern _spawn_child
 .extern _ecm_step
@@ -253,6 +259,16 @@ asm_check_ecm:
  move.b #32,asm_ecm
  move.b #255,asm_ecm+1
 asm_ecm_key_done:
+ moveq #6,d0
+ bsr asm_keyrow
+ btst #6,d0
+ sne asm_mkeys
+ btst #7,d0
+ sne asm_mkeys+1
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #6,d0
+ sne asm_mkeys+2
  ; Map raw QL keys to original DOKEY/KY1/KY2 held states.
  ; Rate updates run once per simulation frame below, not per scan.
  lea asm_keys,a0
@@ -285,6 +301,7 @@ asm_draw_begin:
  bne asm_update_stats
  tst.w asm_paused
  bne asm_update_stats
+ bsr asm_player_input
  pea asm_keys
  pea asm_controls
  jsr _control_step
@@ -327,6 +344,18 @@ asm_draw_loop:
  mulu.w #36,d0
  adda.l d0,a0
  move.l a0,a4
+ btst #7,31(a4)
+ beq asm_pending_done
+ btst #5,31(a4)
+ bne asm_pending_done
+ pea asm_laser+5
+ move.l (a5),-(sp)
+ move.l asm_cloud,-(sp)
+ move.l a4,-(sp)
+ jsr _explosion_start
+ lea 16(sp),sp
+ bsr asm_abort_target
+asm_pending_done:
  move.b 31(a4),d0
  and.b #160,d0
  beq asm_live_ship
@@ -388,12 +417,63 @@ asm_ai_allowed:
  move.l a4,-(sp)
  cmp.b #8,asm_ai_params
  bne asm_normal_ai
+ tst.b asm_ecm
+ bne asm_hostile_path
+ btst #6,32(a4)
+ bne asm_hostile_path
+ ; The friendly entry has a different ABI, discard the common arguments.
+ lea 16(sp),sp
+ moveq #0,d0
+ move.b 32(a4),d0
+ lsr.w #1,d0
+ and.w #31,d0
+ cmp.w #12,d0
+ bhs asm_friendly_invalid
+ move.w d0,d1
+ mulu.w #272,d1
+ lea asm_ships,a0
+ adda.l d1,a0
+ move.l (a0),a0
+ moveq #0,d1
+ move.w 28(a0),d1
+ mulu.w #36,d0
+ lea asm_vectors,a0
+ adda.l d0,a0
+ btst #7,31(a0)
+ bne asm_friendly_invalid
+ bra asm_friendly_target
+asm_friendly_invalid:
+ suba.l a0,a0
+ moveq #0,d1
+asm_friendly_target:
+ pea asm_laser+5
+ move.l d1,-(sp)
+ move.l a0,-(sp)
+ move.l a4,-(sp)
+ jsr _friendly_missile
+ lea 16(sp),sp
+ cmp.w #7,d0
+ bne asm_friendly_not_ecm
+ move.b #32,asm_ecm
+ moveq #0,d0
+ bra asm_ai_result
+asm_friendly_not_ecm:
+ cmp.w #6,d0
+ blo asm_ai_result
+ ; TA35 collateral blast uses the existing explicit-carry adapter.
+ move.b #1,asm_ai_params+4
+ pea asm_status
+ pea asm_laser+5
+ pea asm_ai_params
+ move.l a4,-(sp)
+asm_hostile_path:
  jsr _hostile_missile
  bra asm_ai_return
 asm_normal_ai:
  jsr _tactics_step
 asm_ai_return:
  lea 16(sp),sp
+asm_ai_result:
  addq.l #1,asm_ai_calls
  cmp.w #1,d0
  bne asm_ai_not_launch
@@ -416,6 +496,7 @@ asm_ai_done:
  move.l a4,-(sp)
  jsr _explosion_start
  lea 16(sp),sp
+ bsr asm_abort_target
 asm_ai_alive:
  move.l (a5),a0
  move.w 22(a0),d0
@@ -433,6 +514,24 @@ asm_ai_alive:
  move.b 31(a4),d0
  and.b #160,d0
  bne asm_no_hit
+ tst.b asm_player+1
+ beq asm_lock_done
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 26(a0),d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _laser_hit
+ lea 12(sp),sp
+ tst.l d0
+ beq asm_lock_done
+ move.w asm_slot,d0
+ move.b d0,asm_player+2
+ clr.b asm_player+1
+asm_lock_done:
  ; Original HITCH runs on world-space INWK, independently of line projection.
  tst.b asm_laser+1
  beq asm_no_hit
@@ -468,6 +567,7 @@ asm_ai_alive:
  move.l a4,-(sp)
  jsr _explosion_start
  lea 16(sp),sp
+ bsr asm_abort_target
  addq.l #1,asm_kills
  bra asm_no_hit
 asm_hit_survived:
@@ -655,6 +755,10 @@ asm_cloud_reset_loop:
 asm_cloud_zero:
  clr.l (a0)+
  dbra d0,asm_cloud_zero
+ move.b #4,asm_player
+ clr.b asm_player+1
+ move.b #255,asm_player+2
+ clr.b asm_player+3
  clr.w asm_ecm
  clr.l asm_launches
  clr.w asm_dead
@@ -742,6 +846,94 @@ asm_encounter_ready:
  clr.b asm_mcnt
  bsr asm_draw_dials
  rts
+ ; Fixed-slot lifetime rule: no missile/lock may retarget a recycled record.
+asm_abort_target:
+ movem.l d0-d3/a0-a2,-(sp)
+ move.w asm_slot,d0
+ cmp.b asm_player+2,d0
+ bne asm_abort_followers
+ move.b #255,asm_player+2
+ clr.b asm_player+1
+asm_abort_followers:
+ add.b d0,d0
+ or.b #128,d0
+ lea asm_vectors,a0
+ lea asm_ships,a1
+ moveq #11,d3
+asm_abort_loop:
+ move.l (a1),a2
+ move.l a2,d2
+ beq asm_abort_next
+ cmp.w #8,28(a2)
+ bne asm_abort_next
+ cmp.b 32(a0),d0
+ bne asm_abort_next
+ move.b 31(a0),d1
+ and.b #160,d1
+ bne asm_abort_next
+ or.b #128,31(a0)
+asm_abort_next:
+ lea 272(a1),a1
+ lea 36(a0),a0
+ dbra d3,asm_abort_loop
+ movem.l (sp)+,d0-d3/a0-a2
+ rts
+asm_player_input:
+ cmp.w #3,asm_mode
+ bne asm_player_input_done
+ tst.b asm_mkeys+1
+ beq asm_player_arm
+ clr.b asm_player+1
+ move.b #255,asm_player+2
+asm_player_arm:
+ tst.b asm_mkeys
+ beq asm_player_fire
+ tst.b asm_player
+ beq asm_player_fire
+ tst.b asm_player+2
+ bpl asm_player_fire
+ move.b #255,asm_player+1
+asm_player_fire:
+ tst.b asm_mkeys+2
+ beq asm_player_input_done
+ tst.b asm_player+2
+ bmi asm_player_input_done
+ moveq #0,d0
+ move.b asm_player+2,d0
+ mulu.w #36,d0
+ lea asm_vectors,a0
+ adda.l d0,a0
+ move.b 31(a0),d0
+ and.b #160,d0
+ bne asm_player_unlock
+ move.b #1,asm_player+3
+ bsr asm_spawn_missile
+ clr.b asm_player+3
+ move.l a0,d0
+ beq asm_player_input_done
+ subq.b #1,asm_player
+ moveq #0,d0
+ move.b asm_player+2,d0
+ move.w d0,d1
+ mulu.w #272,d1
+ lea asm_ships,a0
+ adda.l d1,a0
+ move.l (a0),a0
+ moveq #0,d1
+ move.w 28(a0),d1
+ mulu.w #36,d0
+ lea asm_vectors,a0
+ adda.l d0,a0
+ move.l asm_station,-(sp)
+ move.l d1,-(sp)
+ move.l a0,-(sp)
+ jsr _ship_angry
+ lea 12(sp),sp
+asm_player_unlock:
+ clr.b asm_player+1
+ move.b #255,asm_player+2
+asm_player_input_done:
+ rts
 asm_spawn_missile:
  cmp.w #3,asm_mode
  bne asm_spawn_return
@@ -760,20 +952,36 @@ asm_spawn_find:
  ; An expired slot's line heap is already empty; retain its native cache header.
  lea _models,a0
  move.l 24(a0),(a3)
+ tst.b asm_player+3
+ beq asm_spawn_enemy
+ moveq #0,d0
+ move.b asm_controls+12,d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b asm_player+2,d0
+ move.l d0,-(sp)
+ move.l a2,-(sp)
+ jsr _player_missile_init
+ lea 12(sp),sp
+ bra asm_spawn_initialized
+asm_spawn_enemy:
  move.l (a3),-(sp)
  move.l a2,-(sp)
  move.l a4,-(sp)
  jsr _spawn_child
  lea 12(sp),sp
+asm_spawn_initialized:
  clr.w 14(a3)
  clr.b 2(a6)
  addq.l #1,asm_launches
+ move.l a2,a0
  bra asm_spawn_end
 asm_spawn_next:
  lea 36(a2),a2
  lea 272(a3),a3
  lea 448(a6),a6
  dbra d6,asm_spawn_find
+ suba.l a0,a0
 asm_spawn_end:
  movem.l (sp)+,d2-d7/a2-a6
 asm_spawn_return:
@@ -911,6 +1119,19 @@ fps_bounded:
 fps_clear:
  clr.l (a0)+
  dbra d0,fps_clear
+ move.b asm_player,d0
+ add.b #48,d0
+ move.b d0,asm_msl_text+2
+ move.b #45,asm_msl_text+4
+ tst.b asm_player+1
+ beq asm_hud_lock
+ move.b #65,asm_msl_text+4
+asm_hud_lock:
+ move.b asm_player+2,d0
+ bmi asm_hud_ready
+ add.b #48,d0
+ move.b d0,asm_msl_text+4
+asm_hud_ready:
  lea asm_fps_text,a4
  tst.w asm_dead
  beq asm_status_text
