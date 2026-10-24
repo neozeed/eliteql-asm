@@ -55,12 +55,18 @@ origin_y_positive:
  cmp.w 6(a4),d0
  bgt distant_ship
 full_ship:
+ move.l _live_matrix,d0
+ beq demo_matrix
+ move.l d0,a3
+ bra matrix_ready
+demo_matrix:
  moveq #0,d0
  move.w 10(a5),d0
  and.w #255,d0
  mulu.w #18,d0
  lea _orientations,a3
  adda.l d0,a3
+matrix_ready:
  ; LL90: reduce centre magnitudes until Z fits a byte. This bounds the
  ; local-camera words even when a distant station is near a field-of-view edge.
  move.w 4(a5),d0
@@ -379,3 +385,8 @@ distance_level: .space 2
 
 camera_position: .space 6
 camera_shift: .space 2
+
+.sect .data
+.align 2
+.globl _live_matrix
+_live_matrix: .data4 0

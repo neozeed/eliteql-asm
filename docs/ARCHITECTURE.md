@@ -5,6 +5,7 @@
 | `src/shell.s` | Small QDOS entry point, native keyboard/timer/screen ownership, demo state, FPS text, cleanup |
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
+| `src/motion.s` | MVEIT part 8, MVS5/ADD and Q8 adapter |
 | `src/models.s` | Expanded Electron data and demo orientation matrices |
 | `src/main.c` | Separate benchmark/diagnostic driver, excluded from ELITEASM |
 | `tools/extract.py` | Extract all original vertex/face/edge metadata and generate expanded JAS data |
@@ -52,21 +53,23 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA1` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA2` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
-pointer 28, uncapped flag 32, ship-array pointer 34. Integration tests inspect
+pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
 
-## Next port
+## Motion ABI and remaining port
 
-The next meaningful unit is the original MVEIT movement/vector update and its
-arithmetic helpers. Replace the demonstration angle lookup with each ship's
-live side/roof/nose vectors, keeping the renderer boundary and cached segments.
-Carry/borrow/sign decisions should become explicit state or native arithmetic
-at routine boundaries; do not preserve incidental 6502 flags blindly across
-68000 MOVE instructions. Establish arithmetic fixtures against the 6502 routine
-behaviour before connecting the original main loop and TACTICS.
+`own_rotate(inwk)` updates the original 33-byte little-endian INWK record.
+`motion_matrix(inwk, output)` writes nine native signed Q8 words in row-major
+side/roof/nose order. Both obey the compiler ABI and preserve callee-saved
+registers. The shell reserves twelve 34-byte slots (one byte padding each),
+plus one 18-byte matrix. Rendering is synchronous and non-reentrant: the shell
+sets `_live_matrix` for the current ship, renders, then clears it.
 
-No complete-game 128 KB promise follows from this renderer. The measured free
-block is a concrete starting budget for the next stage. The 32 KB screen snapshot
-is an identifiable optional later memory tradeoff, but A1 retains full restoration.
+The next source boundaries are MVEIT translation and player rotation, MVS4,
+TIDY, and finally TACTICS/main-loop integration. Do not replace those with new
+physics. Keep their 6502 carry, rounding, update order and signed-zero behavior
+explicit and extend the original-instruction fixtures before integration.
+
+The 128 KB test is a current budget measurement, not a finished-game promise.

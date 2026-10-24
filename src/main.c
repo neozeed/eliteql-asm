@@ -7,7 +7,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A1";
+char _prog_name[]="EliteQL ASM A2";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -25,6 +25,11 @@ static unsigned char *backup;
 static int linked,keep;
 static short oldmode=-1,olddisplay=-1;
 static Ship ships[12];
+static unsigned char vectors[12][34];
+static short matrix[9];
+extern short *live_matrix;
+extern void own_rotate(unsigned char *);
+extern void motion_matrix(unsigned char *,short *);
 static void poll_clock(void) { ticks++; }
 static QL_LINK_t clock_link={0,poll_clock};
 static void finish(void) {
@@ -96,7 +101,7 @@ static int selftest(void) {
 static int bound(int v,int lo,int hi) { return v<lo?lo:v>hi?hi:v; }
 int main(int argc,char **argv) {
     unsigned frames=0,start,elapsed,deadline;
-    int i,n=1,model=4,angle=128,x=0,y=0,z=640,limit=0,bench=0,scene=0;
+    int i,n=1,model=4,angle=128,x=0,y=0,z=640,limit=0,bench=0,scene=0,motion=0;
     int row1,row7,old7=0,old1=0,paused=0,done=0;
     short mode=8,display=0;
     for(i=1;i<argc;i++) {
@@ -105,6 +110,7 @@ int main(int argc,char **argv) {
 #endif
         if(!strcmp(argv[i],"--bench"))bench=1;
         else if(!strcmp(argv[i],"--scene"))scene=1;
+        else if(!strcmp(argv[i],"--motion"))motion=1;
         else if(i+1<argc&&!strcmp(argv[i],"--frames"))limit=atoi(argv[++i]);
         else if(i+1<argc&&!strcmp(argv[i],"--fleet"))n=bound(atoi(argv[++i]),1,12);
         else if(i+1<argc&&!strcmp(argv[i],"--model"))model=bound(atoi(argv[++i]),0,9);
@@ -129,6 +135,8 @@ int main(int argc,char **argv) {
         ships[i].y=(short)(n==1?y:350-(i/4)*350);
         ships[i].z=(short)(n==1?z:2400);
         ships[i].angle=(short)((angle+i*21)&255);
+        vectors[i][14]=0xe0;vectors[i][18]=vectors[i][22]=0x60;
+        vectors[i][29]=vectors[i][30]=127;
     }
     start=ticks;deadline=start;
     while(!done) {
@@ -145,7 +153,10 @@ int main(int argc,char **argv) {
             old1=row1;old7=row7;
         }
         if(!paused||frames==0) {
-            for(i=0;i<n;i++)render_ship((void *)0x20000L,&ships[i]);
+            for(i=0;i<n;i++) {
+                if(motion){own_rotate(vectors[i]);motion_matrix(vectors[i],matrix);live_matrix=matrix;}
+                render_ship((void *)0x20000L,&ships[i]);live_matrix=0;
+            }
             frames++;
             for(i=0;i<n;i++)ships[i].angle=(short)((ships[i].angle+1)&255);
         }
@@ -158,6 +169,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A1: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A2 motion=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

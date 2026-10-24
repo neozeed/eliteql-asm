@@ -5,7 +5,8 @@ Acornsoft 1984. The supplied annotated disassembly is by Mark Moxon, whose
 commentary is copyright Mark Moxon. Its companion project is:
 https://github.com/markmoxon/elite-source-code-acorn-electron
 
-The blueprints and rendering structure derive from that supplied source.
+The blueprints, rendering structure, motion routines, and bundled original
+instruction test excerpt derive from that supplied source.
 The 68000 adaptation, QL drawing backend, shell, tests and tools were written
 for this project. The small font was carried forward from EliteQL R3.
 

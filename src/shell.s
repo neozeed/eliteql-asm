@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,49,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,50,0
 .align 2
 asm_stats:
- .data4 0x45514131,0x36383030
+ .data4 0x45514132,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -25,6 +25,7 @@ asm_ready: .data2 0
 asm_snapshot: .data4 0
 asm_uncapped: .data2 0
 asm_ship_debug: .data4 asm_ships
+asm_vector_debug: .data4 asm_vectors
 .align 2
 asm_fps_text: .ascii "FPS 00.0\0"
 .align 2
@@ -33,6 +34,9 @@ asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
 .extern _models
 .extern _render_ship
+.extern _own_rotate
+.extern _motion_matrix
+.extern _live_matrix
 .globl _exit
 asm_clock:
  addq.l #1,asm_ticks
@@ -124,6 +128,7 @@ asm_next_valid:
  lsl.w #2,d0
  lea _models,a0
  move.l 0(a0,d0.w),asm_ships
+ bsr asm_reset_vectors
 asm_next_done:
  move.w asm_row7,asm_old7
  moveq #4,d0
@@ -184,12 +189,25 @@ asm_draw_begin:
  move.w asm_count,d7
  subq.w #1,d7
 asm_draw_loop:
+ lea asm_vectors,a0
+ move.w asm_count,d0
+ subq.w #1,d0
+ sub.w d7,d0
+ mulu.w #34,d0
+ adda.l d0,a0
+ move.l a0,-(sp)
+ jsr _own_rotate
+ move.l (sp)+,a0
+ pea asm_matrix
+ move.l a0,-(sp)
+ jsr _motion_matrix
+ addq.l #8,sp
+ move.l #asm_matrix,_live_matrix
  move.l a5,-(sp)
  pea 0x20000
  jsr _render_ship
  addq.l #8,sp
- addq.w #1,10(a5)
- and.w #255,10(a5)
+ clr.l _live_matrix
  lea 272(a5),a5
  dbra d7,asm_draw_loop
  addq.l #1,asm_frames
@@ -287,6 +305,23 @@ asm_setup_model:
  clr.w asm_ships+6
  move.w #640,asm_ships+8
 asm_setup_done:
+ bsr asm_reset_vectors
+ rts
+asm_reset_vectors:
+ lea asm_vectors,a0
+ moveq #11,d0
+asm_reset_vector:
+ moveq #33,d1
+asm_zero_vector:
+ clr.b 0(a0,d1.w)
+ dbra d1,asm_zero_vector
+ move.b #0xe0,14(a0)
+ move.b #0x60,18(a0)
+ move.b #0x60,22(a0)
+ move.b #32,29(a0)
+ move.b #16,30(a0)
+ lea 34(a0),a0
+ dbra d0,asm_reset_vector
  rts
  ; Update a small status strip once per second; never clear the flight view.
 asm_fps:
@@ -513,3 +548,8 @@ asm_font:
  .data1 0,0,0,0,0,0,0
  .data1 0,0,0,0,0,0,0
  .data1 0,0,0,0,0,0,0
+
+.sect .bss
+.align 2
+asm_vectors: .space 408
+asm_matrix: .space 18

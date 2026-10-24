@@ -1,0 +1,11 @@
+/tmp/tmp.llBSshm3W6/ELITEASM: 14270 bytes, QDOS data space 3820
+/tmp/tmp.llBSshm3W6/ELITEBEN: 30646 bytes, QDOS data space 4550
+/tmp/tmp.llBSshm3W6/ELITETST: 40928 bytes, QDOS data space 4462
+/tmp/tmp.llBSshm3W6/ELITEMOT: 69754 bytes, QDOS data space 656
+6502 oracle: generated 768 cases; 11904 movement steps
+Original 6502 motion: PASS (768 cases, 0 failures)
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS ASM native: ram=128 KB, frames=272, largest free block after startup=36352 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=272, largest free block after startup=551424 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+ASM A2 motion=1: ships=1 frames=300 ticks=237 fps=63.2 vertices=3693 lines=4646
+ASM A2 motion=1: ships=12 frames=300 ticks=1465 fps=10.2 vertices=28519 lines=38907
