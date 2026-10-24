@@ -158,7 +158,7 @@ scanner_clear_cache:
  clr.l (a0)+
  dbra d0,scanner_clear_cache
  rts
-; scanner_frame(screen, inwk_slots[12][34], count), count in 0..12.
+; scanner_frame(screen, inwk_slots[12][36], count), count in 0..12.
 ; Erase all old records, apply part 9, then plot current records.
 _scanner_frame:
  movem.l d2-d7/a2-a4,-(sp)
@@ -191,7 +191,7 @@ scanner_frame_loop:
  move.l a2,-(sp)
  jsr _scanner_xor
  addq.l #8,sp
- lea 34(a3),a3
+ lea 36(a3),a3
  addq.l #4,a4
  dbra d7,scanner_frame_loop
 scanner_frame_done:

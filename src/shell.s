@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,55,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,56,0
 .align 2
 asm_stats:
- .data4 0x45514137,0x36383030
+ .data4 0x45514138,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -31,6 +31,16 @@ asm_controls_debug: .data4 asm_controls
 asm_status_debug: .data4 asm_status
 asm_mcnt_debug: .data4 asm_mcnt
 asm_dials_debug: .data4 _dials_last_status
+asm_laser_debug: .data4 asm_laser
+asm_hits_debug: .data4 asm_hits
+asm_kills_debug: .data4 asm_kills
+asm_station: .data4 0
+asm_hits: .data4 0
+asm_kills: .data4 0
+; Fixed reproducible scene seed, NOT the original game's clock initialization.
+asm_laser: .data1 0,0,0,128,96,90,111,23,201,0,0,0
+asm_fire_key: .data1 0
+asm_sight: .data1 0
 asm_params: .data1 0,0,1,0
 asm_controls: .data1 128,128,0,0,0,0,0,0,0,0,0,0,1
 asm_keys: .data1 0,0,0,0,0,0
@@ -42,6 +52,13 @@ asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _laser_fire
+.extern _laser_tick
+.extern _laser_hit
+.extern _ship_damage
+.extern _ship_angry
+.extern _laser_xor
+.extern _sight_xor
 .extern _dials_frame
 .extern _dials_last_status
 .extern _energy_step
@@ -191,6 +208,10 @@ asm_move:
  lea asm_keys,a0
  btst #1,d0
  sne 5(a0)
+ moveq #3,d0
+ bsr asm_keyrow
+ btst #4,d0
+ sne asm_fire_key
 asm_draw_begin:
  tst.w asm_paused
  bne asm_update_stats
@@ -201,6 +222,24 @@ asm_draw_begin:
  move.b asm_controls+4,asm_params
  move.b asm_controls+5,asm_params+1
  move.b asm_controls+12,asm_params+2
+ ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
+ clr.l -(sp)
+ move.l #15,-(sp)
+ moveq #0,d0
+ move.b asm_fire_key,d0
+ move.l d0,-(sp)
+ pea asm_status
+ pea asm_laser
+ jsr _laser_fire
+ lea 20(sp),sp
+ tst.l d0
+ beq asm_fire_drawn
+ pea asm_laser
+ pea 0x20000
+ jsr _laser_xor
+ addq.l #8,sp
+ move.b #1,asm_laser+9
+asm_fire_drawn:
  lea asm_ships,a5
  move.w asm_count,d7
  subq.w #1,d7
@@ -209,9 +248,15 @@ asm_draw_loop:
  move.w asm_count,d0
  subq.w #1,d0
  sub.w d7,d0
- mulu.w #34,d0
+ mulu.w #36,d0
  adda.l d0,a0
  move.l a0,a4
+ move.b 31(a4),d0
+ and.b #160,d0
+ beq asm_live_ship
+ move.w #1,14(a5)
+ bra asm_render_current
+asm_live_ship:
  ; Original MVEIT part 1 scheduling: (MCNT XOR XSAV) AND 15.
  move.b 31(a4),d0
  and.b #160,d0
@@ -241,11 +286,54 @@ asm_no_tidy:
  addq.l #8,sp
  eor.w #1,d0
  move.w d0,14(a5)
+ ; Original HITCH runs on world-space INWK, independently of line projection.
+ tst.b asm_laser+1
+ beq asm_no_hit
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 26(a0),d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _laser_hit
+ lea 12(sp),sp
+ tst.l d0
+ beq asm_no_hit
+ addq.l #1,asm_hits
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b asm_laser+1,d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _ship_damage
+ lea 12(sp),sp
+ cmp.w #2,d0
+ bne asm_hit_survived
+ ; Adapter boundary: remove killed test target, pending original debris/LL9.
+ move.w #1,14(a5)
+ addq.l #1,asm_kills
+ bra asm_render_current
+asm_hit_survived:
+ move.l asm_station,-(sp)
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _ship_angry
+ lea 12(sp),sp
+asm_no_hit:
  pea asm_matrix
  move.l a4,-(sp)
  jsr _motion_matrix
  addq.l #8,sp
  move.l #asm_matrix,_live_matrix
+asm_render_current:
  move.l a5,-(sp)
  pea 0x20000
  jsr _render_ship
@@ -265,6 +353,18 @@ asm_no_tidy:
  move.l d0,-(sp)
  pea asm_status
  jsr _energy_step
+ addq.l #8,sp
+ ; MA23 erases pulse lines when LASCT falls below 8.
+ tst.b asm_laser+9
+ beq asm_laser_end
+ cmp.b #8,asm_laser
+ bhs asm_laser_end
+ bsr asm_erase_laser
+asm_laser_end:
+ ; Spawn/ECM branches are not ported; explicit C=1 MLOOP cadence (10,6,2,0).
+ move.l #1,-(sp)
+ pea asm_laser
+ jsr _laser_tick
  addq.l #8,sp
  subq.b #1,asm_mcnt
  bsr asm_draw_dials
@@ -349,7 +449,32 @@ asm_keyrow:
  move.b d1,d0
  rts
 ; Erase all old caches before changing between one and twelve ships.
+asm_erase_laser:
+ tst.b asm_laser+9
+ beq asm_erase_laser_done
+ pea asm_laser
+ pea 0x20000
+ jsr _laser_xor
+ addq.l #8,sp
+ clr.b asm_laser+9
+ clr.b asm_laser+2
+asm_erase_laser_done:
+ rts
 asm_setup:
+ bsr asm_erase_laser
+ tst.b asm_sight
+ bne asm_sight_ready
+ pea 0x20000
+ jsr _sight_xor
+ addq.l #4,sp
+ move.b #1,asm_sight
+asm_sight_ready:
+ clr.b asm_laser
+ clr.b asm_laser+1
+ clr.b asm_laser+2
+ clr.l asm_hits
+ clr.l asm_kills
+ clr.l asm_station
  pea 0x20000
  jsr _scanner_reset
  addq.l #4,sp
@@ -432,7 +557,7 @@ asm_clear_controls:
  lea asm_ships,a1
  moveq #11,d0
 asm_reset_vector:
- moveq #33,d1
+ moveq #35,d1
 asm_zero_vector:
  clr.b 0(a0,d1.w)
  dbra d1,asm_zero_vector
@@ -462,13 +587,20 @@ asm_seed_positive:
  move.l (a1),d2
  beq asm_seed_station_done
  move.l d2,a3
+ move.w 24(a3),d2
+ move.b d2,35(a0)
+ cmp.w #7,28(a3)
+ bne asm_seed_energy_done
+ lea 32(a0),a2
+ move.l a2,asm_station
+asm_seed_energy_done:
  tst.w 22(a3)
  bne asm_seed_station_done
  clr.b 27(a0)
 asm_seed_station_done:
  move.b #32,29(a0)
  move.b #16,30(a0)
- lea 34(a0),a0
+ lea 36(a0),a0
  lea 272(a1),a1
  dbra d0,asm_reset_vector
  rts
@@ -697,7 +829,7 @@ asm_font:
 
 .sect .bss
 .align 2
-asm_vectors: .space 408
+asm_vectors: .space 432
 asm_matrix: .space 18
 
 .sect .bss

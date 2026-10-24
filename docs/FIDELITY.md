@@ -30,8 +30,8 @@ The independent Python oracle checks this documented A1 adaptation. It is not
 an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
-Not implemented: remaining MVEIT parts 1–2 (TACTICS), planet movement (MV40), secondary keyboard controls/configuration, tactics, flight loop, combat, explosions,
-laser beams, planet/sun drawing, fuel/altitude/cabin-temperature/compass instruments, markets, commander saves,
+Not implemented: remaining MVEIT parts 1–2 (TACTICS), planet movement (MV40), secondary keyboard controls/configuration, tactics, the rest of the flight loop, enemy combat, explosions,
+ planet/sun drawing, fuel/altitude/cabin-temperature/compass instruments, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
 The renderer uses a shared scratch workspace and is intentionally non-reentrant.
@@ -112,9 +112,32 @@ Recharge is the MA77 section of main flight loop part 13, including the
 SHD/DENGY effects. Laser cooling comes from MLOOP. Their tests cover the 127/128
 energy threshold, full shields, energy-unit values, saturation, rejected
 addition on carry, and sequential updates. Status begins with RES4's full
-shields/energy; heating, damage and combat are not invented.
+shields/energy; A8 connects original laser heating and drain; player damage remains a tested
+routine without live collision/enemy-fire callers.
 
 A7 also corrects the scheduling phase: original MCNT decrements after the
 flight loop and before DIALS. Earlier milestones used the increasing frame
 total for TIDY's periodic test. The corrected counter preserves the original
 slot schedule, with refreshed instruction-oracle trajectories.
+
+
+A8 combat ports original MA68/ma1, LASLI arithmetic, DORND, HITCH (including
+SQUA2/MU11 results), MA47 through its killed-bit boundary, ANGRY and MLOOP's
+laser countdown. Blueprint targetable area and maximum energy are extracted
+from the supplied source. Exact-zero energy survives; underflow kills except
+for the station. HITCH ignores x/y sign bytes but rejects any nonzero z_sign,
+nonzero x/y high byte, exploding flag or negative type. Overflow of the sum
+of squared coordinate low bytes rejects a hit. It is not a screen-space test.
+
+OOPS is translated and tested through its OUCH/DEATH call boundaries, including
+the incoming carry; it is not wired to invented combat damage. Likewise, dead
+scene targets are erased without substituting an invented explosion. Debris,
+EXNO2 rewards/tally, sound and enemy TACTICS are not implemented. ANGRY changes
+state but does not make the unimplemented AI run.
+
+The full original surrounding loop determines incidental carry through sound,
+spawning and ECM. Those sections are absent here. LASLI gets explicit C=0 and
+MLOOP gets explicit C=1 in this shell; this limitation is not hidden as full
+instruction equivalence. Both carry values are supported in DORND/countdown
+and tested. SIGHT/LASLI2 endpoint geometry uses the native line backend above,
+including its inclusive endpoints rather than original HLOIN/LOIN pixels.

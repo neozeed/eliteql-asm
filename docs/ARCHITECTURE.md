@@ -6,6 +6,7 @@
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
 | `src/flight.s` | MVEIT parts 3–7 and complete parts 3–8 dispatch; position adapter |
+| `src/combat.s` | Original laser, RNG, hit/damage, anger and player-damage arithmetic; sight/beam geometry |
 | `src/dials.s` | Original gauge pixels, shield/energy recharge and laser cooling |
 | `src/scanner.s` | Original scanner projection/flags; native dot/stick XOR backend and contact cache |
 | `src/dashboard.s` | Generated QL pixels from original P.DIALS.bin |
@@ -60,16 +61,20 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA7` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA8` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
 pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42, control-state pointer 46, player-status pointer 50, MCNT-byte pointer 54,
-last-drawn slow-instrument status pointer 58. Integration tests inspect
+last-drawn slow-instrument status pointer 58, laser-state pointer 62,
+scene-hit counter pointer 66, scene-kill counter pointer 70. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
 
 ## Expanded blueprint header
 
 The existing 22-byte model header retains its pointers at offsets 10, 14 and
 18. A3 appends the original maximum speed as a native word at offset 22.
+A8 appends maximum energy at 24, targetable area at 26 and ship type at 28,
+all native words. Header size is now 30 bytes. Cobra geometry is type 5; the
+original trader type 6 shares that blueprint but is not spawned in this scene.
 Geometry pointers are rebuilt by the extractor; renderer offsets are unchanged.
 
 ## Motion ABI and remaining port
@@ -77,7 +82,7 @@ Geometry pointers are rebuilt by the extractor; renderer offsets are unchanged.
 `own_rotate(inwk)` updates the original 33-byte little-endian INWK record.
 `motion_matrix(inwk, output)` writes nine native signed Q8 words in row-major
 side/roof/nose order. Both obey the compiler ABI and preserve callee-saved
-registers. The shell reserves twelve 34-byte slots (one byte padding each),
+registers. The shell reserves twelve full 36-byte original slots,
 plus one 18-byte matrix. Rendering is synchronous and non-reentrant: the shell
 sets `_live_matrix` for the current ship, renders, then clears it.
 
@@ -134,7 +139,7 @@ the original three-by-two dot and stick pixels in QL white, without calling C
 or the viewport-clipped ship rasterizer. No clipping is needed after SCAN's
 range checks: all scanner pixels lie within the 256x56 dashboard.
 
-`scanner_frame(screen, slots, count)` accepts 0–12 packed 34-byte INWK slots.
+`scanner_frame(screen, slots, count)` accepts 0–12 packed 36-byte INWK slots.
 It erases the twelve cached contacts, applies part 9 to each active slot,
 projects and plots current contacts, then retains four bytes per slot. The
 48-byte cache is private and non-reentrant. The shell currently contains only
@@ -172,3 +177,36 @@ to initialise every supported gauge. The benchmark uses the same sequencing.
 Fuel, altitude, cabin-temperature and compass routines are not called with
 placeholder inputs. The source's full DIALS tail to COMPAS is not claimed
 complete. No combat/damage/firing behavior is simulated to animate the bars.
+
+## Combat ABI and adapter
+
+`laser_fire(laser, status, held, power, entryCarry)` returns 1 on a new shot.
+The 12-byte laser state is LASCT, LAS, LAS2, LASX, LASY, four RAND bytes,
+a native drawn flag, and two reserved bytes. Status remains the five A7 bytes.
+`laser_tick(laser, carry)` executes the original subtract-four-with-carry and
+underflow clamp. The shell chooses C=1 explicitly while the source's preceding
+spawn/ECM paths remain absent; its LASLI input carry is zero without sound.
+The native routines accept unaligned byte-state pointers and preserve the ABI.
+
+`elite_random(seed, carry)` returns A | C<<8 | X<<16 after original DORND.
+`laser_hit(inwk, type, targetableArea)` returns HITCH's boolean carry result.
+`ship_damage(inwk, power, type)` returns 1 survived, 2 killed, or 3 protected
+station. For death it stops at the original flag-store boundary, before debris
+and EXNO2. The shell hides the target and increments a diagnostic scene counter;
+that counter is not commander TALLY and provides no rank or rewards.
+`ship_angry(inwk, type, stationAIbyte)` implements ANGRY with a nullable station
+pointer instead of a fixed station slot. Live test targets start with AI byte
+zero; ANGRY does not invent aggression or an enemy AI dispatcher.
+
+`player_damage(status, damage, zSign, carry)` returns 0 for shield absorption,
+1 at the OUCH boundary, or 2 at the DEATH boundary. It retains original shield
+selection, carry-sensitive subtraction, wrapped energy and death conditions.
+It is tested in ELITECBT but has no live caller until collisions/enemy weapons
+are ported. Cargo damage, death animation and sound remain separate boundaries.
+
+`laser_xor(screen, laser)` and `sight_xor(screen)` are XOR involutions using the
+native rasterizer. Scene reset first erases a visible pulse, then the scanner
+and ship caches. Sights are drawn once and survive all XOR scene redraws.
+Killed/exploding records skip movement and are hidden by the existing renderer;
+scanner MVEIT9 clears their visibility bit. They are retained as inactive scene
+slots until reset, pending original universe removal and debris spawning.

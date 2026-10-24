@@ -6,7 +6,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A7";
+char _prog_name[]="EliteQL ASM A8";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -24,13 +24,17 @@ static unsigned char *backup;
 static int linked,keep;
 static short oldmode=-1,olddisplay=-1;
 static Ship ships[12];
-static unsigned char vectors[12][34];
+static unsigned char vectors[12][36];
 static short matrix[9];
 extern short *live_matrix;
 extern void own_rotate(unsigned char *);
 extern void tidy_ship(unsigned char *);
 extern void scanner_reset(void *);
 extern void dials_frame(void *,const unsigned char *,const unsigned char *,unsigned);
+extern void sight_xor(void *);
+extern int laser_fire(unsigned char *,unsigned char *,unsigned,unsigned,unsigned);
+extern void laser_tick(unsigned char *,unsigned);
+static unsigned char bench_laser[12]={0,0,0,128,96,90,111,23,201,0,0,0};
 extern void energy_step(unsigned char *,unsigned);
 static unsigned char bench_status[5]={255,255,255,0,0};
 extern void scanner_frame(void *,unsigned char *,unsigned);
@@ -150,7 +154,7 @@ int main(int argc,char **argv) {
     atexit(finish);
     mt_dmode(&oldmode,&olddisplay);mt_dmode(&mode,&display);
     memset((void *)0x20000L,0,32768);
-    if(flight)scanner_reset((void *)0x20000L);
+    if(flight){scanner_reset((void *)0x20000L);sight_xor((void *)0x20000L);}
     ticks=0;mt_lpoll(&clock_link);linked=1;
     for(i=0;i<n;i++) {
         ships[i].model=models[n==1?model:i%10];
@@ -181,6 +185,7 @@ int main(int argc,char **argv) {
         if(!paused||frames==0) {
             if(flight) {
                 control_step(bench_controls,bench_keys);
+                laser_fire(bench_laser,bench_status,0,15,0);
                 flight_params[0]=bench_controls[4];
                 flight_params[1]=bench_controls[5];
                 flight_params[2]=bench_controls[12];
@@ -200,6 +205,7 @@ int main(int argc,char **argv) {
             if(flight)scanner_frame((void *)0x20000L,&vectors[0][0],(unsigned)n);
             if(flight) {
                 energy_step(bench_status,mcnt);
+                laser_tick(bench_laser,1);
                 mcnt--;
                 dials_frame((void *)0x20000L,bench_controls,bench_status,mcnt);
             }
@@ -215,6 +221,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A7 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A8 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

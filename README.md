@@ -1,172 +1,128 @@
-# EliteQL ASM A7 — original instruments, recharge and cooling
+# EliteQL ASM A8 — original pulse-laser combat
 
-A7 adds native 68000 ports of **DIALS parts 1–3, the shield and laser-temperature
-sections of part 4, DIL/DIL2, shield/energy recharge and laser cooling**.
-Speed, roll and pitch indicators now follow the live controls. The energy
-banks, forward/aft shields and laser-temperature bar reflect player status.
+A8 brings a connected set of Electron combat routines into the native 68000
+application: **MA68/ma1 laser controls, LASLI heat/energy use, DORND random
+numbers, HITCH target checks, MA47 damage, ANGRY hostility and MLOOP pulse timing**.
+The original SIGHT crosshair and LASLI2 beam geometry use the QL XOR rasterizer.
+Hold **F** to fire the original 15-power forward pulse laser.
 
-Player status starts with full shields and energy, as in source RES4; the
-energy unit is absent and laser temperature starts at zero. Recharge uses the
-original energy threshold, charging order, drain and overflow behavior. There
-is no combat or firing yet, so normal play does not damage shields or heat the
-laser; the tests exercise those states without adding invented gameplay keys.
+Ship records now hold the full original **36 bytes**, including energy at
+INWK+35. Energy and targetable area come from the original ship blueprints.
+A target at exactly zero energy survives; the next hit kills it. Killed test
+objects disappear from the view and scanner. The station cannot be destroyed,
+and being hit marks it hostile. This does not yet give it attacking AI.
 
-The main scheduling byte now **counts down**, as the original MCNT does. TIDY
-uses that byte, recharge runs every eight updates, and slower instruments
-refresh every four, after the original end-of-loop decrement. A6 remains a
-separate baseline. The original scanner and keyboard-exit fix are retained.
+Laser heating, energy drain, cooling and the existing instruments work together.
+The native OOPS forward/aft shield and energy-damage arithmetic is also ported
+and tested, ready for the future collision/enemy-fire callers. Those callers
+are not connected yet, so ordinary firing does not damage your shields.
 
-**This remains a flight test scene, not a complete playable Elite port.**
-Fuel, cabin temperature, altitude and compass remain unconnected artwork;
-AI/TACTICS, combat and the rest of the main loop still need porting. The
-application contains no C game logic and no runtime 6502 interpreter.
+**This remains a flight/combat test scene, not complete Elite.** Enemy TACTICS,
+explosions, debris, bounty/rank updates, sound, missiles, docking, travel,
+markets and saves remain unfinished. Fuel, cabin temperature, altitude and
+compass still show unconnected artwork. There is no C game loop and no runtime
+6502 interpreter. A7 is preserved separately.
 
 ## Run
 
-Extract beside QLBox:
+Extract the complete folder beside QLBox:
 
 ```bat
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a7\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a8\host
 ```
 
-At BASIC, use the waiting form so BASIC does not draw over the application:
+At BASIC:
 
 ```text
 EXEC_W WIN1_ELITEASM
 ```
 
 640 KB is also tested. No compiler or external game data is needed to run it.
+The executable is **25,746 bytes**. A BASIC launch at 128 KB leaves a largest
+free block of **24,576 bytes** after startup and the screen snapshot allocation.
+This is the current test scene's footprint, not a promise for the finished game.
 
 | Key | Action |
 | --- | --- |
-| Left / right | Build opposite roll rates through original DOKEY logic |
-| Up / down | Build opposite pitch rates through original DOKEY logic |
-| A / Z | Increase / decrease player speed, 1–40; displayed beside FPS |
-| N | Reset positions, vectors and player speed; advance the solo model selection |
-| 1 / 2 | Select solo / twelve-ship scene and reset it |
-| Space | Pause / resume simulation and drawing |
-| B | Toggle uncapped updates; default cap is 10 Hz |
-| Escape | Release all keys; queued input is drained, then screen restored and job exits |
+| F | Hold to fire the forward pulse laser |
+| Left / right | Original roll-rate accumulation |
+| Up / down | Original pitch-rate accumulation |
+| A / Z | Increase / decrease player speed, 1–40 |
+| N | Reset the scene and player status; advance the solo model |
+| 1 / 2 | Select solo / twelve-ship scene and reset |
+| Space | Pause / resume, including laser and thermal state |
+| B | Toggle uncapped simulation and drawing; default cap is 10 Hz |
+| Escape | Wait for key release, drain input, restore screen and exit |
 
-The QL key mapping is retained, but the response now follows the original
-Electron routines: roll steps by 7, pitch by 14, with damping and auto-recentre
-enabled. Neutral pitch can carry the original negative-zero byte (0x80).
-Damping takes time after release; the opposite key recentres more quickly.
-A/Z now follows the original speed handling, with a normal range of 1–40.
-N and scene changes reset controls and speed to 1.
+The initial solo Cobra is in front of you. Hold F to try a kill; N gives you a
+fresh target. Fleet objects need steering into the sights. Nothing respawns
+automatically. A/Z remains throttle, so the Electron fire control maps to F.
+Firing respects the original pulse delay and temperature threshold of 242.
 
-Raw keys are sampled at 10 Hz; the original control calculation runs once per
-simulation update. Pausing freezes rates, speed and movement. The source's
-configuration toggles and secondary flight keys are not yet exposed.
+Arrows accumulate rates rather than setting an immediate angle. Damping takes
+time after release. Scene resets use test initial conditions: ship speed 2
+(station 0), roll counter 32, pitch counter 16, player speed 1. N/scene reset
+restores full shields/energy and clears heat, targets and pulse state.
 
-The scene seeds ship speed byte 2 (station 0), pitch counter 16 and roll counter
-32. These are test-scene initial conditions. Own rotation damps to zero after
-32 updates, but translation and player controls continue. Objects can leave
-the view or pass behind you; press N to reset. There is no invented respawn.
+B accelerates simulation along with drawing. The FPS strip includes paused
+time. Drawing goes directly to the standard QL screen at 0x20000; the old
+screen snapshot is for restoring BASIC, not a second drawing buffer.
 
-B uncaps both simulation and drawing, so motion accelerates. FPS updates once
-a second, includes paused time, and saturates at 99.9. The application owns the
-screen by convention and writes directly to the standard QL framebuffer.
+## Source fidelity and boundaries
 
-## Faithfulness and tests
+The new arithmetic is checked against an interpreter executing the bundled
+original 6502 instructions, including SQUA2/MU11 for HITCH. MULU replaces the
+shift/add square while preserving the observable result. Target checks use
+original world-space coordinates and targetable area, not the apparent pixel
+size of the rendered wireframe.
 
-The native core retains original INWK byte layout, sign-magnitude values,
-byte-width overflow, signed zero, original update order, and arithmetic
-rounding. Blueprint maximum speeds are extracted from the supplied Electron
-source. MLTU2's final carry is clear: the following MV43 subtraction therefore
-subtracts an extra unit. That behavior is deliberately retained.
+The current scene has no reserved station slot. ANGRY therefore receives the
+actual station-AI pointer when a station is present. The source's trader
+station-hostility path is also tested. Ship death currently stops at the
+original killed-bit boundary: the scene clears its cached lines and scanner
+contact instead of inventing an explosion or awarding a bounty.
 
-A Python instruction interpreter executes the bundled **original 6502 source
-instructions**, including the arithmetic helpers, to produce expected INWK
-records. This is a documented instruction subset, not a full machine emulator.
-The native QDOS tests compare all 33 movement-state bytes and all 13 player
-control-state bytes, not just visible geometry:
+Sound and the surrounding spawn/ECM loop are absent. Their carry boundaries
+are explicit: this shell supplies C=0 to LASLI and C=1 to the MLOOP subtraction,
+giving the 10/6/2/0 pulse countdown. DORND and countdown routines support both
+incoming carry values, and the tests cover both. The scene's fixed RNG seed is
+test scaffolding, not the original clock-derived initialization.
 
-- Instruments: **512 original framebuffer cases**, zero mismatches.
-- Recharge/cooling: **2,048 state cases and 1,024 sequential updates**, zero mismatches.
-- Scanner: **512 source geometry/pixel cases and all 256 visibility flags**, zero mismatches.
-- Player controls: **2,048 byte-state cases and 1,024 sequential updates**, zero mismatches.
-- TIDY: **512 direct cases and 24 scheduled trajectories (5,248 movement steps)**, zero mismatches.
-- MVEIT parts 3–8: **768 fixtures, 4,224 steps**, zero mismatches.
-- Existing own-rotation tests: **768 fixtures, 11,904 steps**, zero mismatches.
-- Existing renderer: **52 line and 244 renderer fixtures**, plus bounds,
-  XOR erase, range hiding/re-entry and overlapping line caches.
-- Actual ELITEASM integration at **128 KB and 640 KB**: pause, damping,
-  scene changes, full cached-line/framebuffer comparison, roll/pitch/throttle
-  input, uncapping, screen restoration, poll cleanup and successful exit.
+Crosshair and laser endpoint geometry comes from SIGHT/TT15 and LASLI2/las.
+They use the existing native inclusive-endpoint line rasterizer, so this is
+not a claim of original Electron pixel-identical line drawing. The dashboard,
+scanner and supported gauges retain their earlier original-pixel tests.
 
-Actual BASIC `EXEC_W` launches at both RAM sizes also verify that BASIC is
-suspended and a burst of printable game keys leaves the queue empty on exit.
-Tests check rate buildup, sign, damping to centre, both speed limits and
-Escape waiting until a held game key is released. Scanner integration also
-compares all 7,168 dashboard bytes against independently decoded original
-artwork plus contacts and live gauges, including erasure when contacts become
-hidden. Tests inject depleted shields and a warm laser, then compare every
-status byte and the countdown against the source-derived sequence.
+See `docs/FIDELITY.md` and `docs/ARCHITECTURE.md` for remaining adaptations.
 
-These establish the tested movement routines and adapters. The renderer still
-uses A1's native projection/clipping/rasterization, not exact Electron pixels.
-Live vectors are adapted to Q8; source LL9 normalization remains unported.
+## Validation and performance
 
-## Performance and memory
+- **8,192 new source-instruction cases**: RNG, HITCH, damage, hostility,
+  forward/aft player damage, firing and both-carry countdowns; zero mismatches.
+- **2,048 sustained-fire updates**, including heat inhibition and recovery;
+  buffer guards and double-XOR erasure checks.
+- Actual native job at **128 KB and 640 KB**, both direct loading and BASIC
+  `EXEC_W`: F/pause, five-hit Sidewinder kill, scanner removal, misses, station
+  immunity/hostility, frozen laser pulse, scene-reset pixels and exit cleanup.
+- All prior movement, TIDY, controls, scanner, instruments and renderer tests pass.
 
-QLBox R9 / JS ROM / speed 1 / 640 KB, 300 uncapped frames:
+QLBox R9, speed 1, 300-frame benchmark: **53.5 FPS solo / 8.3 FPS twelve ships**.
+It includes the original movement/control/scanner/instrument paths and idle
+laser dispatch/countdown. It excludes keyboard polling, active firing and
+unported AI. These are emulator measurements, not physical 7.5 MHz 68008 timing.
 
-| Scene | 50 Hz ticks | FPS |
-| --- | ---: | ---: |
-| One Cobra, z initially 640 | 279 | 53.7 |
-| Twelve ships, z initially 2400 | 1808 | 8.2 |
+## Build and tests
 
-The benchmark runs the native control calculation once per frame, scheduled TIDY, MVEIT parts 3–8, position/vector adapters, projection and
-XOR ship erase/draw, scanner erase/plotting, recharge/cooling and instrument drawing. It seeds continuous own rotation, ALPHA=1, BETA=0, DELTA=0,
-ship speed=0. The benchmark disables control damping and supplies fixed rates
-for fixed ALPHA/BETA; the interactive scene uses damping. A7's corrected
-countdown changes the TIDY schedule from A6, so trajectories differ slightly.
-AI, keyboard polling and the unconnected cockpit instruments are absent. Scene
-trajectories differ from A2; this is not a controlled per-routine speed delta.
-
-**Physical QL timing is untested.** QLBox's 68000 budget does not reproduce
-68008 external-bus/contention and IPC timing exactly.
-
-Final `ELITEASM`: **24,486 bytes**, **3,778-byte QDOS data-space request**, plus
-2,048-byte stack and a 32,768-byte original-screen snapshot. Tested largest
-free block after startup at 128 KB: **25,600 bytes** (actual BASIC launch; 26,112 with the headless loader). The milestone fits 128 KB;
-the finished game's fit is still unproven. A 5 MB disk is ample for this build.
-
-For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3778**
-using a QDOS-aware method. XTcc and included `.qlbox-meta` headers support
-QLBox; ordinary byte copying does not set a real QDOS executable header.
-
-## Package and build
-
-| Executable | Purpose |
-| --- | --- |
-| `host/ELITEASM` | Assembly interactive application; 128/640 KB |
-| `host/ELITEBEN` | C CLI shell around native routines; use 640 KB |
-| `host/ELITETST` | Renderer diagnostics; use 640 KB |
-| `host/ELITEMOT` | A2 own-rotation fixtures and matrix adapter; use 640 KB |
-| `host/ELITEFLT` | Full movement fixtures and position adapter; use 640 KB |
-| `host/ELITETDY` | Original TIDY fixtures and scheduled movement; use 640 KB |
-| `host/ELITECTL` | Original player control fixtures and sequence test; use 640 KB |
-| `host/ELITESCN` | Original scanner geometry, pixels, XOR and flags; use 640 KB |
-| `host/ELITEDIL` | Original gauge pixels, recharge and cooling; use 640 KB |
-
-C and fixture data are excluded from ELITEASM. The recovered relocatable job
-startup is retained with C initialization bypassed.
+The full source, generated data, original instruction excerpts, fixtures,
+Makefile and all ten executables are included. `host/ELITEASM` is the game job;
+`ELITEBEN` is the benchmark and the remaining jobs are independent diagnostics.
+Use 640 KB for the larger diagnostics, including the new `ELITECBT`.
 
 ```bat
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITEDIL
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITESCN
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITECTL
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITETDY
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITEFLT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITEMOT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a7\host\ELITETST --args "--selftest"
-bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a7\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a8\host\ELITECBT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a8\host\ELITETST --args "--selftest"
+bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a8\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
 ```
-
-`--motion` benchmarks A2 own rotation only; neither flag selects the A1 demo
-matrix path. ELITEASM ignores command-line arguments.
 
 Build with the recovered QDOS GCC 2.95.3 R2 signed-remainder-fix toolchain:
 
@@ -176,26 +132,17 @@ bash tests/run-qlbox.sh /absolute/path/to/qlbox-r9
 bash tests/run-basic.sh /absolute/path/to/qlbox-r9
 ```
 
-C drivers keep `-fno-omit-frame-pointer` for the recovered compiler bug.
-The test harness needs QLBox R9 source, Linux runner, Musashi and JS ROM;
-those and the toolchain are not bundled. Generated sources/fixtures are included.
+C test drivers retain `-fno-omit-frame-pointer` for the recovered compiler bug.
+The integration harness needs QLBox R9 sources, Musashi, Linux runner and JS ROM;
+these and the toolchain are not bundled. ELITEASM ignores command-line arguments.
 
-Regenerate expected motion from the bundled original excerpts:
+Regenerate the source-based fixtures with `python3 tests/NAME_reference.py`,
+where NAME is `motion`, `flight`, `tidy`, `controls`, `scanner`, `dials` or
+`combat`. Pass `/path/to/elite-source.asm` to re-extract from the supplied full
+source. Run generators before rebuilding their diagnostics. Regenerate expanded
+blueprints with `python3 tools/extract.py /path/to/elite-source.asm`, renderer
+fixtures with `python3 tests/reference.py`, and the original dashboard conversion
+with `python3 tools/dashboard.py`.
 
-```sh
-python3 tests/motion_reference.py
-python3 tests/flight_reference.py
-python3 tests/tidy_reference.py
-python3 tests/controls_reference.py
-python3 tests/scanner_reference.py
-python3 tests/dials_reference.py
-```
-
-Pass `/path/to/elite-source.asm` as an argument to any of these scripts to re-extract
-from the full supplied source. Geometry regeneration uses
-`python3 tools/extract.py /path/to/elite-source.asm`; renderer fixtures use
-`python3 tests/reference.py`. Dashboard conversion uses
-`python3 tools/dashboard.py` with the bundled original asset.
-
-See `docs/A7-BENCHMARK.log`, `docs/A7-INTEGRATION.log`, `docs/A7-BASIC-EXIT.log`, `docs/TESTING.md`,
-`docs/FIDELITY.md` and `docs/SCREENS.png`. Attribution is in `NOTICE.md`.
+Validation logs and actual emulator captures are in `docs/`. Attribution is in
+`NOTICE.md`; file checksums are in `SHA256SUMS`.

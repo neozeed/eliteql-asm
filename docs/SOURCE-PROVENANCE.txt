@@ -26,3 +26,15 @@ The harness skips fuel/cabin/altitude and COMPAS; its NEXTR calls move past
 those unimplemented gauges without drawing them. Regenerate using
  tests/dials_reference.py SOURCE.
 The original descending MCNT scheduling is taken from main game loop me3.
+
+A8 adds original-combat.asm: HITCH, SQUA2/MU1/MU11, DORND, ANGRY/AN2,
+OOPS, DENGY, MA68/ma1, LASLI arithmetic, MLOOP laser-counter section,
+and MA47 damage through its killed-bit boundary plus MA14. Tests replace
+unported sound with a flags-preserving call boundary, LASLI2 drawing with RTS,
+and stop on kill/OUCH/DEATH rather than emulate absent game systems.
+Regenerate with tests/combat_reference.py SOURCE.
+Original SIGHT/TT15 and LASLI2/las geometry is retained in the separate
+original-combat-drawing.asm reference excerpt; its rasterizer is not emulated
+by the arithmetic oracle. QL line rasterization is documented in FIDELITY.md.
+A8 tools/extract.py also extracts original max energy, targetable area and
+maps the ten blueprint records to original types 1-5 and 7-11.

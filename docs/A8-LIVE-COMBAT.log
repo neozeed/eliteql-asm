@@ -1,0 +1,4 @@
+PASS live combat: ram=128 KB; F/pause, five-hit kill, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS ASM native: ram=128 KB, frames=1376, largest free block after startup=25088 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+PASS live combat: ram=640 KB; F/pause, five-hit kill, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS ASM native: ram=640 KB, frames=1376, largest free block after startup=540160 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
