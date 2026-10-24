@@ -1,0 +1,6 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a12'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 9010 (2332)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 28912 bytes, QDOS data space 9010
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-asm-a12'

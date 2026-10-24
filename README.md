@@ -1,6 +1,9 @@
-# EliteQL ASM A11 — enemy missiles and ECM
+# EliteQL ASM A12 — traditional pitch controls
 
-A11 connects the A10 missile-homing kernel to a playable encounter. A9 remains
+A12 reverses the up/down keyboard mapping: Down pulls up and Up pushes down.
+The native original DOKEY arithmetic and damping remain unchanged.
+Enemy missiles and ECM are retained from A11. Player missiles are not added
+in this release. A9 remains
 the separate stable baseline. This archive includes the complete project source,
 generated data, original instruction excerpts, diagnostics and QDOS executables.
 
@@ -8,7 +11,7 @@ Launch `EXEC_W WIN1_ELITEASM` after mounting this folder's `host` directory.
 For example, from QLBox on Windows:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a11\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a12\host
 ```
 
 ## Controls
@@ -21,7 +24,8 @@ bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a11\host
 | 4 | Missile-enabled encounter; restart this scene after destruction |
 | E | Activate fitted test-scene ECM; holding E repeats when it expires |
 | F | Hold to fire the forward pulse laser |
-| Arrows | Accumulate pitch/roll rates; release to damp |
+| Up / Down | Push nose down / pull nose up; release to damp |
+| Left / Right | Roll left / right; release to damp |
 | A / Z | Increase / decrease player speed |
 | Space | Pause / resume |
 | N | Reset; advance the solo model |

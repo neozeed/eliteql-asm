@@ -261,9 +261,10 @@ asm_ecm_key_done:
  sne (a0)
  btst #4,d0
  sne 1(a0)
- btst #2,d0
- sne 2(a0)
+ ; Traditional flight mapping: Down pulls up, Up pushes down.
  btst #7,d0
+ sne 2(a0)
+ btst #2,d0
  sne 3(a0)
  moveq #4,d0
  bsr asm_keyrow

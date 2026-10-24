@@ -1,3 +1,10 @@
+# A12 control update
+
+Up/down mapping reversed. Both live BASIC harness runs pass at 128/640 KB,
+including expected reversed pitch-rate and ALPHA/BETA signs, damping, speed
+limits, combat, enemy missiles, ECM and exit. See A12-BASIC.log.
+Only shell mapping and those input expectations change from A11.
+
 # A11 update
 
 See README.md for the connected hostile missile/ECM implementation and its
