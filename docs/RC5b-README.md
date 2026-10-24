@@ -1,0 +1,236 @@
+# EliteQL 1.0 RC5b
+
+Native 68000/QDOS adaptation of Acorn Electron Elite. RC4 replaces the production
+fixed ship pool with the source-derived compact universe list. All gameplay is
+assembly; RC3a remains an independent fallback. This is still a release candidate:
+whole-game RNG identity and real-hardware timing are not claimed.
+
+## RC5b deliberate quit
+
+**Backslash (`\`) opens QUIT TO BASIC? Y/N.** Only a fresh **Y** confirms.
+**N** or **Esc** cancels. Other keys do nothing. Simulation freezes while the
+prompt is open; cancellation restores the exact previous screen and pause state.
+A Y key already held when opening cannot confirm. This works in flight, docked,
+on menus, title screens and during the death flow.
+
+**Esc never quits or restarts production gameplay.** In a menu it returns to the
+station bay or cockpit; in the cockpit or title it stays in the game. Paused Esc
+keeps the cockpit paused. RC5a remains a separate historical fallback.
+
+## Menu Escape behavior
+
+**Esc backs out of menus:** docked, it returns to the station bay/market;
+in flight, it returns to the cockpit. This applies to status, cargo, equipment,
+navigation/charts, cheats, and in-game save/load prompts. The station root also
+ignores Esc as an exit command. A held Esc must be released before another action,
+so backing out cannot accidentally quit or restart. Existing pause state is kept.
+
+The cheat menu's **0** still closes to its previous screen; **Esc** goes directly
+to the bay/cockpit. Use backslash followed by a fresh Y to quit.
+
+## RC5 optional cheat menu
+
+Press **0** during normal play, in flight, paused, docked or on navigation pages.
+The labelled **CHEAT MENU - QL EXTRAS** freezes simulation until closed:
+
+| Key | Action |
+| --- | --- |
+| 1 | Add 1,000 credits |
+| 2 | Refill missiles to four |
+| 3 | Fit the docking computer |
+| 4 | Replenish the single energy bomb |
+| 5 | Fit ECM |
+| 6 | Fit the galactic hyperdrive |
+| 0 | Close and return to the previous screen |
+| Esc | Return to station bay or cockpit |
+
+Cash adds once per fresh press and saturates instead of overflowing. Equipment
+is granted, not toggled off. An already detonating bomb's countdown is preserved.
+Normal hyperspace is already part of the ship; option 6 grants the consumable
+**galactic** drive. The docking computer is the Electron's immediate docking
+mechanic, not an invented autopilot. Cheats modify normal commander state and
+are retained by ordinary named saves; opening the menu does not save anything.
+Stock startup remains unchanged. This menu is an explicitly requested QL extra,
+not an original Electron feature. RC4 is preserved as the no-cheat fallback.
+
+## RC4 universe allocation and processing
+
+- Twelve logical entries include planet and station/placeholder, leaving ten
+  ordinary ship slots. Ordinary spawns append; station creation replaces slot 1.
+- Original blueprint line-heap costs and the 1,087-byte combined budget can reject
+  large ships before the slot limit. Extra QL RAM does not increase the population.
+- Removal compacts ship state, render caches and explosion caches together. The
+  shifted ship is processed at the same index in the current frame; children
+  appended by tactics are also processed later in that frame.
+- TIDY and tactics use original logical XSAV positions. Encounter allocation
+  failures affect subsequent branches and RNG during generation.
+- KS2 adjusts missile targets after removal. A missile whose target is removed
+  becomes AI-disabled and drifts, as in Electron. The original player-lock quirk
+  (abort an equal lock, but do not decrement a later MSTG) is retained.
+
+Run `EXEC_W WIN1_ELITEASM` as before. Controls, named saves and the requested
+fresh-Space GAME OVER hold are retained. See docs/RC4-RESULTS.md for validation.
+
+## RC3 start, death and load flow
+
+The rotating Cobra asks **LOAD NEW COMMANDER (Y/N)?**. Press Y for a name, or N
+to use the last saved commander held in memory (Jameson on first start). The
+rotating Mamba then shows **PRESS FIRE OR SPACE, COMMANDER** before the docking
+bay. Like the original TITLE routine, that second screen accepts any key.
+Escape on either title screen stays there; backslash opens the quit confirmation.
+
+Death shows GAME OVER with the Electron DEATH routine's four-canister scene,
+then holds the final frame until a fresh press of Space returns to the load
+question. A key held during the animation cannot skip the screen. This requested
+QL presentation change deliberately differs from Electron’s timed return. N restores the last successful save/load;
+it does not award a new commander or retain unsaved progress. With no save,
+it restores the default Jameson. Paused Escape stays in the game.
+
+Save/load accepts a commander name of 1–7 letters or digits. Left (or Backspace)
+deletes, Enter accepts, Escape cancels. The QDOS file is WIN1_<NAME>; for example,
+ALEX saves to WIN1_ALEX. To import an older WIN1_ELITESAVE, delete the entire
+load name and press Enter. Legacy EQA1 and EQA2 payload validation is retained;
+missing/corrupt files do not replace the live or last-saved commander. Named
+files still use EQA2, with the name supplied by the filename. These are native
+QDOS files, not Electron cassette images.
+
+6 opens/closes status; docked, it switches between status and market. 7 opens
+cargo, and 6 closes it. Status includes present/hyperspace systems, the original
+Docked/Green/Yellow/Red condition rule, fuel, cash, legal status, rating, all
+installed equipment, and the laser fitted to each view.
+
+While paused with F5:
+
+| Key | Electron setting |
+|---|---|
+| S / Q | Sound on / off |
+| Caps Lock | Toggle flight damping |
+| A | Toggle automatic recentring |
+| X | Toggle title author credits |
+| F | Toggle the original inert flashing-bar flag |
+| Escape | Stay paused in the game |
+| F5 | Resume |
+
+The screen stays frozen, as in Electron FREEZE. Toggle keys beep if sound is on.
+Settings persist across launch/death/restart. The source explicitly says FLH has
+no effect in this version; RC3 does not invent flashing bars. The unsupported
+joystick options remain excluded rather than adding joystick gameplay.
+
+## RC2 keyboard update
+
+The production flight keys now follow Electron KYTB: comma/less-than and
+period/greater-than roll, X pulls up, S pitches down, Space accelerates,
+slash/question-mark slows, and A fires. Shift is optional for punctuation.
+Arrow keys retain traditional flight pitch/roll; F remains a fire alias and
+Z a slow-down alias. A no longer accelerates.
+
+Space never toggles pause in ELITEASM. F5 toggles pause/resume as the QL
+substitute for Electron COPY/DELETE. Backslash opens the quit confirmation and K uses an
+escape capsule. Existing T/U/M, E, -, J and C match Electron's secondary flight
+commands. Docked S remains sell/save, and chart arrows remain cursor controls.
+V now correctly selects the local chart (RC1 accidentally mapped that to X).
+
+The separate ELITEDEV preserves its legacy test controls, including Space pause,
+so the full retained arithmetic and integration regression corpus still runs.
+This update does not change the universe-order qualification in RELEASE-AUDIT.md.
+
+## Start playing
+
+Mount this archive's host directory in QLBox, then run:
+
+```
+EXEC_W WIN1_ELITEASM
+```
+
+Decline loading at the first title screen to start as Jameson, docked at Lave, with100 Cr, four missiles, a full tank,
+20-tonne cargo capacity and a front pulse laser. No ECM, scoops, energy bomb,
+energy unit, escape capsule, docking computer or galactic drive is supplied free.
+These starting values follow the original NA% default commander (Q%=FALSE).
+
+Press6 to leave the commander status screen for the market. Buy with B,
+sell with S, select with Up/Down, and launch with L. Press8 for equipment;
+S saves and O loads while in that screen. Save before launching if desired.
+The native EQA2 save format and EQA1 import are retained from A26/A27.
+
+Press9 for system data. C opens/closes the galactic chart; V opens the local
+chart or switches between local and galactic charts. On either chart use arrows
+to move, D to select the nearest system, and O to return the cursor home. H starts
+hyperspace after launch. G uses a purchased galactic drive. R refuels while docked
+on the navigation page. Press9 again to close navigation.
+
+## Flight controls
+
+|Key|Action|
+|---|---|
+|X / S|Pull up / pitch down|
+|Up / Down|Nose down / nose up (aliases)|
+|< / > (or comma / period)|Roll left / right|
+|Left / Right|Roll aliases|
+|Space / ? (or slash)|Increase / decrease speed|
+|Z|Slow-down alias|
+|F1 / F2 / F3 / F4|Front / rear / left / right view|
+|A / F|Fire the fitted laser in this view|
+|T / U / M|Arm/acquire missile / disarm / launch|
+|E|Use fitted ECM|
+|-|Use fitted energy bomb|
+|J|In-system jump, subject to mass lock|
+|C in flight|Use fitted docking computer near a friendly station|
+|K|Use fitted escape capsule|
+|6 / 7|Commander status / cargo; close with6|
+|9|Navigation/data/charts|
+|F5|Pause/resume|
+|N at the load question|Restore the last saved commander|
+|Escape|Return from menus; never quit or restart|
+|Backslash|Quit confirmation: fresh Y confirms; N/Esc cancels|
+
+The production job ignores numbered test scenes, live commander reset and
+uncapped simulation. ELITEDEV retains these development controls and the
+fixture-friendly equipment. It is deliberately a separate executable.
+
+## Presentation changes
+
+- Original TT23 short-range geometry, range circle, current/target crosses,
+  system names, label-row occupancy and CPIX4 dots. ASL carry into coordinate
+  addition is preserved, including the one-pixel negative-delta asymmetry.
+- TT24/TT25 system information: named economy/government, technology,
+  population, inhabitants, productivity, radius and distance.
+- Stock docked commander startup, docked commander/inventory access and a
+  production HUD without the development FPS field.
+- Escape recovery skips the invented launch tunnel and follows the Electron's
+  immediate recovery/docking-bay logic.
+
+Two earlier planned items were incorrect for this source: Electron has no
+system-name search and no animated escape-capsule flight sequence. Neither has
+been invented. Likewise this source has no Thargoids, witchspace misjumps or
+missions. Native QL text layout/font and controls are adaptations.
+
+## Hardware and files
+
+ELITEASM is 62,878 bytes with 9,220 bytes of declared QDOS data space. The game is
+all native68000 assembly; C and Python are development diagnostics only.
+Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
+executable metadata when copying it. The large source/diagnostic archive is not
+the runtime installation and need not fit on the5 MB disk.
+
+Both128 KB and640 KB QLBox configurations pass.128 KB depends on the starting
+BASIC screen compressing sufficiently for its lossless backup;640 KB is the
+comfortable choice. Physical68008 performance and sound remain unmeasured.
+Measured emulated active solo flight remains10 updates/second, not a guarantee
+for crowded combat. QL speaker output approximates Electron sound.
+
+## Build/test
+
+Use the recovered GCC2.95.3 R2 signed-remainder-fix QDOS toolchain and QLBox R9:
+
+```
+python3 tests/presentation_reference.py
+make QCC=/absolute/path/to/qdos-gcc
+SKIP_REFERENCES=1 sh tests/run-qlbox.sh /absolute/path/to/qlbox-r9
+sh tests/run-basic.sh /absolute/path/to/qlbox-r9
+sh tests/run-release.sh /absolute/path/to/qlbox-r9
+```
+
+The first two full live suites mount ELITEDEV under the test job name, preserving
+all prior deterministic scene coverage. run-release.sh runs the actual ELITEASM
+via BASIC EXEC_W with stock equipment. Final logs, screenshots, source provenance
+and known differences are in docs. See RC2-RESULTS.md and RELEASE-AUDIT.md; RC1-RESULTS.md is historical.
