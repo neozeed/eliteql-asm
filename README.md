@@ -1,13 +1,39 @@
-# EliteQL ASM A20 — equipment, commander files and escape recovery
+# EliteQL ASM A21 — galactic chart and original arrival planet state
 
-A20 adds original equipment-purchase rules, a working forward beam-laser
-upgrade, the larger cargo hold, repeatable galactic-drive purchases, player
-escape recovery, and native QDOS commander save/load. A19 remains unchanged.
+A21 adds a graphical galaxy chart and translates the original SOLAR/ZINF/SOS1
+planet initialization. A20 is preserved separately. The complete source and
+runnable QDOS jobs are included.
+
+Press **9** for navigation, then **C** to switch between the data page and
+galactic chart. Left/Right still selects systems within fuel; Up/Down browses
+all256. The chart labels current and destination systems and marks both with
+crosses. H/G retain their hyperspace functions;9 closes navigation. This is a
+native QL chart presentation using original generated coordinates, not an exact
+copy of Electron chart pixels or its free-moving cursor.
+
+On hyperspace arrival, the planet workspace now uses original seed-derived
+coordinates, ZINF orientation and SOS1 roll/pitch flags. SOLAR’s inherited
+carry from the pre-jump legal byte is preserved; galactic jumps use clean legal
+status. The original128/130 planet type is computed but not yet rendered.
+This corrects the planet reference used by movement and pod navigation.
+
+**Station placement and encounter spawning remain fixtures.** This pass does
+not complete SOLAR/NWSHP integration, planet rendering, original traffic or
+police spawning. The existing playable docking loop is retained.
+
+ELITEUNI checks4096 seed/legal/tech combinations against source-derived
+expectations. Live tests compare the complete chart plotting area against all
+256 original-generated system coordinates and both crosses. All A20 gameplay
+and save/load tests remain in the full128/640KB regression. Logs are
+docs/A21-BUILD/INTEGRATION/BASIC.log. The source-derived SOLAR test is not a
+full instruction-emulated universe lifecycle.
+
+A20 commander files remain compatible. New chart state is transient.
 
 Run `EXEC_W WIN1_ELITEASM` with this archive's host directory mounted:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a20\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a21\host
 ```
 
 ## Equipment and upgrades
@@ -138,8 +164,8 @@ new missiles, bombs or equipment. Station compass selection is scene-based.
 - Connected travel/docking/refuelling/galactic travel at 128/640 KB under both
   direct-job and BASIC EXEC_W harnesses, plus all earlier combat regressions.
 
-The A20 game is 42,914 bytes plus 8,330 bytes QDOS data space. BASIC EXEC_W leaves a
-2,560-byte largest free block at 128 KB. Physical 68008 timing remains unmeasured;
+The A21 game is 43,584 bytes plus 8,304 bytes QDOS data space. BASIC EXEC_W leaves a
+2,048-byte largest free block at 128 KB. Physical 68008 timing remains unmeasured;
 the passive benchmark is not an active-game performance claim. Logs are in
 A20-BUILD/INTEGRATION/BASIC.log, with focused travel checks in A20-SHOP.log.
 SCREENS.png contains actual emulator navigation, destination-market and galaxy 2
@@ -282,7 +308,7 @@ QLBox sources, JS ROM and compiler are external and not bundled. No compiler is
 needed to run ELITEASM. Attribution: NOTICE.md.
 
 Blueprint headers append the original bounty word at offset 38 (40-byte header),
-preserving earlier offsets. Stats magic is EQBA/6800. Pointers at offsets 138
+preserving earlier offsets. Stats magic is EQBB/6800. Pointers at offsets 138
 and 142 expose the 10-byte commander record and modal-page word. Commander
 layout: CASH[4], TALLY[2], FIST, DLY, native message ID, padding. The source
 excerpts describe logic; native presentation and test-scene reset are explicit

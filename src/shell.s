@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514241,0x36383030
+ .data4 0x45514242,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -63,6 +63,8 @@ asm_nav_debug: .data4 asm_nav
 asm_arrival_debug: .data4 asm_arriving
 asm_fit_debug: .data4 _ship_fit
 asm_shop_debug: .data4 asm_shop
+asm_chart: .data2 0
+asm_solar_legal: .data2 0
 asm_shop: .data2 0
 asm_travel: .space 64
 asm_nav: .data2 0
@@ -1001,6 +1003,7 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w asm_chart
  clr.w asm_shop
  clr.w asm_docked
  clr.w asm_market_keys
@@ -2494,8 +2497,14 @@ nav_left:
  bset #6,d4
 nav_right:
  btst #4,d0
- beq nav_edges
+ beq nav_chart_key
  bset #7,d4
+nav_chart_key:
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #3,d0
+ beq nav_edges
+ bset #9,d4
 nav_edges:
  move.w asm_nav_keys,d0
  eor.w d4,d0
@@ -2573,6 +2582,11 @@ nav_refueled:
  bsr asm_draw_dials
  bra nav_redraw
 nav_select:
+ btst #9,d4
+ beq nav_select_system
+ eor.w #1,asm_chart
+ bra nav_redraw
+nav_select_system:
  tst.w d4
  beq nav_consumed
  move.w #1,asm_nav_step
@@ -2636,6 +2650,11 @@ nav_start_failed:
  move.w #1,asm_nav
 nav_redraw:
  bsr asm_clear_view
+ tst.w asm_chart
+ beq nav_text_page
+ bsr asm_chart_page
+ bra nav_consumed
+nav_text_page:
  bsr asm_nav_page
 nav_consumed:
  moveq #1,d0
@@ -2644,6 +2663,13 @@ nav_not_consumed:
  moveq #0,d0
  rts
 asm_arrival:
+ moveq #0,d0
+ move.b asm_commander+6,d0
+ cmp.b #2,asm_travel+13
+ bne solar_keep_carry
+ moveq #0,d0
+solar_keep_carry:
+ move.w d0,asm_solar_legal
  move.w #1,asm_arriving
  ; GVL's DORND boundary uses explicit carry0; sound RNG is not reproduced.
  clr.l -(sp)
@@ -2668,6 +2694,15 @@ arrival_keep_rng:
  move.w #1,asm_arriving
  bsr asm_launch
  clr.w asm_arriving
+ moveq #0,d0
+ move.w asm_solar_legal,d0
+ move.l d0,-(sp)
+ move.b asm_travel+24,d0
+ move.l d0,-(sp)
+ pea asm_travel+16
+ pea asm_planet
+ jsr _solar_planet
+ lea 16(sp),sp
  lea asm_arrival_rng,a0
  lea asm_laser+5,a1
  moveq #3,d1
@@ -2790,7 +2825,7 @@ nav_distance: .ascii "000.0 FUEL "
 nav_fuel: .ascii "7.0 GDRV "
 nav_drive: .ascii "Y\0"
 nav_help1: .ascii "LEFT/RIGHT NEXT WITHIN FUEL\0"
-nav_help2: .ascii "UP/DOWN ALL 256 SYSTEMS\0"
+nav_help2: .ascii "UP/DN ALL SYSTEMS  C CHART\0"
 nav_help3: .ascii "H HYPERSPACE  G NEXT GALAXY\0"
 nav_help4: .ascii "DOCKED R REFUEL  9 CLOSE\0"
  .align 2
@@ -3020,4 +3055,33 @@ save_ok: .ascii "SAVED WIN1_ELITESAVE\0"
 load_ok: .ascii "COMMANDER LOADED\0"
 save_error: .ascii "SAVE FAILED - CHECK WIN1\0"
 load_error: .ascii "LOAD FAILED - STATE UNCHANGED\0"
+.align 2
+
+.sect .text
+asm_chart_page:
+ lea chart_title,a4
+ moveq #4,d6
+ bsr asm_text
+ lea asm_travel+25,a4
+ moveq #18,d6
+ bsr asm_text
+ lea asm_travel+49,a4
+ moveq #18,d6
+ move.w #160,d7
+ bsr asm_text_at
+ pea asm_travel
+ pea 0x20000
+ jsr _galaxy_chart
+ addq.l #8,sp
+ lea chart_help,a4
+ move.w #170,d6
+ bsr asm_text
+ lea chart_help2,a4
+ move.w #182,d6
+ bsr asm_text
+ rts
+.sect .data
+chart_title: .ascii "GALACTIC CHART / CURRENT > TARGET\0"
+chart_help: .ascii "ARROWS SELECT  H JUMP  G GALAXY\0"
+chart_help2: .ascii "C DATA  9 CLOSE\0"
 .align 2

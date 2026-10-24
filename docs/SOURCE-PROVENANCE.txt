@@ -95,3 +95,7 @@ A20: original-shop.asm contains EQSHP through etB/pres; original-escape.asm
 contains ESCAPE/ESL2. Native shop.s translates these effects, with a forward-view
 laser adapter and deferred docking computer. PRXS prices are retained. QDOS
 save.s/file packing/checksum are native platform adaptation, not6502 conversion.
+
+A21 original-universe.asm contains SOS1,SOLAR,ZINF. universe.s translates the
+planet workspace effects. Galactic chart coordinates reuse original TT20/cpl
+system generation; QL plotting/layout/cross controls are native presentation.

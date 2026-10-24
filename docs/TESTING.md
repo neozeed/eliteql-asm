@@ -236,3 +236,17 @@ are deliberately excluded from the release.
 Final A20:42914-byte job,8330-byte QDOS data space. BASIC largest free block
 2560 bytes at128KB,517632 at640KB. Focused A20-SHOP.log also checks loading
 a saved commander after resetting all live commander/equipment state.
+
+## A21 chart and SOLAR boundary
+
+universe.s translates SOLAR/ZINF/SOS1 planet workspace initialization; old FIST
+bit0 is captured before travel_arrive halves it. Galactic arrival supplies0.
+SOS1 type128/130 is returned but not rendered; the planet orientation and
+rotation fields are initialized although current movement advances position
+only. NWSHP/station placeholder handling and universe population are unfinished.
+Chart uses256 original generated seeds, x=s1_hi,y=s0_hi/2 with a32-pixel vertical
+offset, native one-pixel stars and clipped current/target crosses. It is a QL
+presentation adapter, not original TT22 cursor/star-size/raster equivalence.
+ELITEUNI checks4096 source-derived seed/legal/tech cases; travel_check.h checks
+the exact chart area against original-generated coordinates in the live job.
+Stats magic EQBB/6800; offsets and EQA1 save format remain unchanged.

@@ -13,8 +13,8 @@ host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -116,4 +116,9 @@ host/ELITETRV: tests/travel_test.c tests/travel_fixtures.h src/travel.s
 all: host/ELITESHP
 host/ELITESHP: tests/shop_test.c src/shop.s src/cargo.s src/combat.s src/line.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/shop_test.c src/shop.s src/cargo.s src/combat.s src/line.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEUNI
+host/ELITEUNI: tests/universe_test.c src/universe.s src/travel.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/universe_test.c src/universe.s src/travel.s src/line.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
