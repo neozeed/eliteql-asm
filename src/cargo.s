@@ -146,4 +146,5 @@ tumble_speed:
 .sect .data
 .align 2
 .globl _ship_fit
-_ship_fit: .data1 22,15,0,0
+; CRGO, front laser, escape pod, reserved, rear/left/right lasers, reserved.
+_ship_fit: .data1 22,15,0,0,0,0,0,0

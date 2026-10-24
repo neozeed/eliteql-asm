@@ -1,3 +1,38 @@
+# A26 current update
+
+README.md and A26-RESULTS.md describe the current release. Older milestone
+sections below are historical, not the current completion list.
+
+Native shop_buy_view extends the original transaction adapter with an explicit
+view argument; shop_buy remains a front-view ABI entry for retained tests.
+_ship_fit is eight bytes: capacity,front,escape,reserved,rear,left,right,reserved.
+Only the selected mount is tested/refunded/replaced. The game loop reads the
+current fitting through laser_fitting; targeting uses A25's PLUT/PUS1 workspace.
+
+MA64's computer gate is key & DKCMP & SSPR, followed by the station AI sign test.
+The shell supplies the actual allocated station (not a fixed slot), then joins
+the existing GOIN/RES4 bay adapter. C is live-flight-only; no invented autopilot.
+The dashboard S/E bulb adapter writes the original SPBT/ECBT bitmaps into
+otherwise black8x8 regions: logical192,232 and56,232. Original screen addresses
+7d20/7c98 use the Electron320-pixel stride and32-pixel left border.
+
+Stats magic:EQBG/6800. New pointers:242 shop direction word,246 computer-dock
+count long. Existing offsets and the first four _ship_fit bytes are unchanged.
+
+Save EQA2 is148 bytes: old144-byte prefix with new magic/checksum plus four
+bytes at144..147 (rear,left,right,reserved). A staged EQA1 read defaults those
+bytes to zero. EQA2 requires its entire tail. Version, checksum, existing fields
+and all four laser bytes validate before commit. The save remains a native
+single-slot adapter, not the Electron cassette format or an atomic replacement.
+
+ELITEFIT executes source fixtures from original-fittings-computer.asm; the
+qv view prompt, prx price lookup and pres error/refund exit are explicit adapters.
+Actual et3/et4 and MCASH instructions determine laser changes and trade-in refund.
+Price availability/technology/rejection are also covered by retained3072 shop
+cases. MA64 uses a relocated station-AI byte and boolean GOIN/MA68 exits.
+Original-bulbs.asm records the glyph/address source. ONLY_FITTINGS=1 selects
+live fitting/save/computer tests; complete harnesses include those tests too.
+
 # A25 current update
 
 See README.md and A25-RESULTS.md for the current release. Earlier milestone

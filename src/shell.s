@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514246,0x36383030
+ .data4 0x45514247,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -76,6 +76,10 @@ asm_altitude_debug: .data4 asm_altitude
 asm_view_debug: .data4 asm_view
 asm_police_debug: .data4 asm_police_launches
 asm_sight_debug: .data4 asm_sight
+asm_shop_view_debug: .data4 asm_shop_view
+asm_computer_debug: .data4 asm_computer_docks
+asm_shop_view: .data2 0
+asm_computer_docks: .data4 0
 asm_view: .data2 0
 asm_view_keys: .data2 0
 asm_police_launches: .data4 0
@@ -288,6 +292,9 @@ asm_loop:
  bsr asm_dock_keys
  bra asm_update_stats
 asm_flight_keys:
+ bsr asm_computer_key
+ tst.w asm_docked
+ bne asm_dock_commit
  bsr asm_view_keys_poll
  moveq #6,d0
  bsr asm_keyrow
@@ -594,12 +601,7 @@ planet_rotation_done:
 planet_draw_done:
  ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
  clr.l -(sp)
- moveq #0,d0
- move.b _ship_fit+1,d0
- tst.w asm_view
- beq view_laser_ready
- moveq #0,d0
-view_laser_ready:
+ bsr asm_current_laser
  move.l d0,-(sp)
  moveq #0,d0
  move.b asm_fire_key,d0
@@ -1048,6 +1050,8 @@ asm_no_encounter_tick:
  addq.l #1,asm_frames
  bra asm_update_stats
 asm_dock_commit:
+ clr.b asm_player+1
+ move.b #255,asm_player+2
  move.w #2,asm_salvage
  clr.b asm_travel+11
  clr.b asm_travel+13
@@ -1157,6 +1161,8 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w asm_shop_view
+ clr.l asm_computer_docks
  clr.w asm_view
  clr.l asm_police_launches
  bsr asm_view_label
@@ -1177,6 +1183,7 @@ asm_setup:
  move.b #22,_ship_fit
  move.b #15,_ship_fit+1
  clr.w _ship_fit+2
+ clr.l _ship_fit+4
  pea asm_travel
  jsr _travel_init
  addq.l #4,sp
@@ -1251,6 +1258,8 @@ asm_planet_zero:
  clr.l asm_ai_calls
  clr.l asm_ai_events
  bsr asm_erase_laser
+ tst.b _ship_fit+1
+ beq asm_sight_ready
  tst.b asm_sight
  bne asm_sight_ready
  pea 0x20000
@@ -1718,6 +1727,13 @@ asm_spawn_return:
  rts
 asm_draw_dials:
  moveq #0,d0
+ move.b asm_ecm,d0
+ move.l d0,-(sp)
+ move.l asm_station,-(sp)
+ pea 0x20000
+ jsr _dashboard_bulbs
+ lea 12(sp),sp
+ moveq #0,d0
  move.b asm_mcnt,d0
  move.l d0,-(sp)
  pea asm_status
@@ -1988,6 +2004,24 @@ dock_key_load:
  beq dock_key_edges
  bset #6,d4
 dock_key_edges:
+ moveq #0,d0
+ bsr asm_keyrow
+ btst #1,d0
+ beq dock_f2
+ bset #7,d4
+dock_f2:
+ btst #3,d0
+ beq dock_f3
+ bset #8,d4
+dock_f3:
+ btst #4,d0
+ beq dock_f4
+ bset #9,d4
+dock_f4:
+ btst #0,d0
+ beq dock_fkeys_done
+ bset #10,d4
+dock_fkeys_done:
  move.w asm_market_keys,d0
  eor.w d4,d0
  and.w d4,d0
@@ -3061,6 +3095,22 @@ nav_cash: .ascii "NOT ENOUGH CASH FOR FUEL\0"
 
 .sect .text
 asm_shop_transaction:
+ moveq #0,d0
+ btst #7,d4
+ bne shop_choose_view
+ moveq #1,d0
+ btst #8,d4
+ bne shop_choose_view
+ moveq #2,d0
+ btst #9,d4
+ bne shop_choose_view
+ moveq #3,d0
+ btst #10,d4
+ beq shop_view_chosen
+shop_choose_view:
+ move.w d0,asm_shop_view
+ bra dock_page_refresh
+shop_view_chosen:
  btst #3,d4
  bne asm_save_commander
  btst #6,d4
@@ -3068,14 +3118,17 @@ asm_shop_transaction:
  btst #2,d4
  beq dock_page_refresh
  moveq #0,d0
+ move.w asm_shop_view,d0
+ move.l d0,-(sp)
+ moveq #0,d0
  move.w asm_market_selection,d0
  move.l d0,-(sp)
  pea asm_travel
  pea asm_player
  pea asm_cargo
  pea asm_commander
- jsr _shop_buy
- lea 20(sp),sp
+ jsr _shop_buy_view
+ lea 24(sp),sp
  move.w d0,asm_market_result
  bne shop_no_fuel_reset
  tst.w asm_market_selection
@@ -3096,6 +3149,18 @@ asm_shop_page:
  move.b #46,asm_cash_digits+9
  lea asm_cash_line,a4
  moveq #10,d6
+ bsr asm_text
+ move.w asm_shop_view,d0
+ mulu.w #5,d0
+ lea asm_view_names,a0
+ adda.w d0,a0
+ lea shop_view_name,a1
+ moveq #4,d0
+shop_view_name_copy:
+ move.b (a0)+,(a1)+
+ dbra d0,shop_view_name_copy
+ lea shop_view_line,a4
+ moveq #18,d6
  bsr asm_text
  clr.w asm_page_item
 shop_page_loop:
@@ -3134,6 +3199,8 @@ shop_page_next:
  rts
 .sect .data
 shop_title: .ascii "EQUIP SHIP / 8 RETURNS TO MARKET\0"
+shop_view_line: .ascii "LASER "
+shop_view_name: .ascii "FRONT  F1-F4 SELECT VIEW\0"
 shop_arrow: .ascii ">\0"
 shop_help: .ascii "B BUY S SAVE O LOAD 8 BACK L GO\0"
 .align 2
@@ -3142,13 +3209,13 @@ shop0: .ascii "FUEL              0.2 CR/UNIT\0"
 shop1: .ascii "MISSILE                30 CR\0"
 shop2: .ascii "LARGE CARGO BAY       400 CR\0"
 shop3: .ascii "ECM SYSTEM            600 CR\0"
-shop4: .ascii "FORWARD PULSE LASER   400 CR\0"
-shop5: .ascii "FORWARD BEAM LASER   1000 CR\0"
+shop4: .ascii "EXTRA PULSE LASER     400 CR\0"
+shop5: .ascii "EXTRA BEAM LASER     1000 CR\0"
 shop6: .ascii "FUEL SCOOPS           525 CR\0"
 shop7: .ascii "ESCAPE POD           1000 CR\0"
 shop8: .ascii "ENERGY BOMB           900 CR\0"
 shop9: .ascii "ENERGY UNIT          1500 CR\0"
-shop10: .ascii "DOCK COMPUTER    UNAVAILABLE\0"
+shop10: .ascii "DOCK COMPUTER        1000 CR\0"
 shop11: .ascii "GALACTIC DRIVE      5000 CR\0"
 .align 2
 shop_messages: .data4 shop_ok,shop_cash,shop_present,shop_tech,shop_absent,save_ok,load_ok,save_error,load_error
@@ -3162,13 +3229,14 @@ shop_absent: .ascii "NOT IMPLEMENTED - NO CHARGE\0"
 .sect .text
 asm_save_commander:
  lea save_buffer,a0
- moveq #35,d0
+ moveq #36,d0
 save_zero:
  clr.l (a0)+
  dbra d0,save_zero
- move.l #0x45514131,save_buffer
+ move.l #0x45514132,save_buffer
  moveq #0,d6
  bsr save_copy
+ move.l _ship_fit+4,save_buffer+144
  bsr save_checksum
  move.l d0,save_buffer+4
  move.l #1,-(sp)
@@ -3181,6 +3249,7 @@ save_zero:
  move.w #7,asm_market_result
  bra dock_page_refresh
 asm_load_commander:
+ clr.l save_buffer+144
  clr.l -(sp)
  pea save_buffer
  jsr _commander_io
@@ -3188,7 +3257,10 @@ asm_load_commander:
  tst.l d0
  bne save_bad_load
  cmp.l #0x45514131,save_buffer
+ beq save_version_valid
+ cmp.l #0x45514132,save_buffer
  bne save_bad_load
+save_version_valid:
  bsr save_checksum
  cmp.l save_buffer+4,d0
  bne save_bad_load
@@ -3214,8 +3286,20 @@ save_fit_valid:
  cmp.b #143,d0
  bne save_bad_load
 save_laser_valid:
+ lea save_buffer+144,a0
+ moveq #2,d1
+save_side_validate:
+ move.b (a0)+,d0
+ beq save_side_next
+ cmp.b #15,d0
+ beq save_side_next
+ cmp.b #143,d0
+ bne save_bad_load
+save_side_next:
+ dbra d1,save_side_validate
  moveq #1,d6
  bsr save_copy
+ move.l save_buffer+144,_ship_fit+4
  clr.b asm_commander+7
  clr.b asm_commander+8
  clr.b asm_player+1
@@ -3249,6 +3333,9 @@ save_checksum:
  lea save_buffer+8,a0
  moveq #0,d0
  move.w #135,d1
+ cmp.l #0x45514131,save_buffer
+ beq save_sum
+ move.w #139,d1
 save_sum:
  rol.l #1,d0
  moveq #0,d2
@@ -3270,7 +3357,7 @@ save_parts: .data4 asm_commander
  .data2 1
  .data4 _ship_fit
  .data2 4
-save_buffer: .space 144
+save_buffer: .space 148
 save_ok: .ascii "SAVED WIN1_ELITESAVE\0"
 load_ok: .ascii "COMMANDER LOADED\0"
 save_error: .ascii "SAVE FAILED - CHECK WIN1\0"
@@ -3634,9 +3721,8 @@ view_clear_cache:
  clr.b asm_laser+1
  clr.b asm_laser+2
  clr.b asm_sight
- tst.w asm_view
- bne view_keys_done
- tst.b _ship_fit+1
+ bsr asm_current_laser
+ tst.b d0
  beq view_keys_done
  pea 0x20000
  jsr _sight_xor
@@ -3692,3 +3778,51 @@ station_count_next:
 station_ai_restore:
  movem.l (sp)+,d2-d7/a2-a6
  bra asm_ai_done
+
+.sect .text
+asm_current_laser:
+ moveq #0,d0
+ move.w asm_view,d0
+ move.l d0,-(sp)
+ pea _ship_fit
+ jsr _laser_fitting
+ addq.l #8,sp
+ rts
+asm_computer_key:
+ tst.w asm_page
+ bne computer_key_done
+ tst.w asm_paused
+ bne computer_key_done
+ tst.w asm_dead
+ bne computer_key_done
+ cmp.w #3,asm_mode
+ bne computer_key_done
+ move.l asm_station,d0
+ beq computer_key_done
+ move.l d0,a0
+ moveq #0,d0
+ move.b (a0),d0
+ move.l d0,-(sp)
+ move.l #255,-(sp)
+ moveq #0,d0
+ move.b asm_equipment+4,d0
+ move.l d0,-(sp)
+ ; QL C = row2 bit3 (key code 0x2b); Electron KY19 is 0xff when held.
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #3,d0
+ beq computer_key_up
+ move.l #255,d0
+ bra computer_key_test
+computer_key_up:
+ moveq #0,d0
+computer_key_test:
+ move.l d0,-(sp)
+ jsr _computer_dock
+ lea 16(sp),sp
+ tst.w d0
+ beq computer_key_done
+ move.w #1,asm_docked
+ addq.l #1,asm_computer_docks
+computer_key_done:
+ rts

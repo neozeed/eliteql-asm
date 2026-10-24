@@ -49,3 +49,21 @@ dock_far:
 dock_done:
  movem.l (sp)+,d2/a2
  rts
+
+; Original MA64 gate. key & DKCMP & SSPR must be nonzero; station AI nonnegative.
+; computer_dock(key,fitted,safeZone,stationAI) -> boolean GOIN intent.
+.globl _computer_dock
+_computer_dock:
+ move.l 4(sp),d0
+ and.l 8(sp),d0
+ and.l 12(sp),d0
+ and.l #255,d0
+ beq computer_no
+ move.l 16(sp),d1
+ tst.b d1
+ bmi computer_no
+ moveq #1,d0
+ rts
+computer_no:
+ moveq #0,d0
+ rts

@@ -118,3 +118,10 @@ geometry/roll/AI, SFS2, MVT1 and DORND. ENTRY supplies carry1 from equal CPX#SST
 SFS1 adapter takes an already copied parent, omits allocator and saves/restores,
 and returns a boolean intent. Parent source remains immutable in native ABI.
 Source SHA256 remains 93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf.
+
+A26: original-fittings-computer.asm: MA64, et3/et4, MCASH. Explicit adapters:
+qv returns selected view; prx returns original4000-tenths pulse price; pres
+records duplicate rejection/refund; GOIN and MA68 return docking intent.
+original-bulbs.asm records ECBLB2/ECBLB/SPBLB/BULB and ECBT/SPBT glyphs.
+Native UI/save/slot allocation remain adapter boundaries. Source SHA256:
+93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf.

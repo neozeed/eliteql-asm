@@ -1,21 +1,29 @@
-; EQSHP/PRXS/et0-etB: transaction effects, forward-view laser selection.
+; EQSHP/PRXS/et0-etB: original transactions and four-view laser selection.
 ; buy(cmd,cargoEquipment22,missileState,travel64,item) returns
 ; 0 bought,1 cash,2 present/full,3 technology,4 unsupported item.
 .sect .text
 .globl _shop_buy
+.globl _shop_buy_view
+.globl _laser_fitting
 .extern _ship_fit
 _shop_buy:
+ moveq #0,d0
+ bra shop_entry
+_shop_buy_view:
+ move.l 24(sp),d0
+shop_entry:
  movem.l d2-d7/a2-a5,-(sp)
  move.l 44(sp),a2
  move.l 48(sp),a3
  move.l 52(sp),a4
  move.l 56(sp),a5
+ move.l d0,d5
  move.l 60(sp),d7
  moveq #4,d0
  cmp.w #12,d7
  bhs shop_done
- cmp.w #10,d7
- beq shop_done
+ cmp.w #4,d5
+ bhs shop_done
  moveq #0,d1
  move.b 24(a5),d1
  addq.w #2,d1
@@ -55,22 +63,28 @@ shop_bay:
  move.b #37,_ship_fit
  bra shop_pay
 shop_laser:
+ lea _ship_fit+1,a1
+ tst.w d5
+ beq shop_laser_pointer
+ lea _ship_fit+3,a1
+ adda.w d5,a1
+shop_laser_pointer:
  cmp.w #4,d7
  beq shop_pulse
  cmp.w #5,d7
  bne shop_flags
- tst.b _ship_fit+1
+ tst.b (a1)
  bmi shop_done
  beq shop_beam_fit
  ; Gross beam price must be affordable before the pulse refund.
  add.l #4000,(a2)
 shop_beam_fit:
- move.b #143,_ship_fit+1
+ move.b #143,(a1)
  bra shop_pay
 shop_pulse:
- tst.b _ship_fit+1
+ tst.b (a1)
  bne shop_done
- move.b #15,_ship_fit+1
+ move.b #15,(a1)
  bra shop_pay
 shop_flags:
  tst.w d7
@@ -103,6 +117,10 @@ shop_qq20:
  beq shop_flag
  addq.l #1,a0
  moveq #1,d1
+ cmp.w #9,d7
+ beq shop_flag
+ addq.l #1,a0
+ moveq #-1,d1
 shop_flag:
  tst.b (a0)
  bne shop_done
@@ -138,4 +156,21 @@ escape_empty:
  clr.b _ship_fit+2
  moveq #1,d0
 escape_done:
+ rts
+
+.sect .text
+; laser_fitting(fit8,view): byte LASER[view], or zero for invalid view.
+_laser_fitting:
+ move.l 4(sp),a0
+ move.l 8(sp),d1
+ moveq #0,d0
+ cmp.l #4,d1
+ bhs fitting_done
+ tst.w d1
+ bne fitting_side
+ move.b 1(a0),d0
+ rts
+fitting_side:
+ move.b 3(a0,d1.w),d0
+fitting_done:
  rts

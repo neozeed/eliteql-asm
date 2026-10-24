@@ -1,5 +1,5 @@
 ; QDOS-native commander file adapter, not an Electron tape-format conversion.
-; io(buffer144,write): 0 success, nonzero QDOS/short-transfer error.
+; io(buffer148,write): 0 success, nonzero QDOS/short-transfer error.
 .sect .text
 .globl _commander_io
 _commander_io:
@@ -24,14 +24,34 @@ save_open:
  moveq #3,d0
  tst.w d4
  beq save_transfer
+ move.w #148,d2
  moveq #7,d0
 save_transfer:
  trap #3
  move.l d0,d5
  tst.l d5
  bne save_close
- cmp.w #144,d1
+ tst.w d4
+ beq save_read_size
+ cmp.w #148,d1
  beq save_close
+ bra save_short
+save_read_size:
+ cmp.w #144,d1
+ bne save_short
+ cmp.l #0x45514132,(a4)
+ bne save_close
+ move.l a5,a0
+ lea 144(a4),a1
+ moveq #4,d2
+ moveq #-1,d3
+ moveq #3,d0
+ trap #3
+ move.l d0,d5
+ bne save_close
+ cmp.w #4,d1
+ beq save_close
+save_short:
  moveq #-10,d5
 save_close:
  move.l a5,a0
