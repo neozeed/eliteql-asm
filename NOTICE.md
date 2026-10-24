@@ -5,7 +5,7 @@ Acornsoft 1984. The supplied annotated disassembly is by Mark Moxon, whose
 commentary is copyright Mark Moxon. Its companion project is:
 https://github.com/markmoxon/elite-source-code-acorn-electron
 
-The blueprints, rendering structure, motion/control/scanner/instrument/combat routines, bundled
+The blueprints, rendering structure, motion/control/scanner/instrument/combat/tactics/explosion routines, bundled
 original instruction test excerpts and P.DIALS dashboard artwork derive from
 that supplied source.
 The 68000 adaptation, QL drawing backend, shell, tests and tools were written

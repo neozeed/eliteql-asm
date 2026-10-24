@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,56,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514138,0x36383030
+ .data4 0x45514139,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -34,6 +34,20 @@ asm_dials_debug: .data4 _dials_last_status
 asm_laser_debug: .data4 asm_laser
 asm_hits_debug: .data4 asm_hits
 asm_kills_debug: .data4 asm_kills
+asm_cloud_debug: .data4 asm_clouds
+asm_ai_params_debug: .data4 asm_ai_params
+asm_dead_debug: .data4 asm_dead
+asm_mode_debug: .data4 asm_mode
+asm_rng_debug: .data4 asm_laser+5
+asm_ai_calls_debug: .data4 asm_ai_calls
+asm_ai_events_debug: .data4 asm_ai_events
+asm_dead: .data2 0
+asm_mode: .data2 0
+asm_ai_calls: .data4 0
+asm_ai_events: .data4 0
+asm_ai_params: .data1 1,70,16,0,0,0
+asm_slot: .data2 0
+asm_cloud: .data4 0
 asm_station: .data4 0
 asm_hits: .data4 0
 asm_kills: .data4 0
@@ -47,11 +61,20 @@ asm_keys: .data1 0,0,0,0,0,0
 asm_status: .data1 255,255,255,0,0
 asm_mcnt: .data1 0
 .align 2
+asm_dead_text: .ascii "DESTROYED - N / 1 / 2 / 3\0"
+.align 2
 asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _tactics_step
+.extern _tactics_due
+.extern _explosion_start
+.extern _explosion_frame
+.extern _cloud_xor
+.extern _render_exploding
+.extern _render_inwk
 .extern _laser_fire
 .extern _laser_tick
 .extern _laser_hit
@@ -175,8 +198,22 @@ asm_next_done:
  cmp.w #1,asm_count
  beq asm_check_fleet
  move.w #1,asm_count
+ clr.w asm_mode
  bsr asm_setup
 asm_check_fleet:
+ moveq #4,d0
+ bsr asm_keyrow
+ btst #1,d0
+ beq asm_check_two
+ cmp.w #2,asm_mode
+ bne asm_start_encounter
+ tst.w asm_dead
+ beq asm_check_two
+asm_start_encounter:
+ move.w #3,asm_count
+ move.w #2,asm_mode
+ bsr asm_setup
+asm_check_two:
  moveq #6,d0
  bsr asm_keyrow
  btst #1,d0
@@ -184,6 +221,7 @@ asm_check_fleet:
  cmp.w #12,asm_count
  beq asm_move
  move.w #12,asm_count
+ move.w #1,asm_mode
  bsr asm_setup
 asm_move:
  ; Map raw QL keys to original DOKEY/KY1/KY2 held states.
@@ -213,6 +251,8 @@ asm_move:
  btst #4,d0
  sne asm_fire_key
 asm_draw_begin:
+ tst.w asm_dead
+ bne asm_update_stats
  tst.w asm_paused
  bne asm_update_stats
  pea asm_keys
@@ -248,12 +288,20 @@ asm_draw_loop:
  move.w asm_count,d0
  subq.w #1,d0
  sub.w d7,d0
+ move.w d0,asm_slot
+ mulu.w #448,d0
+ lea asm_clouds,a1
+ adda.l d0,a1
+ move.l a1,asm_cloud
+ move.w asm_slot,d0
  mulu.w #36,d0
  adda.l d0,a0
  move.l a0,a4
  move.b 31(a4),d0
  and.b #160,d0
  beq asm_live_ship
+ cmp.b #32,d0
+ beq asm_no_tidy
  move.w #1,14(a5)
  bra asm_render_current
 asm_live_ship:
@@ -273,6 +321,48 @@ asm_live_ship:
  jsr _tidy_ship
  addq.l #4,sp
 asm_no_tidy:
+ ; Original cadence, with universe-dependent types left outside this entry.
+ moveq #0,d0
+ move.w asm_slot,d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b asm_mcnt,d0
+ move.l d0,-(sp)
+ move.l (a5),a0
+ moveq #0,d0
+ move.w 28(a0),d0
+ move.l d0,-(sp)
+ move.l a4,-(sp)
+ jsr _tactics_due
+ lea 16(sp),sp
+ tst.l d0
+ beq asm_ai_done
+ tst.w asm_dead
+ bne asm_ai_done
+ move.l (a5),a0
+ cmp.w #6,28(a0)
+ bhi asm_ai_done
+ move.w 28(a0),d0
+ move.b d0,asm_ai_params
+ move.w 24(a0),d0
+ move.b d0,asm_ai_params+1
+ move.w 30(a0),d0
+ move.b d0,asm_ai_params+2
+ pea asm_status
+ pea asm_laser+5
+ pea asm_ai_params
+ move.l a4,-(sp)
+ jsr _tactics_step
+ lea 16(sp),sp
+ addq.l #1,asm_ai_calls
+ cmp.w #3,d0
+ blo asm_ai_not_hit
+ addq.l #1,asm_ai_events
+asm_ai_not_hit:
+ cmp.w #5,d0
+ bne asm_ai_done
+ move.w #1,asm_dead
+asm_ai_done:
  move.l (a5),a0
  move.w 22(a0),d0
  move.b d0,asm_params+3
@@ -286,6 +376,9 @@ asm_no_tidy:
  addq.l #8,sp
  eor.w #1,d0
  move.w d0,14(a5)
+ move.b 31(a4),d0
+ and.b #160,d0
+ bne asm_no_hit
  ; Original HITCH runs on world-space INWK, independently of line projection.
  tst.b asm_laser+1
  beq asm_no_hit
@@ -314,10 +407,15 @@ asm_no_tidy:
  lea 12(sp),sp
  cmp.w #2,d0
  bne asm_hit_survived
- ; Adapter boundary: remove killed test target, pending original debris/LL9.
- move.w #1,14(a5)
+ ; LL9 initializes a real original explosion cloud at the kill boundary.
+ pea asm_laser+5
+ move.l (a5),-(sp)
+ move.l asm_cloud,-(sp)
+ move.l a4,-(sp)
+ jsr _explosion_start
+ lea 16(sp),sp
  addq.l #1,asm_kills
- bra asm_render_current
+ bra asm_no_hit
 asm_hit_survived:
  move.l asm_station,-(sp)
  move.l (a5),a0
@@ -334,11 +432,31 @@ asm_no_hit:
  addq.l #8,sp
  move.l #asm_matrix,_live_matrix
 asm_render_current:
+ clr.w _render_exploding
+ move.l a4,_render_inwk
+ btst #5,31(a4)
+ beq asm_render_effect_ready
+ move.w #1,_render_exploding
+asm_render_effect_ready:
  move.l a5,-(sp)
  pea 0x20000
  jsr _render_ship
  addq.l #8,sp
  clr.l _live_matrix
+ clr.l _render_inwk
+ clr.w _render_exploding
+ btst #5,31(a4)
+ beq asm_cloud_done
+ move.l asm_cloud,a0
+ tst.b 2(a0)
+ beq asm_cloud_done
+ pea asm_laser+5
+ move.l a0,-(sp)
+ move.l a4,-(sp)
+ pea 0x20000
+ jsr _explosion_frame
+ lea 16(sp),sp
+asm_cloud_done:
  lea 272(a5),a5
  dbra d7,asm_draw_loop
  moveq #0,d0
@@ -461,6 +579,27 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ ; Erase all old particle caches before clearing their authoritative state.
+ lea asm_clouds,a4
+ moveq #11,d7
+asm_cloud_reset_loop:
+ moveq #0,d0
+ move.w 56(a4),d0
+ move.l d0,-(sp)
+ pea 58(a4)
+ pea 0x20000
+ jsr _cloud_xor
+ lea 12(sp),sp
+ lea 448(a4),a4
+ dbra d7,asm_cloud_reset_loop
+ lea asm_clouds,a0
+ move.w #1343,d0
+asm_cloud_zero:
+ clr.l (a0)+
+ dbra d0,asm_cloud_zero
+ clr.w asm_dead
+ clr.l asm_ai_calls
+ clr.l asm_ai_events
  bsr asm_erase_laser
  tst.b asm_sight
  bne asm_sight_ready
@@ -522,6 +661,18 @@ asm_setup_model:
  clr.w asm_ships+6
  move.w #640,asm_ships+8
 asm_setup_done:
+ cmp.w #2,asm_mode
+ bne asm_encounter_ready
+ move.w #-160,asm_ships+4
+ clr.w asm_ships+6
+ move.w #1400,asm_ships+8
+ move.w #160,asm_ships+272+4
+ clr.w asm_ships+272+6
+ move.w #1400,asm_ships+272+8
+ clr.w asm_ships+544+4
+ move.w #-160,asm_ships+544+6
+ move.w #1400,asm_ships+544+8
+asm_encounter_ready:
  bsr asm_reset_vectors
  move.b #255,asm_status
  move.b #255,asm_status+1
@@ -598,6 +749,11 @@ asm_seed_energy_done:
  bne asm_seed_station_done
  clr.b 27(a0)
 asm_seed_station_done:
+ cmp.w #2,asm_mode
+ bne asm_seed_passive
+ ; Deterministic aggressive encounter initialization, not a universe spawner.
+ move.b #240,32(a0)
+asm_seed_passive:
  move.b #32,29(a0)
  move.b #16,30(a0)
  lea 36(a0),a0
@@ -649,6 +805,10 @@ fps_clear:
  clr.l (a0)+
  dbra d0,fps_clear
  lea asm_fps_text,a4
+ tst.w asm_dead
+ beq asm_status_text
+ lea asm_dead_text,a4
+asm_status_text:
  move.w #248,d6
  bsr asm_text
 fps_return:
@@ -837,3 +997,7 @@ asm_matrix: .space 18
 asm_release_keys: .space 2
 asm_release_row: .space 2
 asm_release_quiet: .space 2
+
+.sect .bss
+.align 2
+asm_clouds: .space 5376

@@ -1,34 +1,37 @@
-# EliteQL ASM A8 — original pulse-laser combat
+# EliteQL ASM A9 — enemy tactics and original explosions
 
-A8 brings a connected set of Electron combat routines into the native 68000
-application: **MA68/ma1 laser controls, LASLI heat/energy use, DORND random
-numbers, HITCH target checks, MA47 damage, ANGRY hostility and MLOOP pulse timing**.
-The original SIGHT crosshair and LASLI2 beam geometry use the QL XOR rasterizer.
-Hold **F** to fire the original 15-power forward pulse laser.
+A9 adds a connected native 68000 port of **normal-ship TACTICS, TAS2/TAS3 vector
+maths, enemy laser fire and OOPS damage**, plus **DOEXP/PTCLS/EXS1 explosion
+clouds and PIXEL particle drawing**. A8 remains a separate working baseline.
 
-Ship records now hold the full original **36 bytes**, including energy at
-INWK+35. Energy and targetable area come from the original ship blueprints.
-A target at exactly zero energy survives; the next hit kills it. Killed test
-objects disappear from the view and scanner. The station cannot be destroyed,
-and being hit marks it hostile. This does not yet give it attacking AI.
+Press **3** for a three-fighter hostile encounter. Ships use the original aim,
+pursuit/avoidance, pitch/roll, acceleration and energy-recharge decisions.
+Enemy beams originate at the blueprint gun vertex and reach toward a screen
+edge as in LL9 part 9. Hits drain the appropriate shield and then energy.
+When the original OOPS code reaches DEATH, this test scene freezes and displays
+`DESTROYED`; **3** or **N** restarts it. Escape still returns cleanly to BASIC.
 
-Laser heating, energy drain, cooling and the existing instruments work together.
-The native OOPS forward/aft shield and energy-damage arithmetic is also ported
-and tested, ready for the future collision/enemy-fire callers. Those callers
-are not connected yet, so ordinary firing does not damage your shields.
+Killed targets now produce the original expanding, thinning particle clouds
+around their projected vertices. Cloud lifetime, distance scaling, random
+spread, particle count, clipping and two/four-pixel shapes follow the source.
+The cloud is erased when it expires or the scene resets. Ships continue their
+original movement during the explosion, while tactics and TIDY are skipped.
 
-**This remains a flight/combat test scene, not complete Elite.** Enemy TACTICS,
-explosions, debris, bounty/rank updates, sound, missiles, docking, travel,
-markets and saves remain unfinished. Fuel, cabin temperature, altitude and
-compass still show unconnected artwork. There is no C game loop and no runtime
-6502 interpreter. A7 is preserved separately.
+**This is still a flight/combat test scene, not complete Elite.** The encounter
+is deterministic test setup. Universe spawning, missile homing/launching,
+station police, debris/cargo spawning, bounty/rank, cargo loss, the original
+player-death animation, sound, travel, markets, docking and saves remain
+unfinished. Normal-ship missile and escape decisions are ported through event
+boundaries; child objects are not spawned yet. Encounter ships start with zero
+missiles. A ship deciding to escape loses AI as in the source, but no escape
+pod is added. Fuel, cabin temperature, altitude and compass remain unconnected.
 
 ## Run
 
-Extract the complete folder beside QLBox:
+Extract the full folder beside QLBox:
 
 ```bat
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a8\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a9\host
 ```
 
 At BASIC:
@@ -38,90 +41,101 @@ EXEC_W WIN1_ELITEASM
 ```
 
 640 KB is also tested. No compiler or external game data is needed to run it.
-The executable is **25,746 bytes**. A BASIC launch at 128 KB leaves a largest
-free block of **24,576 bytes** after startup and the screen snapshot allocation.
-This is the current test scene's footprint, not a promise for the finished game.
+ELITEASM is **28,236 bytes**, with **9,040 bytes of QDOS data space**.
+A BASIC launch at 128 KB leaves a largest free block of **16,384 bytes** after
+startup, including the old-screen snapshot. The finished game may need more RAM.
 
 | Key | Action |
 | --- | --- |
-| F | Hold to fire the forward pulse laser |
-| Left / right | Original roll-rate accumulation |
-| Up / down | Original pitch-rate accumulation |
+| F | Hold to fire the original 15-power forward pulse laser |
+| Left / right | Build roll rate; release to damp back toward centre |
+| Up / down | Build pitch rate |
 | A / Z | Increase / decrease player speed, 1–40 |
-| N | Reset the scene and player status; advance the solo model |
-| 1 / 2 | Select solo / twelve-ship scene and reset |
-| Space | Pause / resume, including laser and thermal state |
-| B | Toggle uncapped simulation and drawing; default cap is 10 Hz |
-| Escape | Wait for key release, drain input, restore screen and exit |
+| 1 | Passive solo target scene |
+| 2 | Passive twelve-ship scene |
+| 3 | Hostile three-fighter encounter; also restarts after player destruction |
+| N | Reset scene/status; advance the model used in solo mode |
+| Space | Pause / resume simulation, including beams and clouds |
+| B | Uncap simulation and drawing; default cap is 10 Hz |
+| Escape | Wait for all keys to be released, restore the screen and exit |
 
-The initial solo Cobra is in front of you. Hold F to try a kill; N gives you a
-fresh target. Fleet objects need steering into the sights. Nothing respawns
-automatically. A/Z remains throttle, so the Electron fire control maps to F.
-Firing respects the original pulse delay and temperature threshold of 242.
+Scenes 1 and 2 retain A8's passive targets for comparison. Scene 3 gives the
+first three models active AI with aggression byte 240, at preset positions.
+Those are test initial conditions, not a substitute for Elite's universe
+spawner. There is no automatic respawn. N resets the encounter in mode 3;
+select 1 to see the newly selected solo model.
 
-Arrows accumulate rates rather than setting an immediate angle. Damping takes
-time after release. Scene resets use test initial conditions: ship speed 2
-(station 0), roll counter 32, pitch counter 16, player speed 1. N/scene reset
-restores full shields/energy and clears heat, targets and pulse state.
+The original keyboard-rate accumulation and damping remain unchanged. B speeds
+up the simulation as well as rendering. FPS includes paused time. The shell
+writes directly to QL screen memory at 0x20000; the 32 KB snapshot restores
+BASIC on exit and is not a drawing backbuffer.
 
-B accelerates simulation along with drawing. The FPS strip includes paused
-time. Drawing goes directly to the standard QL screen at 0x20000; the old
-screen snapshot is for restoring BASIC, not a second drawing buffer.
+## What is original, and what is adapted
 
-## Source fidelity and boundaries
+Tactics run at the original `(MCNT XOR slot) AND 7` cadence, after the existing
+TIDY schedule and before movement. The translated normal-ship path covers safe
+zone suppression, recharge, aim, occasional roll, low-energy escape/missile
+decisions, laser checks, steering and acceleration. It preserves the original
+byte arithmetic, sign-magnitude values and carry-sensitive OOPS damage. For
+example, a Sidewinder's blueprint weapon byte makes a hit drain nine shield
+units, not eight, because its LSR supplies clear carry to OOPS.
 
-The new arithmetic is checked against an interpreter executing the bundled
-original 6502 instructions, including SQUA2/MU11 for HITCH. MULU replaces the
-shift/add square while preserving the observable result. Target checks use
-original world-space coordinates and targetable area, not the apparent pixel
-size of the rendered wireframe.
+TAS2 normalises original position bytes; TAS3 computes original signed dot
+products. The earlier native NORM/MULT1/ADD helpers are reused. The source's
+normal ships are supported here (types 1–6); missile homing, escape-to-planet
+navigation and hostile-station spawning need universe context still absent.
 
-The current scene has no reserved station slot. ANGRY therefore receives the
-actual station-AI pointer when a station is present. The source's trader
-station-hostility path is also tested. Ship death currently stops at the
-original killed-bit boundary: the scene clears its cached lines and scanner
-contact instead of inventing an explosion or awarding a bounty.
+The original explosion particle generator is tested by executing its 6502
+instructions, including original Electron PIXEL framebuffer writes. The QL
+particle output matches those pixels after format conversion. Vertex positions
+still use the existing native renderer, whose projection, clipping and line
+rounding are documented adaptations rather than exact original LL9 arithmetic.
+Enemy beams and sights use that native line backend too.
 
-Sound and the surrounding spawn/ECM loop are absent. Their carry boundaries
-are explicit: this shell supplies C=0 to LASLI and C=1 to the MLOOP subtraction,
-giving the 10/6/2/0 pulse countdown. DORND and countdown routines support both
-incoming carry values, and the tests cover both. The scene's fixed RNG seed is
-test scaffolding, not the original clock-derived initialization.
+A native cache replaces re-running PTCLS to erase the old cloud. Each slot has
+448 bytes for the original cloud heap plus up to 96 cached particle records.
+Initial cloud setup and the existing laser adapter use explicit carry inputs
+at unported boundaries. The missing planet contributes zero as the PTCLS
+planet-z seed byte. Lasers, tactics and clouds now share one RNG state. This is
+not a claim of the complete original game's global random sequence or timing.
 
-Crosshair and laser endpoint geometry comes from SIGHT/TT15 and LASLI2/las.
-They use the existing native inclusive-endpoint line rasterizer, so this is
-not a claim of original Electron pixel-identical line drawing. The dashboard,
-scanner and supported gauges retain their earlier original-pixel tests.
+On player DEATH, the shell freezes the encounter and offers reset/exit. It does
+not invent a replacement for the original death animation. Cargo-loss and
+spawn events remain explicit unfinished boundaries. Killed slots remain
+inactive until scene reset; universe compaction and rewards are not implemented.
 
-See `docs/FIDELITY.md` and `docs/ARCHITECTURE.md` for remaining adaptations.
+## Validation
 
-## Validation and performance
+New source comparisons cover:
 
-- **8,192 new source-instruction cases**: RNG, HITCH, damage, hostility,
-  forward/aft player damage, firing and both-carry countdowns; zero mismatches.
-- **2,048 sustained-fire updates**, including heat inhibition and recovery;
-  buffer guards and double-XOR erasure checks.
-- Actual native job at **128 KB and 640 KB**, both direct loading and BASIC
-  `EXEC_W`: F/pause, five-hit Sidewinder kill, scanner removal, misses, station
-  immunity/hostility, frozen laser pulse, scene-reset pixels and exit cleanup.
-- All prior movement, TIDY, controls, scanner, instruments and renderer tests pass.
+- **512 TAS2 vectors and 1,536 TAS3 dot products**.
+- **1,536 complete normal-ship tactics cases**, comparing every ship, RNG and
+  player-status byte plus returned events, including 30 DEATH cases.
+- **2,048 DOEXP states**, including near/far carry differences and expiry.
+- **256 PTCLS/PIXEL cases**, comparing particle records, RNG state, original
+  framebuffer pixels, exact XOR erasure and buffer bounds.
+- **3,072 scheduling combinations** for original AI cadence and dead/AI flags.
 
-QLBox R9, speed 1, 300-frame benchmark: **53.5 FPS solo / 8.3 FPS twelve ships**.
-It includes the original movement/control/scanner/instrument paths and idle
-laser dispatch/countdown. It excludes keyboard polling, active firing and
-unported AI. These are emulator measurements, not physical 7.5 MHz 68008 timing.
+All A8 combat, movement, TIDY, controls, scanner, gauges and renderer regressions
+also pass. Native integration at **128 KB and 640 KB**, through direct loading
+and BASIC `EXEC_W`, checks cloud lifetime and pixels, steering, enemy fire,
+exact shield/recharge state, player destruction, restart, key draining and exit.
+
+The passive fleet benchmark is recorded in `docs/A9-BENCHMARK.log`. It includes
+idle AI scheduling and laser dispatch along with the previous movement/rendering
+work, but no active AI, clouds or firing. These are QLBox R9 speed-1 measurements,
+not physical 68008 timing or a full-combat performance claim.
 
 ## Build and tests
 
 The full source, generated data, original instruction excerpts, fixtures,
-Makefile and all ten executables are included. `host/ELITEASM` is the game job;
-`ELITEBEN` is the benchmark and the remaining jobs are independent diagnostics.
-Use 640 KB for the larger diagnostics, including the new `ELITECBT`.
+Makefile and twelve QDOS executables are included. ELITEASM is entirely assembly.
+C is used only for independent diagnostics/benchmarks. Use 640 KB for those.
+The new test jobs are `ELITETAC` and `ELITEEXP`.
 
 ```bat
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a8\host\ELITECBT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a8\host\ELITETST --args "--selftest"
-bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a8\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a9\host\ELITETAC
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a9\host\ELITEEXP
 ```
 
 Build with the recovered QDOS GCC 2.95.3 R2 signed-remainder-fix toolchain:
@@ -132,17 +146,17 @@ bash tests/run-qlbox.sh /absolute/path/to/qlbox-r9
 bash tests/run-basic.sh /absolute/path/to/qlbox-r9
 ```
 
-C test drivers retain `-fno-omit-frame-pointer` for the recovered compiler bug.
-The integration harness needs QLBox R9 sources, Musashi, Linux runner and JS ROM;
-these and the toolchain are not bundled. ELITEASM ignores command-line arguments.
+Keep `-fno-omit-frame-pointer` on C diagnostics for the recovered compiler bug.
+The integration tests require QLBox R9 sources, Musashi, Linux runner and JS ROM;
+these and the compiler are not bundled. ELITEASM ignores command-line arguments.
 
-Regenerate the source-based fixtures with `python3 tests/NAME_reference.py`,
-where NAME is `motion`, `flight`, `tidy`, `controls`, `scanner`, `dials` or
-`combat`. Pass `/path/to/elite-source.asm` to re-extract from the supplied full
-source. Run generators before rebuilding their diagnostics. Regenerate expanded
-blueprints with `python3 tools/extract.py /path/to/elite-source.asm`, renderer
-fixtures with `python3 tests/reference.py`, and the original dashboard conversion
-with `python3 tools/dashboard.py`.
+Run `python3 tests/NAME_reference.py` to regenerate fixtures, where NAME is
+`motion`, `flight`, `tidy`, `controls`, `scanner`, `dials`, `combat`, `tactics`
+or `explosion`. Supplying `/path/to/elite-source.asm` re-extracts original
+instructions. Run generators before rebuilding diagnostics. Blueprints use
+`python3 tools/extract.py /path/to/elite-source.asm`; the original dashboard
+uses `python3 tools/dashboard.py`; legacy renderer fixtures use
+`python3 tests/reference.py`.
 
-Validation logs and actual emulator captures are in `docs/`. Attribution is in
-`NOTICE.md`; file checksums are in `SHA256SUMS`.
+See `docs/` for logs, emulator captures, ABI notes and fidelity limits.
+Attribution is in `NOTICE.md`; file checksums are in `SHA256SUMS`.

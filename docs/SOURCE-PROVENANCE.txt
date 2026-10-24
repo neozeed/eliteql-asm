@@ -38,3 +38,15 @@ original-combat-drawing.asm reference excerpt; its rasterizer is not emulated
 by the arithmetic oracle. QL line rasterization is documented in FIDELITY.md.
 A8 tools/extract.py also extracts original max energy, targetable area and
 maps the ten blueprint records to original types 1-5 and 7-11.
+
+A9 original-tactics.asm contains TACTICS parts2-7, TAS2/NORM, TAS3/MAD/ADD,
+MULT1/MULT12, SQUA/MU1/MU11, LL5, TIS2, MAS4, OOPS and DORND.
+The instruction oracle stops at SFRMIS/SESCP and DEATH; OUCH/sound return at
+explicit boundaries. Regenerate with tests/tactics_reference.py SOURCE.
+A9 original-explosion.asm contains EX2/DOEXP/PTCLS/EXS1, FMLTU, DORND,
+DVID4, LL28 division and original PIXEL. Its oracle executes original Electron
+screen stores and captures PIXEL call coordinates. Regenerate with
+ tests/explosion_reference.py SOURCE.
+LL9 kill initialization, all-faces explosion handling and enemy-beam endpoint
+logic are translated in the native renderer/adapter. Blueprint weapon byte,
+explosion count and gun-vertex offset are now extracted by tools/extract.py.

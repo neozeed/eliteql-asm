@@ -6,7 +6,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A8";
+char _prog_name[]="EliteQL ASM A9";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -28,6 +28,7 @@ static unsigned char vectors[12][36];
 static short matrix[9];
 extern short *live_matrix;
 extern void own_rotate(unsigned char *);
+extern unsigned tactics_due(const unsigned char *,unsigned,unsigned,unsigned);
 extern void tidy_ship(unsigned char *);
 extern void scanner_reset(void *);
 extern void dials_frame(void *,const unsigned char *,const unsigned char *,unsigned);
@@ -193,6 +194,7 @@ int main(int argc,char **argv) {
             for(i=0;i<n;i++) {
                 if(motion){
                     if(flight){
+                        tactics_due(vectors[i],(unsigned)((const short *)ships[i].model)[14],mcnt,(unsigned)i);
                         if(!(vectors[i][31]&160)&&!((mcnt^(unsigned)i)&15))tidy_ship(vectors[i]);
                         flight_params[3]=(unsigned char)((const short *)ships[i].model)[11];
                         move_ship(vectors[i],flight_params);
@@ -221,6 +223,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A8 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A9 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

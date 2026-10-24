@@ -30,7 +30,7 @@ The independent Python oracle checks this documented A1 adaptation. It is not
 an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
-Not implemented: remaining MVEIT parts 1–2 (TACTICS), planet movement (MV40), secondary keyboard controls/configuration, tactics, the rest of the flight loop, enemy combat, explosions,
+Not implemented: missile/pod/station tactics and universe spawning, planet movement (MV40), secondary keyboard controls/configuration, the rest of the flight loop,
  planet/sun drawing, fuel/altitude/cabin-temperature/compass instruments, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
@@ -51,7 +51,7 @@ A5 obtains ALPHA/BETA from the original DOKEY rate updates and M% part 2.
 The QL scan replaces Electron hardware access; arrows map to the four source
 pitch/roll keys, A/Z to speed. DOKEY's pause/configuration and secondary keys
 remain unported. The scene itself is test scaffolding. A4 implements TIDY
-dispatch from MVEIT part 1; TACTICS remains absent; A6 implements the SCAN/part 9 path.
+dispatch from MVEIT part 1; A9 implements normal-ship TACTICS; A6 implements the SCAN/part 9 path.
 
 Original positions have 23 magnitude bits plus sign. The renderer adapter
 rejects magnitudes above 30000; the original position remains untouched and
@@ -112,8 +112,8 @@ Recharge is the MA77 section of main flight loop part 13, including the
 SHD/DENGY effects. Laser cooling comes from MLOOP. Their tests cover the 127/128
 energy threshold, full shields, energy-unit values, saturation, rejected
 addition on carry, and sequential updates. Status begins with RES4's full
-shields/energy; A8 connects original laser heating and drain; player damage remains a tested
-routine without live collision/enemy-fire callers.
+shields/energy; A8 connects original laser heating and drain; A9 connects OOPS player damage
+to original enemy laser HIT. Collisions remain unported.
 
 A7 also corrects the scheduling phase: original MCNT decrements after the
 flight loop and before DIALS. Earlier milestones used the increasing frame
@@ -130,10 +130,10 @@ nonzero x/y high byte, exploding flag or negative type. Overflow of the sum
 of squared coordinate low bytes rejects a hit. It is not a screen-space test.
 
 OOPS is translated and tested through its OUCH/DEATH call boundaries, including
-the incoming carry; it is not wired to invented combat damage. Likewise, dead
-scene targets are erased without substituting an invented explosion. Debris,
-EXNO2 rewards/tally, sound and enemy TACTICS are not implemented. ANGRY changes
-state but does not make the unimplemented AI run.
+the incoming carry. A9 connects it to enemy laser hits, dispatches normal-ship
+TACTICS and replaces immediate target removal with original explosion clouds.
+Debris, EXNO2 rewards/tally and sound remain unimplemented. ANGRY changes the
+original state; active AI is dispatched in encounter mode.
 
 The full original surrounding loop determines incidental carry through sound,
 spawning and ECM. Those sections are absent here. LASLI gets explicit C=0 and
@@ -141,3 +141,28 @@ MLOOP gets explicit C=1 in this shell; this limitation is not hidden as full
 instruction equivalence. Both carry values are supported in DORND/countdown
 and tested. SIGHT/LASLI2 endpoint geometry uses the native line backend above,
 including its inclusive endpoints rather than original HLOIN/LOIN pixels.
+
+
+A9 supersedes the earlier combat boundaries above for normal-ship tactics,
+enemy laser hits and explosion particles. TACTICS parts2–7 execute for types1–6,
+including original low-energy decisions, but SFRMIS and SESCP remain external
+events. The scene does not spawn the requested missile/pod. Station spawning,
+missile homing, escape-pod planet navigation, cargo loss, sound and the original
+player-death animation remain unported. A shell DEATH latch freezes the test
+encounter and permits reset/exit. This is explicitly not the original death
+presentation, and the wrapped ENERGY value on fatal underflow is retained.
+
+DOEXP/PTCLS/EXS1 uses original arithmetic and per-vertex reseeding. Its PIXEL
+backend matches original Electron stores converted to QL pixels, including the
+asymmetric horizontal dash placement and row choice at character boundaries.
+The original loops draw U+1 particles per vertex, not U. Far clouds increment
+the counter by5 (retained CMP carry), near clouds by4. EXS1's positive branch
+adds one because FMLTU returns carry set; the negative branch has no extra unit.
+
+The native projection remains an adaptation and supplies the cloud vertices.
+Original DOEXP initialization is ported with an explicit first RNG carry of0.
+The missing planet contributes z_lo0 on PTCLS exit. Cached erase avoids rerunning
+PTCLS: this preserves pixels but can change incidental RNG state when an old
+cloud is erased without a new visible cloud being drawn. No equivalence to the
+complete game's global RNG sequence, memory layout or timing is claimed.
+Enemy-beam endpoints follow LL9 part9 while using the established native clipper.

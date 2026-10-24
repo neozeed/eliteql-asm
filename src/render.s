@@ -9,6 +9,10 @@
 .sect .bss
 .sect .text
 .globl _render_ship
+.globl _render_exploding
+.globl _render_inwk
+.globl _effect_visible
+.globl _effect_vertices
 .globl _projected_total
 .globl _line_total
 .extern _orientations
@@ -18,6 +22,7 @@ _render_ship:
  movem.l d2-d7/a2-a6,-(sp)
  move.l 48(sp),a6
  move.l 52(sp),a5
+ clr.w _effect_visible
  ; LL155: redraw old cached segments with XOR to remove this ship.
  bsr draw_cache
  clr.w 12(a5)
@@ -173,6 +178,8 @@ vertices_clear:
 vertex_loop:
  cmp.w (a4),d7
  bge edges_begin
+ tst.w _render_exploding
+ bne vertex_project
  ; LL48: vertex LOD and its four associated faces gate projection work.
  move.w 6(a2),d0
  cmp.w distance_level,d0
@@ -258,6 +265,50 @@ vertex_next:
  addq.w #1,d7
  bra vertex_loop
 edges_begin:
+ move.w #1,_effect_visible
+ tst.w _render_exploding
+ bne render_return
+ ; LL9 part9: a firing ship's gun vertex to screen edge, Y = z_lo.
+ move.l _render_inwk,d0
+ beq enemy_beam_done
+ move.l d0,a0
+ btst #6,31(a0)
+ beq enemy_beam_done
+ bclr #6,31(a0)
+ moveq #0,d6
+ move.w 34(a4),d6
+ move.w d6,d0
+ lsr.w #2,d0
+ lea vertex_valid,a1
+ tst.b 0(a1,d0.w)
+ beq enemy_beam_done
+ lea projected_vertices,a1
+ move.w 0(a1,d6.w),d0
+ cmp.b #255,d0
+ beq enemy_beam_done
+ move.w d0,d1
+ lsr.w #8,d1
+ cmp.b #255,d1
+ beq enemy_beam_done
+ move.w 2(a1,d6.w),d1
+ moveq #0,d2
+ tst.b 2(a0)
+ bpl enemy_beam_side
+ move.w #255,d2
+enemy_beam_side:
+ moveq #0,d3
+ move.b 6(a0),d3
+ bsr clip_segment
+ tst.w d4
+ beq enemy_beam_done
+ lea 16(a5),a0
+ move.b d0,(a0)+
+ move.b d1,(a0)+
+ move.b d2,(a0)+
+ move.b d3,(a0)+
+ move.w #1,12(a5)
+ addq.l #1,_line_total
+enemy_beam_done:
  move.l 14(a4),a2
  moveq #0,d7
 edge_loop:
@@ -330,6 +381,8 @@ projection_low:
 projection_done:
  rts
 distant_ship:
+ tst.w _render_exploding
+ bne render_return
  move.w 4(a5),d0
  ext.l d0
  lsl.l #8,d0
@@ -380,6 +433,7 @@ _projected_total: .space 4
 _line_total: .space 4
 visible_faces: .space 16
 vertex_valid: .space 32
+_effect_vertices:
 projected_vertices: .space 128
 camera_local: .space 6
 vertex_world: .space 6
@@ -392,3 +446,8 @@ camera_shift: .space 2
 .align 2
 .globl _live_matrix
 _live_matrix: .data4 0
+
+.align 2
+_render_exploding: .space 2
+_effect_visible: .space 2
+_render_inwk: .space 4

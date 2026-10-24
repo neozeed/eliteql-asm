@@ -6,6 +6,8 @@
 .sect .bss
 .sect .text
 .globl _tidy_ship
+.globl normalize_vector
+.globl tidy_mult
 .extern sign_add
 _tidy_ship:
  movem.l d2-d7/a2-a4,-(sp)

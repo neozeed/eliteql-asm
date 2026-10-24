@@ -1,0 +1,6 @@
+QLBox R9 / JS ROM, 640 KB, speed 1; 300 uncapped simulation frames.
+Passive scenes: idle AI scheduling and laser dispatch, no active AI/fire/clouds.
+Not physical 68008 timing.
+
+ASM A9 mode=2: ships=1 frames=300 ticks=282 fps=53.1 vertices=3690 lines=4637
+ASM A9 mode=2: ships=12 frames=300 ticks=1821 fps=8.2 vertices=29990 lines=39974

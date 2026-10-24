@@ -6,6 +6,8 @@
 | `src/render.s` | Visibility, vertex transformation/projection, clipping dispatch and old/new line heaps |
 | `src/line.s` | Native segment clipping, packed-word XOR rasterizer and diagnostic screen hash |
 | `src/flight.s` | MVEIT parts 3–7 and complete parts 3–8 dispatch; position adapter |
+| `src/tactics.s` | Original normal-ship TACTICS, TAS2/TAS3 and scheduling |
+| `src/explosion.s` | DOEXP/PTCLS/EXS1/PIXEL and native particle cache |
 | `src/combat.s` | Original laser, RNG, hit/damage, anger and player-damage arithmetic; sight/beam geometry |
 | `src/dials.s` | Original gauge pixels, shield/energy recharge and laser cooling |
 | `src/scanner.s` | Original scanner projection/flags; native dot/stick XOR backend and contact cache |
@@ -61,11 +63,13 @@ also the normal QDOS system-variable area. Drawing uses 0x20000 directly.
 ## Diagnostics
 
 The assembly shell exports a tagged diagnostic state block, beginning with
-`EQA8` and `6800`. Relative offsets are frame count 8, timer count 12, startup
+`EQA9` and `6800`. Relative offsets are frame count 8, timer count 12, startup
 largest free block 16, ship count 20, paused 22, model 24, ready 26, snapshot
 pointer 28, uncapped flag 32, ship-array pointer 34, INWK-array pointer 38, motion-parameter pointer 42, control-state pointer 46, player-status pointer 50, MCNT-byte pointer 54,
 last-drawn slow-instrument status pointer 58, laser-state pointer 62,
-scene-hit counter pointer 66, scene-kill counter pointer 70. Integration tests inspect
+scene-hit counter pointer 66, scene-kill counter pointer 70. A9 adds pointers: cloud array 74, AI params 78,
+player-dead word 82, scene-mode word 86, shared RNG bytes 90, AI-call counter 94,
+enemy-hit counter 98. Integration tests inspect
 this block after loading the actual job; the game does not depend on QLBox hooks.
 
 ## Expanded blueprint header
@@ -73,7 +77,8 @@ this block after loading the actual job; the game does not depend on QLBox hooks
 The existing 22-byte model header retains its pointers at offsets 10, 14 and
 18. A3 appends the original maximum speed as a native word at offset 22.
 A8 appends maximum energy at 24, targetable area at 26 and ship type at 28,
-all native words. Header size is now 30 bytes. Cobra geometry is type 5; the
+all native words. A9 appends weapon/missile byte at 30, explosion count at 32,
+and gun-vertex byte offset at 34, expanded to words. Header size is 36 bytes. Cobra geometry is type 5; the
 original trader type 6 shares that blueprint but is not spawned in this scene.
 Geometry pointers are rebuilt by the extractor; renderer offsets are unchanged.
 
@@ -96,7 +101,7 @@ hide flag accordingly, without modifying authoritative INWK coordinates.
 
 `tidy_ship(inwk)` preserves D2–D7/A2–A4 and updates the original vector
 bytes. Before movement, the shell calls it when `(MCNT ^ slot) & 15` is zero
-and `INWK[31] & 160` is zero, following MVEIT part 1 scheduling. TACTICS remains absent.
+and `INWK[31] & 160` is zero, following MVEIT part 1 scheduling. A9 adds the normal-ship TACTICS entry.
 A6 applies part 9 and SCAN after movement.
 
 `keyboard_drain` reads SV.KEYQ at system variables +0x4c and consumes up to
@@ -192,21 +197,56 @@ The native routines accept unaligned byte-state pointers and preserve the ABI.
 `laser_hit(inwk, type, targetableArea)` returns HITCH's boolean carry result.
 `ship_damage(inwk, power, type)` returns 1 survived, 2 killed, or 3 protected
 station. For death it stops at the original flag-store boundary, before debris
-and EXNO2. The shell hides the target and increments a diagnostic scene counter;
+and EXNO2. A9 starts an original explosion cloud and increments a diagnostic scene counter;
 that counter is not commander TALLY and provides no rank or rewards.
 `ship_angry(inwk, type, stationAIbyte)` implements ANGRY with a nullable station
-pointer instead of a fixed station slot. Live test targets start with AI byte
-zero; ANGRY does not invent aggression or an enemy AI dispatcher.
+pointer instead of a fixed station slot. Passive test targets start with AI byte zero. Scene 3 starts with byte240
+and dispatches the original normal-ship AI.
 
 `player_damage(status, damage, zSign, carry)` returns 0 for shield absorption,
 1 at the OUCH boundary, or 2 at the DEATH boundary. It retains original shield
 selection, carry-sensitive subtraction, wrapped energy and death conditions.
-It is tested in ELITECBT but has no live caller until collisions/enemy weapons
-are ported. Cargo damage, death animation and sound remain separate boundaries.
+A9 calls it from original TACTICS/HIT. Cargo damage, the player death animation
+and sound remain separate boundaries.
 
 `laser_xor(screen, laser)` and `sight_xor(screen)` are XOR involutions using the
 native rasterizer. Scene reset first erases a visible pulse, then the scanner
 and ship caches. Sights are drawn once and survive all XOR scene redraws.
-Killed/exploding records skip movement and are hidden by the existing renderer;
-scanner MVEIT9 clears their visibility bit. They are retained as inactive scene
-slots until reset, pending original universe removal and debris spawning.
+A9 exploding records continue movement, skip AI/TIDY, and draw clouds until
+DOEXP expires. Fully dead records are hidden. Scanner MVEIT9 clears visibility
+for both. Dead slots remain until reset, pending universe removal/compaction.
+
+
+## A9 tactics and explosion interfaces
+
+`tactics_vector(inwk,out[3])` implements TAS2 using a private K3 copy, preserving
+all input bytes. `tactics_dot(inwk,vec[3],offset)` returns the original unsigned
+encoding of a 16-bit sign-magnitude TAS3 result (offset10/16/22).
+`tactics_due(inwk,type,mcnt,slot)` follows MVEIT part2; missiles are due every
+update, but their actual dispatch remains excluded until homing is ported.
+`tactics_step(inwk,params[5],rng[4],status[5])` supports types1..6. Params are
+TYPE, blueprint max energy, blueprint weapon/missile byte, SSPR, ECMA. Returns:
+0 ordinary return; 1 missile request; 2 escape-pod request; 3 shield hit;
+4 OUCH/cargo boundary; 5 DEATH. Mutation stops at unported child-spawn calls.
+The shell uses SSPR=ECMA=0, records enemy hits and freezes on event5.
+
+Each of 12 clouds occupies448 bytes. Offsets0..54 are the original line-heap
+cloud data (size, counter, vertex-count marker, four seeds, projected vertices).
+56 is a native particle count; 58 begins up to96 four-byte x/y/ZZ/pad records.
+`cloud_advance(inwk,heap)` ports DOEXP counter/size/expiry; `cloud_points(heap,
+out,rng,planetZlo)` ports PTCLS/EXS1 and returns record count; `cloud_xor(screen,
+points,count)` implements PIXEL's original dash placement and sizes in QL mode8.
+`explosion_start(inwk,cloud,model,rng)` initializes LL9 flags/counter/seeds.
+`explosion_frame(screen,inwk,cloud,rng)` erases, advances, copies projected
+vertices, generates and draws the next cloud. No heap allocation occurs.
+
+Renderer globals `_render_exploding` and `_render_inwk` select explosion
+projection and enemy-beam handling for one synchronous draw. `_effect_visible`
+and `_effect_vertices` expose current projection results to the cloud adapter.
+The native renderer still owns all normal/beam line caches and clipping. The
+cloud path projects all vertices, without drawing the old wireframe, and returns
+those positions to PTCLS. Reset erases particle caches before clearing them.
+
+RNG points at the existing LASLI state's four bytes; lasers, tactics and clouds
+share it. The player-dead and mode words are diagnostic shell state, not new
+fields in original INWK. Scene modes0/1/2 mean solo/fleet/hostile encounter.
