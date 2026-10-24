@@ -1,0 +1,58 @@
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/encounters_test.c src/encounters.s src/universe_list.s -o host/ELITEENC
+host/ELITEENC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITEENC
+host/ELITEENC: 1112732 bytes, QDOS data space 100
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/encounters_test.c src/encounters.s src/universe_list.s -o host/ELITEENC
+host/ELITEENC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITEENC
+host/ELITEENC: 580210 bytes, QDOS data space 100
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/universe_list.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 7240 (1c48)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 61738 bytes, QDOS data space 7240
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall src/navigation.s src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITEBEN
+host/ELITEBEN: dataspace 4518 (11a6)
+python3 tools/qlmeta.py host/ELITEBEN
+host/ELITEBEN: 43150 bytes, QDOS data space 4518
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall src/navigation.s src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o host/ELITETST
+host/ELITETST: dataspace 4422 (1146)
+python3 tools/qlmeta.py host/ELITETST
+host/ELITETST: 53652 bytes, QDOS data space 4422
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/universe_list.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEDEV
+host/ELITEDEV: dataspace 7240 (1c48)
+python3 tools/qlmeta.py host/ELITEDEV
+host/ELITEDEV: 61738 bytes, QDOS data space 7240
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/encounters_test.c src/encounters.s src/universe_list.s -o host/ELITEENC
+host/ELITEENC: dataspace 100 (64)
+python3 tools/qlmeta.py host/ELITEENC
+host/ELITEENC: 503398 bytes, QDOS data space 100
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc -O2 -fno-omit-frame-pointer -Wall tests/encounters_pool_test.c src/encounters.s src/universe_list.s -o host/ELITEUP
+host/ELITEUP: dataspace 550 (226)
+python3 tools/qlmeta.py host/ELITEUP
+host/ELITEUP: 94278 bytes, QDOS data space 550
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/universe_list.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 7240 (1c48)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 61744 bytes, QDOS data space 7240
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/universe_list.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEDEV
+host/ELITEDEV: dataspace 7240 (1c48)
+python3 tools/qlmeta.py host/ELITEDEV
+host/ELITEDEV: 61744 bytes, QDOS data space 7240
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+make: Entering directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/universe_list.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEASM
+host/ELITEASM: dataspace 7238 (1c46)
+python3 tools/qlmeta.py host/ELITEASM
+host/ELITEASM: 61762 bytes, QDOS data space 7238
+/workspace/scratch/c9d3713e67de/toolchain/r2-fix/qdos-gcc-linux-x86_64/bin/qdos-gcc src/shell.s src/universe_list.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o host/ELITEDEV
+host/ELITEDEV: dataspace 7238 (1c46)
+python3 tools/qlmeta.py host/ELITEDEV
+host/ELITEDEV: 61762 bytes, QDOS data space 7238
+make: Leaving directory '/workspace/scratch/c9d3713e67de/eliteql-1.0-rc4'

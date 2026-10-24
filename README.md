@@ -1,10 +1,27 @@
-# EliteQL 1.0 RC3a
+# EliteQL 1.0 RC4
 
-A native 68000 QDOS adaptation of Acorn Electron Elite. RC3 adds the original
-start/restart flow, commander names, full status information, and working
-keyboard pause settings. All game code is assembly. RC2 remains an independent
-fallback. This is still a release candidate: the universe capacity/order and
-shared-RNG integration qualification in docs/RELEASE-AUDIT.md remains open.
+Native 68000/QDOS adaptation of Acorn Electron Elite. RC4 replaces the production
+fixed ship pool with the source-derived compact universe list. All gameplay is
+assembly; RC3a remains an independent fallback. This is still a release candidate:
+whole-game RNG identity and real-hardware timing are not claimed.
+
+## RC4 universe allocation and processing
+
+- Twelve logical entries include planet and station/placeholder, leaving ten
+  ordinary ship slots. Ordinary spawns append; station creation replaces slot 1.
+- Original blueprint line-heap costs and the 1,087-byte combined budget can reject
+  large ships before the slot limit. Extra QL RAM does not increase the population.
+- Removal compacts ship state, render caches and explosion caches together. The
+  shifted ship is processed at the same index in the current frame; children
+  appended by tactics are also processed later in that frame.
+- TIDY and tactics use original logical XSAV positions. Encounter allocation
+  failures affect subsequent branches and RNG during generation.
+- KS2 adjusts missile targets after removal. A missile whose target is removed
+  becomes AI-disabled and drifts, as in Electron. The original player-lock quirk
+  (abort an equal lock, but do not decrement a later MSTG) is retained.
+
+Run `EXEC_W WIN1_ELITEASM` as before. Controls, named saves and the requested
+fresh-Space GAME OVER hold are retained. See docs/RC4-RESULTS.md for validation.
 
 ## RC3 start, death and load flow
 
@@ -140,7 +157,7 @@ missions. Native QL text layout/font and controls are adaptations.
 
 ## Hardware and files
 
-ELITEASM is 60,044 bytes with 7,352 bytes of declared QDOS data space. The game is
+ELITEASM is 61,762 bytes with 7,238 bytes of declared QDOS data space. The game is
 all native68000 assembly; C and Python are development diagnostics only.
 Only ELITEASM and your commander save files are needed on the QL's disk. Preserve QDOS
 executable metadata when copying it. The large source/diagnostic archive is not

@@ -5,7 +5,7 @@ README.md, RELEASE-AUDIT.md and RC1-RESULTS.md supersede the A27 completion list
 # A27 native architecture
 
 ELITEASM links only assembly modules. src/shell.s owns the QDOS job, keys, native
-fixed ship pool, frame cadence and presentation integration. The retained
+compact production universe, frame cadence and presentation integration. The retained
 arithmetic/gameplay modules operate on original byte-shaped state records.
 
 src/dust.s adapts screen access and shared RNG; tools/dust_native.py emits
@@ -68,7 +68,7 @@ original OSWORD RLINE alphabet. Cancel transitions wait for key release.
 STATUS uses the native current/target records, fuel, existing rank/legal
 routines and equipment/laser state. Its condition check excludes station and
 asteroids. The aggregate native pool interpretation remains subject to the
-known universe-order qualification. Cargo is a separate7 page, closed with6.
+whole-game RNG qualification. Cargo is a separate7 page, closed with6.
 FREEZE keeps the screen intact. DAMP/DJD persist through reset, DNOIZ gates new
 sound requests and stops the current sound when muted, PATG selects credits,
 and FLH is retained as an inert byte exactly as documented for Electron.
@@ -84,3 +84,28 @@ RC3a: at the user’s request, the completed ten-update DEATH animation now
 holds its final frame until a fresh Space press. Held Space is release-gated;
 other keys are ignored. This is an intentional QL presentation difference from
 the Electron timed transition. The subsequent saved-commander flow is unchanged.
+
+
+## RC4 compact universe
+
+`universe_list.s` holds pure NWSHP/KILLSHP/KS2 bookkeeping. State is 30 bytes:
+FRIN[13], padding, BE count at 14, heap usage at 16, 12 byte costs at 18.
+Planet logical 0 is external; logical 1 maps to native record 0 and is station
+or placeholder; logical L>=2 maps to native record L-1. Native record 11 is unused
+in production. The native arrays remain 12 records for legacy development scenes.
+
+Production launch/arrival enables uni_active. Allocation appends and applies
+36*(next count)+line heap <=1087, with station's separate LSO budget exempt.
+Removal shifts INWK36, render272 and cloud448 blocks and clears the tail. It
+remaps every missile with KS2, including the original hostile AI-byte behavior.
+The loop uses the changing FRIN count, repeats an index after removal and passes
+logical XSAV to cadence tests. Planet/placeholder use full-width movement.
+
+Encounter generation clones the state into uni_plan. en_add commits admission to
+that plan immediately, so a failure controls original subsequent RNG/branches;
+accepted records are then committed to the live state in the same order. MANY
+asteroid/cop counts include explosions until actual removal.
+
+Debug ABI additions: 298 universe state, 302 active flag, 306 current physical
+slot, 310 allocation routine, 314 removal routine, 318 current-cloud pointer,
+322 model table. These are harness inspection pointers, not gameplay hotkeys.

@@ -1,4 +1,4 @@
-# 1.0 RC3 source audit and release boundary
+# 1.0 RC4 source audit and release boundary
 
 The supplied Electron6502 source is authoritative. Native arithmetic modules
 remain supported by executed-original fixture comparisons; no new combat or
@@ -21,24 +21,23 @@ and flight controls. Chart actions include D/O and cursor motion through TT16;
 there is no system-name search in this source. A prior plan promised one in error.
 TT23 and TT24/TT25 were the actual missing chart/data presentation routines.
 
-## Remaining gameplay-relevant fidelity qualification
+## Universe allocation and order: RC4 implementation
 
-The original FRIN/UNIV list has12 occupied entries including universe bodies,
-compacts in KILLSHP, and places the station in FRIN+1 through NWSPS. The native
-shell instead stores planet/placeholder separately from a12-record fixed ship
-pool, reuses available slots and keeps direct physical-slot missile references.
-Original cadence tests use (MCNT XOR XSAV)&15 for TIDY and &7 for tactics, but
-shell XSAV is a physical native slot rather than the compacted original position.
-Consequently crowded-bubble capacity, post-removal/new-spawn order, tactic phase
-and shared-RNG consumption order can differ from Electron. This is a real
-integration difference, not merely a graphical adaptation. The current lifetime
-rules prevent missiles/locks retargeting recycled records; those regressions pass.
+Production now uses the original 12-entry FRIN limit, reserved body positions,
+blueprint line-heap admission costs and packed removal order. Native storage is
+still wider where QL rendering requires it, but extra storage does not grant more
+spawns. KILLSHP compacts all three per-ship arrays and resumes the same index.
+New children are visible to the current frame's dynamic loop bound. TIDY and
+TACTICS receive logical XSAV; station creation remains after the ship loop.
+Missiles use logical AI target numbers and exact KS2 remapping. Equal player locks
+abort; later locks deliberately retain the original MSTG behavior.
 
-RC3 does not rewrite that ownership model during this lifecycle/presentation pass.
-A strict Electron-fidelity1.0 freeze still needs a source-derived universe order
-and capacity implementation, with targeted spawn/removal/missile-order tests.
-Passing isolated arithmetic fixtures does not establish full-game trajectory
-identity. This qualification is why RC3 remains a release candidate.
+Executed-original tests cover 4,096 allocation/removal operations and all 256
+missile AI bytes at ten removal positions. An additional 256 encounter cases
+execute the original encounter instructions with the independently verified heap
+admission rule. Production harness probes exercise limits, compaction and order;
+see RC4-RESULTS.md. These close the identified fixed-pool integration difference,
+not a proof of every possible full-game trajectory or shared-RNG boundary.
 
 Other explicit platform boundaries: QL XOR clipping/rasterization and6-pixel
 uppercase font, native menus/key mapping, QDOS save format (not cassette format),
@@ -50,7 +49,7 @@ restores the last successful save/load (default Jameson if none). The death
 scene uses native existing movement/explosion/dust modules, rather than a new
 physics model. Exact whole-game RNG identity is not claimed: the first Ze
 DORND carry across the text-output boundary is explicitly seeded clear, and
-the remaining universe/order and sound integration qualifications still apply.
+sound/text integration qualifications still apply.
 DEATH has a bounded ten-update timer from LASCT=50, MA23 subtracting four and
 D2 subtracting one. Native rendering/font, QDOS naming and 10 Hz pacing remain
 platform adapters. FLH is deliberately inert, as in the Electron source.

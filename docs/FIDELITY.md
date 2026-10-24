@@ -56,13 +56,15 @@ scope of each port; historical notes give routine-by-routine details.
 
 ## Still adapted or unfinished
 
-- The native shell uses fixed ship slots rather than original packed UNIV/FRIN
-  compaction. Allocation, scene transitions and parts of scheduling remain QL
-  integration code; complete main-loop equivalence is not claimed.
+- RC4 production uses compact FRIN allocation, original line-heap admission,
+  logical XSAV scheduling and KILLSHP/KS2 removal semantics. The legacy ELITEDEV
+  demonstration scenes retain fixed slots for retained diagnostic coverage.
+  Complete main-loop and shared-RNG equivalence is not claimed.
 - Wireframe clipping/rasterization, screen caches and keyboard/QDOS services are
   native platform adapters. Identical full-frame Electron pixels are not claimed.
-- The short-range chart, system-name search, original screen layouts/text-token
-  presentation and full escape-capsule presentation remain unfinished.
+- Charts and system data are implemented with QL layouts/font adapters. System-name
+  search and animated escape flight are absent from the supplied Electron source;
+  neither is an outstanding feature requirement.
 - Sound priorities/envelopes are ported, but waveform/noise fidelity and every
   event's cycle-level ordering are not established.
 - Fixture comparisons isolate routines at stated boundaries. A passing corpus
@@ -74,7 +76,7 @@ format are retained development conveniences, not original Electron mechanics.
 RC3 adds Electron BR1/QU5/TITLE/DEATH and STATUS/FREEZE/DKS3-derived behavior.
 See RELEASE-AUDIT.md and ARCHITECTURE.md for exact boundaries: native QDOS names
 and files, raster/font/pacing, initial death-scene RNG carry, sound integration,
-and the still-open universe capacity/compaction/processing-order difference.
+and whole-game shared-RNG identity beyond the tested routine boundaries.
 FLH is inert in the actual Electron program, so no flashing-bar effect is added.
 Unsupported joystick leftovers are documented rather than turned into new
 joystick mechanics. RC3 is not labelled a completed fidelity1.0 release.

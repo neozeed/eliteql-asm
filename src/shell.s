@@ -11,7 +11,7 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .ascii "EliteQL 1.0 RC3a\0"
+__prog_name: .ascii "EliteQL 1.0 RC4\0"
 .align 2
 asm_stats:
  .data4 0x45514248,0x36383030
@@ -90,6 +90,13 @@ local_debug: .data4 asm_local_chart
 flow_debug: .data4 flow_state
 config_debug: .data4 flow_config
 name_debug: .data4 flow_name
+universe_debug: .data4 uni_state
+universe_active_debug: .data4 uni_active
+universe_slot_debug: .data4 asm_slot
+universe_add_debug: .data4 uni_allocate
+universe_remove_debug: .data4 uni_remove_current
+universe_cloud_debug: .data4 asm_cloud
+universe_models_debug: .data4 _models
 asm_snapshot_size: .data4 32768
 asm_snapshot_rle: .data2 0
 asm_tunnel_phase: .data2 0
@@ -110,7 +117,7 @@ asm_view_inwk: .space 36
 asm_planet_view: .space 36
 asm_altitude: .data2 255
 asm_planet_cache: .space 80
-asm_placeholder: .space 9
+asm_placeholder: .space 36
 .align 2
 asm_world: .data2 0
 asm_warp_result: .data2 0
@@ -824,15 +831,19 @@ laser_sound_ready:
  addq.l #8,sp
  move.b #1,asm_laser+9
 asm_fire_drawn:
+ clr.w asm_slot
  lea asm_ships,a5
  move.w asm_count,d7
  subq.w #1,d7
 asm_draw_loop:
+ tst.w uni_active
+ bne uni_draw_entry
  lea asm_vectors,a0
  move.w asm_count,d0
  subq.w #1,d0
  sub.w d7,d0
  move.w d0,asm_slot
+uni_slot_ready:
  mulu.w #448,d0
  lea asm_clouds,a1
  adda.l d0,a1
@@ -881,9 +892,11 @@ asm_live_ship:
  move.b 31(a4),d0
  and.b #160,d0
  bne asm_no_tidy
- move.w asm_count,d0
- subq.w #1,d0
- sub.w d7,d0
+ move.w asm_slot,d0
+ tst.w uni_active
+ beq uni_tidy_index
+ addq.w #1,d0
+uni_tidy_index:
  moveq #0,d1
  move.b asm_mcnt,d1
  eor.w d1,d0
@@ -896,6 +909,10 @@ asm_no_tidy:
  ; Original cadence, with universe-dependent types left outside this entry.
  moveq #0,d0
  move.w asm_slot,d0
+ tst.w uni_active
+ beq uni_tactics_index
+ addq.w #1,d0
+uni_tactics_index:
  move.l d0,-(sp)
  moveq #0,d0
  move.b asm_mcnt,d0
@@ -959,6 +976,18 @@ station_zone_ready:
  move.b 32(a4),d0
  lsr.w #1,d0
  and.w #31,d0
+ tst.w uni_active
+ beq uni_friendly_index
+ subq.w #1,d0
+ bmi asm_friendly_invalid
+ tst.w d0
+ bne uni_friendly_index
+ tst.l asm_station
+ bne uni_friendly_index
+ lea asm_placeholder,a0
+ moveq #7,d1
+ bra asm_friendly_target
+uni_friendly_index:
  cmp.w #12,d0
  bhs asm_friendly_invalid
  move.w d0,d1
@@ -971,6 +1000,8 @@ station_zone_ready:
  mulu.w #36,d0
  lea asm_vectors,a0
  adda.l d0,a0
+ tst.w uni_active
+ bne asm_friendly_target
  btst #7,31(a0)
  bne asm_friendly_invalid
  bra asm_friendly_target
@@ -1197,8 +1228,11 @@ asm_render_effect_ready:
  jsr _commander_settle
  lea 12(sp),sp
 asm_cloud_done:
+ tst.w uni_active
+ bne uni_draw_complete
  lea 272(a5),a5
  dbra d7,asm_draw_loop
+uni_draw_finished:
  moveq #0,d0
  move.w asm_count,d0
  move.l d0,-(sp)
@@ -1425,6 +1459,8 @@ asm_erase_laser:
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w uni_active
+ clr.l _encounter_pool
  tst.w asm_dust_valid
  beq dust_setup_clean
  moveq #3,d0
@@ -1669,6 +1705,10 @@ asm_not_deep_setup:
  rts
  ; Fixed-slot lifetime rule: no missile/lock may retarget a recycled record.
 asm_abort_target:
+ tst.w uni_active
+ beq uni_abort_legacy
+ rts
+uni_abort_legacy:
  movem.l d0-d3/a0-a2,-(sp)
  move.w asm_slot,d0
  cmp.b asm_player+2,d0
@@ -1903,9 +1943,12 @@ asm_player_fire:
  mulu.w #36,d0
  lea asm_vectors,a0
  adda.l d0,a0
+ tst.w uni_active
+ bne uni_player_fire_allowed
  move.b 31(a0),d0
  and.b #160,d0
  bne asm_player_unlock
+uni_player_fire_allowed:
  move.b #1,asm_player+3
  bsr asm_spawn_missile
  clr.b asm_player+3
@@ -1942,6 +1985,8 @@ asm_spawn_missile:
  cmp.w #3,asm_mode
  bne asm_spawn_return
  movem.l d2-d7/a2-a6,-(sp)
+ tst.w uni_active
+ bne uni_spawn_allocate
  lea asm_vectors+108,a2
  lea asm_ships+816,a3
  lea asm_clouds+1344,a6
@@ -1953,7 +1998,8 @@ asm_spawn_find:
  bne asm_spawn_next
  tst.w 56(a6)
  bne asm_spawn_next
- ; An expired slot's line heap is already empty; retain its native cache header.
+uni_spawn_ready:
+ ; The production allocator appends at the original first empty FRIN slot.
  lea _models,a0
  move.w asm_spawn_kind,d0
  lsl.w #2,d0
@@ -1965,6 +2011,10 @@ asm_spawn_find:
  move.l d0,-(sp)
  moveq #0,d0
  move.b asm_player+2,d0
+ tst.w uni_active
+ beq uni_player_target
+ addq.w #1,d0
+uni_player_target:
  move.l d0,-(sp)
  move.l a2,-(sp)
  jsr _player_missile_init
@@ -2010,6 +2060,7 @@ asm_spawn_next:
  lea 272(a3),a3
  lea 448(a6),a6
  dbra d6,asm_spawn_find
+uni_spawn_full:
  cmp.w #8,asm_spawn_kind
  bne asm_spawn_failed
  ; SFS1 consumes its tumble RNG before NWSHP discovers a full pool.
@@ -3855,6 +3906,18 @@ chart_help2: .ascii "H JUMP G GALAXY C DATA 9 CLOSE\0"
 
 .sect .text
 asm_ambient_begin:
+ tst.w _release_mode
+ beq uni_ambient_legacy
+ move.w #1,uni_active
+ pea uni_state
+ jsr _universe_reset
+ addq.l #4,sp
+ tst.w asm_arriving
+ bne uni_ambient_legacy
+ cmp.w #3,asm_salvage
+ beq uni_ambient_legacy
+ move.b #7,uni_state+1
+uni_ambient_legacy:
  move.w #1,asm_ambient
  clr.b asm_enc_params+5
  ; A launched/arrived scene has no scripted fighters. Slot0 remains station.
@@ -3923,6 +3986,7 @@ encounter_inventory_next:
  lea 272(a5),a5
  lea 448(a6),a6
  dbra d7,encounter_inventory
+ bsr uni_encounter_plan
  pea asm_cargo
  pea asm_enc_params
  pea asm_laser+5
@@ -3930,12 +3994,15 @@ encounter_inventory_next:
  jsr _encounter_step
  lea 16(sp),sp
  move.b d0,asm_dust+166
+ clr.l _encounter_pool
 encounter_emit:
  lea asm_enc_output+2,a2
  move.w asm_enc_output,d6
  subq.w #1,d6
  bmi encounter_done
 encounter_insert:
+ tst.w uni_active
+ bne uni_encounter_allocate
  lea asm_vectors,a4
  lea asm_ships,a5
  lea asm_clouds,a6
@@ -3947,6 +4014,7 @@ encounter_find:
  bne encounter_find_next
  tst.w 56(a6)
  bne encounter_find_next
+uni_encounter_ready:
  move.w (a2),d0
  cmp.w #6,d0
  bne encounter_model_find
@@ -5822,4 +5890,278 @@ flow_cargo_keys:
  bsr asm_clear_view
  bsr asm_commander_page
 flow_cargo_return:
+ rts
+
+; RC4 compact universe. Logical FRIN slot L>=1 is native record L-1.
+; The planet remains in its full-width external block, but occupies FRIN0.
+; All three per-ship blocks move together: INWK36, renderer272, cloud448.
+.sect .data
+.align 2
+uni_state: .space 30
+uni_plan: .space 30
+uni_active: .data2 0
+uni_copy_index: .data2 0
+uni_removed: .data2 0
+.sect .text
+uni_allocate:
+ movem.l d1-d7/a0-a6,-(sp)
+ move.l d0,-(sp)
+ move.l d0,-(sp)
+ jsr _universe_cost
+ addq.l #4,sp
+ move.l d0,-(sp)
+ move.l 4(sp),-(sp)
+ pea uni_state
+ jsr _universe_add
+ lea 16(sp),sp
+ tst.l d0
+ bmi uni_allocate_done
+ subq.w #1,d0
+uni_allocate_done:
+ movem.l (sp)+,d1-d7/a0-a6
+ rts
+uni_spawn_allocate:
+ lea _models,a0
+ move.w asm_spawn_kind,d0
+ lsl.w #2,d0
+ move.l 0(a0,d0.w),a0
+ moveq #0,d0
+ move.w 28(a0),d0
+ bsr uni_allocate
+ tst.l d0
+ bmi uni_spawn_full
+ move.w d0,d1
+ mulu.w #36,d1
+ lea asm_vectors,a2
+ adda.l d1,a2
+ move.w d0,d1
+ mulu.w #272,d1
+ lea asm_ships,a3
+ adda.l d1,a3
+ mulu.w #448,d0
+ lea asm_clouds,a6
+ adda.l d0,a6
+ bra uni_spawn_ready
+uni_encounter_allocate:
+ moveq #0,d0
+ move.w (a2),d0
+ bsr uni_allocate
+ tst.l d0
+ bmi encounter_record_next
+ move.w d0,d1
+ mulu.w #36,d1
+ lea asm_vectors,a4
+ adda.l d1,a4
+ move.w d0,d1
+ mulu.w #272,d1
+ lea asm_ships,a5
+ adda.l d1,a5
+ mulu.w #448,d0
+ lea asm_clouds,a6
+ adda.l d0,a6
+ bra uni_encounter_ready
+uni_encounter_plan:
+ clr.l _encounter_pool
+ tst.w uni_active
+ beq uni_plan_done
+ movem.l d0-d1/a0-a1,-(sp)
+ lea uni_state,a0
+ lea uni_plan,a1
+ moveq #14,d0
+uni_plan_copy:
+ move.w (a0)+,(a1)+
+ dbra d0,uni_plan_copy
+ move.l #uni_plan,_encounter_pool
+ ; Inventory includes exploding ships, like MANY (decremented at KILLSHP).
+ clr.b asm_enc_params+1
+ clr.b asm_enc_params+2
+ moveq #2,d0
+uni_inventory:
+ cmp.w uni_state+14,d0
+ bhs uni_inventory_done
+ lea uni_state,a0
+ move.b 0(a0,d0.w),d1
+ cmp.b #9,d1
+ bne uni_inventory_cop
+ addq.b #1,asm_enc_params+1
+uni_inventory_cop:
+ cmp.b #2,d1
+ bne uni_inventory_next
+ addq.b #1,asm_enc_params+2
+uni_inventory_next:
+ addq.w #1,d0
+ bra uni_inventory
+uni_inventory_done:
+ moveq #12,d0
+ sub.w uni_state+14,d0
+ move.b d0,asm_enc_params+7
+ movem.l (sp)+,d0-d1/a0-a1
+uni_plan_done:
+ rts
+uni_draw_entry:
+ move.w asm_slot,d0
+ addq.w #1,d0
+ cmp.w uni_state+14,d0
+ bhs uni_draw_finished
+ cmp.w #1,d0
+ bne uni_draw_present
+ cmp.b #129,uni_state+1
+ bne uni_draw_present
+ ; MVEIT handles the slot1 placeholder as a full-width body, without AI.
+ clr.l -(sp)
+ pea asm_params
+ pea asm_placeholder
+ jsr _move_planet
+ lea 12(sp),sp
+ bra uni_draw_next
+uni_draw_present:
+ move.w asm_slot,d0
+ mulu.w #272,d0
+ lea asm_ships,a5
+ adda.l d0,a5
+ lea asm_vectors,a0
+ move.w asm_slot,d0
+ bra uni_slot_ready
+uni_draw_complete:
+ move.b 31(a4),d0
+ and.w #160,d0
+ cmp.w #160,d0
+ bne uni_draw_next
+ bsr uni_remove_current
+ ; KS1 returns to MAL1 at the same slot: do not skip the shifted ship.
+ bra asm_draw_loop
+uni_draw_next:
+ addq.w #1,asm_slot
+ bra asm_draw_loop
+uni_remove_current:
+ movem.l d0-d7/a0-a6,-(sp)
+ move.w asm_slot,uni_removed
+ move.w asm_slot,d0
+ cmp.b asm_player+2,d0
+ bne uni_unlock_done
+ move.b #255,asm_player+2
+ clr.b asm_player+1
+ moveq #5,d0
+ bsr asm_message
+uni_unlock_done:
+ ; KILLSHP only aborts an equal player lock. It does NOT decrement MSTG
+ ; for a later lock; retain that original behavior rather than fixing it.
+ move.l a5,-(sp)
+ pea 0x20000
+ jsr _render_cache
+ addq.l #8,sp
+ move.l asm_cloud,a0
+ moveq #0,d0
+ move.w 56(a0),d0
+ move.l d0,-(sp)
+ pea 58(a0)
+ pea 0x20000
+ jsr _cloud_xor
+ lea 12(sp),sp
+ moveq #0,d0
+ move.w uni_removed,d0
+ addq.w #1,d0
+ move.l d0,-(sp)
+ pea uni_state
+ jsr _universe_remove
+ addq.l #8,sp
+ tst.w uni_removed
+ beq uni_remove_station
+ move.w uni_removed,uni_copy_index
+uni_shift_blocks:
+ move.w uni_copy_index,d0
+ addq.w #1,d0
+ cmp.w uni_state+14,d0
+ bhs uni_clear_tail
+ move.w uni_copy_index,d0
+ mulu.w #36,d0
+ lea asm_vectors,a0
+ adda.l d0,a0
+ lea 36(a0),a1
+ moveq #8,d0
+uni_shift_inwk:
+ move.l (a1)+,(a0)+
+ dbra d0,uni_shift_inwk
+ move.w uni_copy_index,d0
+ mulu.w #272,d0
+ lea asm_ships,a0
+ adda.l d0,a0
+ lea 272(a0),a1
+ moveq #67,d0
+uni_shift_cache:
+ move.l (a1)+,(a0)+
+ dbra d0,uni_shift_cache
+ move.w uni_copy_index,d0
+ mulu.w #448,d0
+ lea asm_clouds,a0
+ adda.l d0,a0
+ lea 448(a0),a1
+ moveq #111,d0
+uni_shift_cloud:
+ move.l (a1)+,(a0)+
+ dbra d0,uni_shift_cloud
+ addq.w #1,uni_copy_index
+ bra uni_shift_blocks
+uni_clear_tail:
+ move.w uni_copy_index,d0
+ mulu.w #36,d0
+ lea asm_vectors,a0
+ adda.l d0,a0
+ moveq #8,d0
+uni_clear_inwk:
+ clr.l (a0)+
+ dbra d0,uni_clear_inwk
+ move.b #160,-5(a0)
+ move.w uni_copy_index,d0
+ mulu.w #272,d0
+ lea asm_ships,a0
+ adda.l d0,a0
+ clr.w 12(a0)
+ move.w #1,14(a0)
+ move.w uni_copy_index,d0
+ mulu.w #448,d0
+ lea asm_clouds,a0
+ adda.l d0,a0
+ moveq #111,d0
+uni_clear_cloud:
+ clr.l (a0)+
+ dbra d0,uni_clear_cloud
+ ; KS2 scans the compacted list, remapping missiles, including those already
+ ; processed this frame. AI=0 makes a missile drift instead of exploding.
+ moveq #1,d7
+ lea asm_vectors,a4
+uni_targets:
+ cmp.w uni_state+14,d7
+ bhs uni_remove_done
+ lea uni_state,a0
+ cmp.b #8,0(a0,d7.w)
+ bne uni_target_next
+ moveq #0,d0
+ move.w uni_removed,d0
+ addq.w #1,d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.b 32(a4),d0
+ move.l d0,-(sp)
+ jsr _universe_missile_target
+ addq.l #8,sp
+ move.b d0,32(a4)
+uni_target_next:
+ lea 36(a4),a4
+ addq.w #1,d7
+ bra uni_targets
+uni_remove_station:
+ clr.l asm_station
+ lea asm_placeholder,a0
+ moveq #35,d0
+uni_station_zero:
+ clr.b 0(a0,d0.w)
+ dbra d0,uni_station_zero
+ move.b #6,asm_placeholder+5
+ move.b #160,asm_vectors+31
+ clr.w asm_ships+12
+ clr.w asm_clouds+56
+ ; KS4 returns before KS2: no missile remapping on placeholder replacement.
+uni_remove_done:
+ movem.l (sp)+,d0-d7/a0-a6
  rts

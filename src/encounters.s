@@ -237,6 +237,27 @@ en_random:
  and.w #255,d0
  rts
 en_add:
+ tst.l _encounter_pool
+ beq en_add_legacy
+ movem.l d0-d2/a0-a1,-(sp)
+ move.l d0,-(sp)
+ jsr _universe_cost
+ addq.l #4,sp
+ move.l d0,-(sp)
+ move.l 4(sp),-(sp)
+ move.l _encounter_pool,-(sp)
+ jsr _universe_add
+ lea 12(sp),sp
+ moveq #0,d3
+ tst.l d0
+ bmi en_pool_denied
+ moveq #1,d3
+en_pool_denied:
+ movem.l (sp)+,d0-d2/a0-a1
+ tst.w d3
+ beq en_add_done
+ bra en_add_record
+en_add_legacy:
  moveq #0,d3
  moveq #0,d2
  move.b 7(a4),d2
@@ -244,6 +265,7 @@ en_add:
  bls en_add_done
  cmp.w #5,(a2)
  bhs en_add_done
+en_add_record:
  move.w (a2),d2
  mulu.w #40,d2
  lea 2(a2,d2.w),a0
@@ -258,3 +280,8 @@ en_add_copy:
  moveq #1,d3
 en_add_done:
  rts
+
+.sect .data
+.align 2
+.globl _encounter_pool
+_encounter_pool: .data4 0

@@ -13,13 +13,13 @@ host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/universe_list.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/universe_list.s src/presentation.s src/release.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEDEV
-host/ELITEDEV: src/shell.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEDEV: src/shell.s src/universe_list.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/universe_list.s src/presentation.s src/development.s src/sound.s src/screen_store.s src/dust.s src/dust_generated.s src/bulbs.s src/views.s src/station_ai.s src/planet_view.s src/station.s src/encounters.s src/universe.s src/save.s src/shop.s src/travel.s src/market.s src/docking.s src/planet.s src/equipment.s src/compass.s src/commander.s src/cargo.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render_game.s src/models_game.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -129,8 +129,8 @@ host/ELITEUNI: tests/universe_test.c src/universe.s src/travel.s src/line.s src/
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEENC
-host/ELITEENC: tests/encounters_test.c tests/encounters_fixtures.h src/encounters.s
-	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/encounters_test.c src/encounters.s -o $@
+host/ELITEENC: tests/encounters_test.c tests/encounters_fixtures.h src/encounters.s src/universe_list.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/encounters_test.c src/encounters.s src/universe_list.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 src/render_game.s src/models_game.s: src/render.s src/models.s tools/game_sources.py
@@ -172,3 +172,13 @@ all: host/ELITEPRE
 host/ELITEPRE: tests/presentation_test.c tests/presentation_fixtures.h src/presentation.s
 	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/presentation_test.c src/presentation.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEUL
+host/ELITEUL: tests/universe_list_test.c tests/universe_list_fixtures.h src/universe_list.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/universe_list_test.c src/universe_list.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITEUP
+host/ELITEUP: tests/encounters_pool_test.c tests/encounters_pool_fixtures.h src/encounters.s src/universe_list.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/encounters_pool_test.c src/encounters.s src/universe_list.s -o $@
+	python3 tools/qlmeta.py $@

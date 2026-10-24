@@ -72,3 +72,22 @@ RC3a: at the user’s request, the completed ten-update DEATH animation now
 holds its final frame until a fresh Space press. Held Space is release-gated;
 other keys are ignored. This is an intentional QL presentation difference from
 the Electron timed transition. The subsequent saved-commander flow is unchanged.
+
+
+## RC4 additions
+
+`universe_list_reference.py` executes extracted original NWSHP/KILLSHP/KS2 and
+produces 4,096 operation states plus 2,560 missile cases. ELITEUL compares native
+state, return values and guards. `encounters_pool_reference.py` executes original
+encounter code with the independently verified heap admission formula; ELITEUP
+checks 256 final seeds, output records, carry and planned pool states. These test
+binaries are separate so each fits the 640KB diagnostic environment.
+
+`universe_live_check.h` is included in both production harnesses. While paused,
+it saves CPU context, calls the actual native allocation/removal routines with an
+isolated scratch stack, then restores CPU context. Deterministic injected scenes
+check 10-small-ship capacity, early large-ship heap exhaustion, no mutation on
+failure, state/cache compaction, missile drift/remapping, original player-lock
+behavior, same-frame shifted-ship processing and a real Viper missile launch.
+These are fixture-driven integration checks, not an unmodified human playthrough.
+Production title/trade/save/load/travel/docking/death checks still run normally.
