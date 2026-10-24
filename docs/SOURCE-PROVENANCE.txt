@@ -99,3 +99,7 @@ save.s/file packing/checksum are native platform adaptation, not6502 conversion.
 A21 original-universe.asm contains SOS1,SOLAR,ZINF. universe.s translates the
 planet workspace effects. Galactic chart coordinates reuse original TT20/cpl
 system generation; QL plotting/layout/cross controls are native presentation.
+
+A22 original-encounters.asm preserves TT100/MTT/Ze/DORND/ZINF/BAD excerpts;
+original-farof.asm preserves FAROF/FAROF2/MA34. The native shell supplies
+allocation, scene and incoming-carry boundaries described in FIDELITY.md.

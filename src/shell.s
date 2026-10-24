@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514242,0x36383030
+ .data4 0x45514243,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -63,6 +63,15 @@ asm_nav_debug: .data4 asm_nav
 asm_arrival_debug: .data4 asm_arriving
 asm_fit_debug: .data4 _ship_fit
 asm_shop_debug: .data4 asm_shop
+asm_ambient_debug: .data4 asm_ambient
+asm_encounter_debug: .data4 asm_enc_params
+asm_spawn_count_debug: .data4 asm_enc_spawns
+asm_ambient: .data2 0
+asm_deep_key: .data2 0
+asm_enc_spawns: .data4 0
+asm_enc_params: .space 8
+asm_enc_output: .space 202
+asm_trader: .space 40
 asm_chart: .data2 0
 asm_solar_legal: .data2 0
 asm_shop: .data2 0
@@ -253,6 +262,22 @@ asm_loop:
  bsr asm_dock_keys
  bra asm_update_stats
 asm_flight_keys:
+ moveq #6,d0
+ bsr asm_keyrow
+ and.w #32,d0
+ move.w asm_deep_key,d1
+ eor.w d0,d1
+ move.w d0,asm_deep_key
+ and.w d0,d1
+ beq asm_deep_done
+ tst.w asm_page
+ bne asm_deep_done
+ move.w #3,asm_mode
+ move.w #3,asm_salvage
+ move.w #12,asm_count
+ bsr asm_launch
+ bra asm_update_stats
+asm_deep_done:
  moveq #6,d0
  bsr asm_keyrow
  and.w #4,d0
@@ -732,6 +757,9 @@ asm_ai_alive:
  addq.l #8,sp
  eor.w #1,d0
  move.w d0,14(a5)
+ bsr asm_farof
+ tst.w d0
+ bne asm_render_current
  bsr asm_contact
  tst.w asm_docked
  bne asm_dock_commit
@@ -891,6 +919,9 @@ asm_laser_end:
  jsr _commander_tick
  addq.l #4,sp
  subq.b #1,asm_mcnt
+ bne asm_no_encounter_tick
+ bsr asm_encounters
+asm_no_encounter_tick:
  bsr asm_draw_dials
  addq.l #1,asm_frames
  bra asm_update_stats
@@ -1019,6 +1050,9 @@ asm_setup:
  addq.l #4,sp
  clr.w asm_nav
  clr.w asm_nav_keys
+ clr.w asm_ambient
+ clr.l asm_enc_spawns
+ clr.b asm_enc_params+5
  ; Initial Lave market, fluctuation0.
  clr.l -(sp)
  move.l #5,-(sp)
@@ -1191,6 +1225,17 @@ asm_port_models_done:
  move.b #96,asm_vectors+16
  move.b #224,asm_vectors+24
 asm_port_pose_done:
+ cmp.w #3,asm_salvage
+ bne asm_not_deep_setup
+ lea asm_vectors,a0
+ moveq #11,d0
+asm_deep_clear:
+ move.b #160,31(a0)
+ clr.b 32(a0)
+ lea 36(a0),a0
+ dbra d0,asm_deep_clear
+ clr.l asm_station
+asm_not_deep_setup:
  move.b #255,asm_status
  move.b #255,asm_status+1
  move.b #255,asm_status+2
@@ -1559,6 +1604,8 @@ asm_draw_dials:
  bne asm_compass_target_done
  cmp.w #2,asm_salvage
  bne asm_compass_target_done
+ tst.l asm_station
+ beq asm_compass_target_done
  move.l #asm_vectors,(sp)
  move.l #1,8(sp)
 asm_compass_target_done:
@@ -1916,6 +1963,7 @@ launch_restore_cargo:
  move.b #96,asm_vectors+24
  move.w #-2048,asm_ships+8
 launch_arrival_pose:
+ bsr asm_ambient_begin
  bsr asm_draw_dials
  rts
 asm_market_page:
@@ -3085,3 +3133,171 @@ chart_title: .ascii "GALACTIC CHART / CURRENT > TARGET\0"
 chart_help: .ascii "ARROWS SELECT  H JUMP  G GALAXY\0"
 chart_help2: .ascii "C DATA  9 CLOSE\0"
 .align 2
+
+.sect .text
+asm_ambient_begin:
+ move.w #1,asm_ambient
+ clr.b asm_enc_params+5
+ ; A launched/arrived scene has no scripted fighters. Slot0 remains station.
+ lea asm_vectors+36,a0
+ moveq #10,d0
+ambient_clear:
+ move.b #160,31(a0)
+ clr.b 32(a0)
+ lea 36(a0),a0
+ dbra d0,ambient_clear
+ ; Original types5 and6 share geometry but have distinct AI identities.
+ lea _models,a0
+ move.l 16(a0),a0
+ lea asm_trader,a1
+ moveq #9,d0
+ambient_trader_copy:
+ move.l (a0)+,(a1)+
+ dbra d0,ambient_trader_copy
+ move.w #6,asm_trader+28
+ rts
+asm_encounters:
+ tst.w asm_ambient
+ beq encounter_done
+ cmp.w #3,asm_mode
+ bne encounter_done
+ clr.b asm_enc_params
+ clr.b asm_enc_params+1
+ clr.b asm_enc_params+2
+ clr.b asm_enc_params+7
+ move.b asm_travel+23,asm_enc_params+3
+ move.b asm_commander+6,asm_enc_params+4
+ ; Explicit initial C boundary: original full flight-loop flag flow absent.
+ clr.b asm_enc_params+6
+ lea asm_vectors,a4
+ lea asm_ships,a5
+ lea asm_clouds,a6
+ moveq #11,d7
+encounter_inventory:
+ move.b 31(a4),d0
+ and.b #160,d0
+ cmp.b #160,d0
+ bne encounter_occupied
+ tst.w 56(a6)
+ bne encounter_inventory_next
+ addq.b #1,asm_enc_params+7
+ bra encounter_inventory_next
+encounter_occupied:
+ tst.b d0
+ bne encounter_inventory_next
+ move.l (a5),a0
+ move.w 28(a0),d0
+ cmp.w #7,d0
+ bne encounter_asteroid
+ move.b #1,asm_enc_params
+ bra encounter_inventory_next
+encounter_asteroid:
+ cmp.w #9,d0
+ bne encounter_cop
+ addq.b #1,asm_enc_params+1
+encounter_cop:
+ cmp.w #2,d0
+ bne encounter_inventory_next
+ addq.b #1,asm_enc_params+2
+encounter_inventory_next:
+ lea 36(a4),a4
+ lea 272(a5),a5
+ lea 448(a6),a6
+ dbra d7,encounter_inventory
+ pea asm_cargo
+ pea asm_enc_params
+ pea asm_laser+5
+ pea asm_enc_output
+ jsr _encounter_step
+ lea 16(sp),sp
+ lea asm_enc_output+2,a2
+ move.w asm_enc_output,d6
+ subq.w #1,d6
+ bmi encounter_done
+encounter_insert:
+ lea asm_vectors,a4
+ lea asm_ships,a5
+ lea asm_clouds,a6
+ moveq #11,d7
+encounter_find:
+ move.b 31(a4),d0
+ and.b #160,d0
+ cmp.b #160,d0
+ bne encounter_find_next
+ tst.w 56(a6)
+ bne encounter_find_next
+ move.w (a2),d0
+ cmp.w #6,d0
+ bne encounter_model_find
+ lea asm_trader,a0
+ bra encounter_model_ready
+encounter_model_find:
+ lea _models,a1
+ moveq #9,d1
+encounter_model_loop:
+ move.l (a1)+,a0
+ cmp.w 28(a0),d0
+ beq encounter_model_ready
+ dbra d1,encounter_model_loop
+ bra encounter_record_next
+encounter_model_ready:
+ move.l a0,(a5)
+ lea 2(a2),a1
+ move.l a4,a3
+ moveq #35,d0
+encounter_record_copy:
+ move.b (a1)+,(a3)+
+ dbra d0,encounter_record_copy
+ move.w 24(a0),d0
+ move.b d0,35(a4)
+ move.w 30(a0),d0
+ and.b #7,d0
+ move.b d0,31(a4)
+ clr.w 12(a5)
+ clr.w 14(a5)
+ clr.b 2(a6)
+ addq.l #1,asm_enc_spawns
+ bra encounter_record_next
+encounter_find_next:
+ lea 36(a4),a4
+ lea 272(a5),a5
+ lea 448(a6),a6
+ dbra d7,encounter_find
+encounter_record_next:
+ lea 40(a2),a2
+ dbra d6,encounter_insert
+encounter_done:
+ rts
+
+.sect .text
+asm_farof:
+ moveq #0,d0
+ tst.w asm_ambient
+ beq farof_done
+ move.b 31(a4),d0
+ and.w #160,d0
+ bne farof_stay
+ cmp.b #224,1(a4)
+ bhi farof_leave
+ cmp.b #224,4(a4)
+ bhi farof_leave
+ cmp.b #224,7(a4)
+ bls farof_stay
+farof_leave:
+ move.b #160,31(a4)
+ clr.b 32(a4)
+ move.l asm_cloud,a0
+ clr.b 2(a0)
+ move.w #1,14(a5)
+ move.l (a5),a0
+ cmp.w #7,28(a0)
+ bne farof_unlock
+ clr.l asm_station
+farof_unlock:
+ bsr asm_abort_target
+ moveq #1,d0
+ rts
+farof_stay:
+ moveq #0,d0
+farof_done:
+ rts

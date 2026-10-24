@@ -250,3 +250,38 @@ presentation adapter, not original TT22 cursor/star-size/raster equivalence.
 ELITEUNI checks4096 source-derived seed/legal/tech cases; travel_check.h checks
 the exact chart area against original-generated coordinates in the live job.
 Stats magic EQBB/6800; offsets and EQA1 save format remain unchanged.
+
+## A22 ambient encounters (supersedes earlier fixture limitations)
+
+encounters.s translates the TT100/me3 spawning section, MTT4, MTT1, mt1/mt3,
+Ze, DORND and BAD from the Electron source. The scheduler runs on MCNT wrap
+(every 256 flight updates). Safe-zone presence, asteroid/police counts,
+government, FIST, cargo and EV drive the original branch logic. Cobra types5/6
+share geometry with separate hunter/trader identities. Incoming carry is an
+explicit zero at the shell boundary; NWSHP is a capacity-limited success/failure
+adapter, not the original heap/UNIV implementation. The twelve-slot pool remains.
+
+Launch/arrival clears staged fighters and enables ambient traffic. The 0 key
+enters an empty deep-space flight scene while retaining commander state; this
+is a shortcut through the existing launch adapter, including shield reset.
+Station placement is still the approach fixture, not original station creation.
+Station record presence controls the spawning safe-zone flag. Per-frame FAROF
+removes objects if any unsigned position high byte exceeds224, clears locks,
+and allows reuse after rendering cleanup; departures earn no bounty or tally.
+
+Stats magic EQBC/6800 appends pointers190(ambient word),194(eight encounter
+parameters),198(total spawned long). Existing offsets and EQA1 saves remain.
+The encounter interface emits up to five40-byte records (type word, INWK36,
+padding2); output begins with a count word. The shell supplies blueprint energy
+and missile inventory on insertion. Encounter state is transient across saves.
+
+ELITEENC executes2,048 deterministic cases against an interpreter of the bundled
+original excerpts. NWSHP is hooked for capacity and records, and the loop exits
+are stop adapters. RNG, params and all generated INWK bytes are compared.
+Live tests inject seeds for trader, asteroid, canister, police, Sidewinder,
+Mamba, Python and Cobra hunter paths, then check renderer/scanner, preservation
+and FAROF cleanup at128/640KB. ONLY_ENCOUNTERS=1 selects this focused harness.
+
+Game-only generated render_game.s/models_game.s omit the obsolete demo matrix
+lookup/table. All live game rendering supplies converted motion matrices.
+Benchmarks and renderer diagnostics retain the full original native renderer.
