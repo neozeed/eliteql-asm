@@ -1,0 +1,8 @@
+private-test-mount/ELITEASM: 13804 bytes, QDOS data space 3416
+private-test-mount/ELITEBEN: 30072 bytes, QDOS data space 4134
+private-test-mount/ELITETST: 40354 bytes, QDOS data space 4046
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS ASM native: ram=128 KB, frames=277, largest free block after startup=37376 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=277, largest free block after startup=552448 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+ASM A1: ships=1 frames=300 ticks=265 fps=56.6 vertices=5389 lines=6411
+ASM A1: ships=12 frames=300 ticks=1357 fps=11.0 vertices=31202 lines=42112
