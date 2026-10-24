@@ -1,0 +1,14 @@
+/tmp/tmp.HUSbyU4ECU/ELITEASM: 15158 bytes, QDOS data space 3796
+/tmp/tmp.HUSbyU4ECU/ELITEBEN: 31652 bytes, QDOS data space 4530
+/tmp/tmp.HUSbyU4ECU/ELITETST: 41936 bytes, QDOS data space 4444
+/tmp/tmp.HUSbyU4ECU/ELITEMOT: 70386 bytes, QDOS data space 652
+/tmp/tmp.HUSbyU4ECU/ELITEFLT: 73406 bytes, QDOS data space 644
+6502 oracle: generated 768 cases; 11904 movement steps
+6502 flight oracle: 768 cases, 4224 steps
+Original MVEIT parts 3-8: PASS (768 cases, 0 failures)
+Original 6502 motion: PASS (768 cases, 0 failures)
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS ASM native: ram=128 KB, frames=291, largest free block after startup=35328 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=291, largest free block after startup=550400 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+ASM A3 mode=2: ships=1 frames=300 ticks=253 fps=59.2 vertices=3693 lines=4646
+ASM A3 mode=2: ships=12 frames=300 ticks=1673 fps=8.9 vertices=28436 lines=38832

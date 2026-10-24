@@ -94,6 +94,7 @@ mvs5_pair:
  rts
 ; Original ADD behavior, including signed zero and 16-bit overflow.
 ; d0 = (A P), d1 = (S R), result encoded in d0; clobbers d1,d4.
+.globl sign_add
 sign_add:
  move.w d0,d4
  eor.w d1,d4

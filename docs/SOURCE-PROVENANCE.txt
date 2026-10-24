@@ -1,0 +1,7 @@
+Source: user-supplied elite-source-code-acorn-electron-main.zip
+File: 1-source-files/main-sources/elite-source.asm
+SHA256: 93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf
+
+Bundled excerpts retain original instructions and comments.
+Test ENTRY/return scaffolding isolates the documented routines.
+Regenerate with tests/flight_reference.py or motion_reference.py SOURCE.

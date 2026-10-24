@@ -1,149 +1,156 @@
-# EliteQL ASM A2 — original ship pitch and roll
+# EliteQL ASM A3 — original movement sequence
 
-A2 ports **Electron MVEIT part 8, MVS5 and ADD** to native 68000/JAS and
-connects their live orientation vectors to the renderer. The interactive
-application no longer uses A1's precomputed animation path. A1 and the earlier
-C prototype remain separate baselines.
+A3 ports **Electron MVEIT parts 3 through 8** to native 68000/JAS and connects
+the original positions and orientation vectors to the QL renderer. A2 remains
+a separate baseline. No replacement flight physics is used.
 
-**This is a source-led motion/renderer milestone, not a playable game yet.**
-Original position updates, player pitch/roll, TIDY, tactics and the main flight
-loop are not connected. No new flight physics or gameplay have been invented.
+New since A2: ship forward motion, one-shot acceleration and blueprint speed
+limits, player pitch/roll rotation of positions, player-speed subtraction, and
+MVS4 rotation of all three orientation vectors. A2's original ship pitch/roll
+and damping still run afterward, in the original order.
+
+**This is a flight-motion test scene, not a complete playable Elite port.**
+TIDY, AI/TACTICS, scanner, cockpit, original keyboard response, and the main
+flight loop remain unfinished. Long turns can accumulate vector error until
+TIDY is ported; use N to reset the scene. Planet/sun movement is not included.
 
 ## Run
 
 Extract beside QLBox:
 
 ```bat
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a2\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a3\host
 ```
 
-At BASIC:
+At BASIC, use the waiting form so BASIC does not draw over the application:
 
 ```text
 EXEC_W WIN1_ELITEASM
 ```
 
-640 KB works too. The application starts with the original orientation convention
-(side +X, roof +Y, nose -Z). The test scene seeds pitch counter 16 and roll
-counter 32. The original damping reduces these to zero, so **rotation stops
-after 32 updates**. This is intentional. N selects the next model and restarts
-the demonstration; changing between one and twelve ships also resets it.
+640 KB is also tested. No compiler or external game data is needed to run it.
 
 | Key | Action |
 | --- | --- |
-| N | Next original blueprint and restart damped rotation |
-| 1 / 2 | One ship / twelve ships |
-| Left / right | Inspection control: move first ship horizontally |
-| Up / down | Inspection control: move first ship nearer / farther |
-| Space | Pause / resume |
-| B | Toggle uncapped rendering; default cap is 10 Hz |
+| Left / right | Feed opposite roll inputs into original ALPHA calculations |
+| Up / down | Feed opposite pitch inputs into original BETA calculations |
+| A / Z | Increase / decrease player speed, 0–40; displayed beside FPS |
+| N | Reset positions, vectors and player speed; advance the solo model selection |
+| 1 / 2 | Select solo / twelve-ship scene and reset it |
+| Space | Pause / resume simulation and drawing |
+| B | Toggle uncapped updates; default cap is 10 Hz |
 | Escape | Restore screen and return to QDOS |
 
-Arrow keys remain positioning tools, not the original cockpit controls. The
-rotation update occurs once per rendered frame; uncapping therefore accelerates
-the demonstration. The FPS strip includes shell work, updates once a second,
-counts paused time, and saturates at 99.9.
+Arrows are **direct test inputs** (roll magnitude 8, pitch magnitude 3), not
+the original M% keyboard acceleration/damping. Releasing them returns the
+input to zero. A/Z changes speed once per keyboard scan. Ship positions are
+now updated through the original routines, not by incrementing screen offsets.
 
-## What is faithful
+The scene seeds ship speed byte 2 (station 0), pitch counter 16 and roll counter
+32. These are test-scene initial conditions. Own rotation damps to zero after
+32 updates, but translation and player controls continue. Objects can leave
+the view or pass behind you; press N to reset. There is no invented respawn.
 
-The port retains the original 33-byte INWK representation: little-endian,
-sign-magnitude vectors, original counter signs, counter value 127 meaning
-continuous rotation, pitch-before-roll ordering, and ADD's signed-zero/overflow
-behavior. Both components in MVS5 use the old input pair. The native code is
-ordinary 68000 arithmetic, not a 6502 emulator.
+B uncaps both simulation and drawing, so motion accelerates. FPS updates once
+a second, includes paused time, and saturates at 99.9. The application owns the
+screen by convention and writes directly to the standard QL framebuffer.
 
-For testing, a small Python interpreter executes the extracted **original 6502
-instructions** for part 8, MVS5 and ADD. The native QDOS executable matches all
-33 output bytes in **768 fixtures / 11,904 movement steps**. Cases cover every
-counter byte, randomized vectors, overflow, signed zero and repeated updates.
-The interpreter is a documented instruction subset, not a full machine emulator.
-These tests support the implemented routines; they do not establish whole-game
-or pixel-for-pixel equivalence.
+## Faithfulness and tests
 
-Rendering still uses A1's native projection, clipping and QL rasterizer. A2
-converts the live vectors to the renderer's Q8 matrix with magnitude divided
-by 96 (original unity is 96*256). This adapter is not original LL9 normalization.
-See `docs/FIDELITY.md` for the remaining boundaries.
+The native core retains original INWK byte layout, sign-magnitude values,
+byte-width overflow, signed zero, original update order, and arithmetic
+rounding. Blueprint maximum speeds are extracted from the supplied Electron
+source. MLTU2's final carry is clear: the following MV43 subtraction therefore
+subtracts an extra unit. That behavior is deliberately retained.
 
-## Measured performance and memory
+A Python instruction interpreter executes the bundled **original 6502 source
+instructions**, including the arithmetic helpers, to produce expected INWK
+records. This is a documented instruction subset, not a full machine emulator.
+The native QDOS tests compare all 33 bytes, not just visible geometry:
 
-QLBox R7, JS ROM, speed 1, 640 KB, 300 frames, continuous original pitch and roll:
+- MVEIT parts 3–8: **768 fixtures, 4,224 steps**, zero mismatches.
+- Existing own-rotation tests: **768 fixtures, 11,904 steps**, zero mismatches.
+- Existing renderer: **52 line and 244 renderer fixtures**, plus bounds,
+  XOR erase, range hiding/re-entry and overlapping line caches.
+- Actual ELITEASM integration at **128 KB and 640 KB**: pause, damping,
+  scene changes, full cached-line/framebuffer comparison, roll/pitch/throttle
+  input, uncapping, screen restoration, poll cleanup and successful exit.
+
+These establish the tested movement routines and adapters. The renderer still
+uses A1's native projection/clipping/rasterization, not exact Electron pixels.
+Live vectors are adapted to Q8; source LL9 normalization remains unported.
+
+## Performance and memory
+
+QLBox R7 / JS ROM / speed 1 / 640 KB, 300 uncapped frames:
 
 | Scene | 50 Hz ticks | FPS |
 | --- | ---: | ---: |
-| One Cobra at z=640 | 237 | 63.2 |
-| Twelve ships at z=2400 | 1465 | 10.2 |
+| One Cobra, z initially 640 | 253 | 59.2 |
+| Twelve ships, z initially 2400 | 1673 | 8.9 |
 
-This includes native motion, matrix conversion, projection and XOR erase/draw.
-It excludes the future flight loop, TIDY, AI, dashboard and keyboard polling.
-It follows a different orientation trajectory from A1, so the numbers are not
-an apples-to-apples speedup measurement. **Real QL speed is untested:** QLBox's
-68000 cycle budget does not reproduce the 68008 bus/contention costs exactly.
+The benchmark runs MVEIT parts 3–8, position/vector adapters, projection and
+XOR erase/draw. It seeds continuous own rotation, ALPHA=1, BETA=0, DELTA=0,
+ship speed=0. TIDY, AI, keyboard polling and cockpit work are absent. Scene
+trajectories differ from A2; this is not a controlled per-routine speed delta.
 
-`ELITEASM` is **14,270 bytes**, with **3,820 bytes** of QDOS data space, plus a
-2,048-byte stack and a 32,768-byte screen-restoration allocation. The tested
-128 KB configuration retained a **36,352-byte largest free block** after startup.
-This milestone fits 128 KB; a finished-game fit is not yet established.
+**Physical QL timing is untested.** QLBox's 68000 budget does not reproduce
+68008 external-bus/contention and IPC timing exactly.
 
-For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3820**
-using a QDOS-aware method. The bundled XTcc trailer and `.qlbox-meta` support
-QLBox; an ordinary byte copy does not set a real QDOS file's executable header.
-No external data files or compiler are needed to run the interactive application.
+Final `ELITEASM`: **15,166 bytes**, **3,796-byte QDOS data-space request**, plus
+2,048-byte stack and a 32,768-byte original-screen snapshot. Tested largest
+free block after startup at 128 KB: **35,328 bytes**. The milestone fits 128 KB;
+the finished game's fit is still unproven. A 5 MB disk is ample for this build.
 
-## Executables
+For a real QDOS filesystem transfer ELITEASM as **file type 1, data space 3796**
+using a QDOS-aware method. XTcc and included `.qlbox-meta` headers support
+QLBox; ordinary byte copying does not set a real QDOS executable header.
 
-| File | Purpose |
+## Package and build
+
+| Executable | Purpose |
 | --- | --- |
-| `host/ELITEASM` | All-assembly interactive application; tested at 128 and 640 KB |
-| `host/ELITEBEN` | C benchmark shell calling native routines; use 640 KB |
-| `host/ELITETST` | Existing renderer diagnostics; use 640 KB |
-| `host/ELITEMOT` | Original-instruction motion fixtures and matrix checks; use 640 KB |
+| `host/ELITEASM` | Assembly interactive application; 128/640 KB |
+| `host/ELITEBEN` | C CLI shell around native routines; use 640 KB |
+| `host/ELITETST` | Renderer diagnostics; use 640 KB |
+| `host/ELITEMOT` | A2 own-rotation fixtures and matrix adapter; use 640 KB |
+| `host/ELITEFLT` | New full movement fixtures and position adapter; use 640 KB |
+
+C and fixture data are excluded from ELITEASM. The recovered relocatable job
+startup is retained with C initialization bypassed.
 
 ```bat
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a2\host\ELITEMOT
-bin\win64\qlrun.exe --ram 640 eliteql-asm-a2\host\ELITETST --args "--selftest"
-bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a2\host\ELITEBEN --args "--bench --motion --fleet 12 --frames 300"
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a3\host\ELITEFLT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a3\host\ELITEMOT
+bin\win64\qlrun.exe --ram 640 eliteql-asm-a3\host\ELITETST --args "--selftest"
+bin\win64\qlrun.exe --ram 640 --speed 1 eliteql-asm-a3\host\ELITEBEN --args "--bench --flight --fleet 12 --frames 300"
 ```
 
-Omit `--motion` to retain A1's table-driven benchmark for renderer regression
-work. Only that legacy path uses `--angle`. The interactive ELITEASM uses live
-vectors and ignores command-line arguments. C and fixture data are excluded
-from ELITEASM; it retains the recovered relocatable startup with C initialization
-bypassed.
+`--motion` benchmarks A2 own rotation only; neither flag selects the A1 demo
+matrix path. ELITEASM ignores command-line arguments.
 
-## Build and verify
-
-Use the recovered QDOS GCC 2.95.3 R2 toolchain with its signed-remainder fix:
+Build with the recovered QDOS GCC 2.95.3 R2 signed-remainder-fix toolchain:
 
 ```sh
 make QCC=/absolute/path/to/qdos-gcc-linux-x86_64/bin/qdos-gcc
 sh tests/run-qlbox.sh /absolute/path/to/qlbox-r7
 ```
 
-The C drivers retain the required `-fno-omit-frame-pointer` workaround. JAS
-assembles the application. The test harness requires QLBox R7 source, its Linux
-runner, Musashi and JS ROM; those and the compiler are not bundled.
+C drivers keep `-fno-omit-frame-pointer` for the recovered compiler bug.
+The test harness needs QLBox R7 source, Linux runner, Musashi and JS ROM;
+those and the toolchain are not bundled. Generated sources/fixtures are included.
 
-Regenerate motion fixtures from the bundled source excerpt:
+Regenerate expected motion from the bundled original excerpts:
 
 ```sh
 python3 tests/motion_reference.py
+python3 tests/flight_reference.py
 ```
 
-Or re-extract the instructions from the supplied full annotated source:
+Pass `/path/to/elite-source.asm` as an argument to either script to re-extract
+from the full supplied source. Geometry regeneration uses
+`python3 tools/extract.py /path/to/elite-source.asm`; renderer fixtures use
+`python3 tests/reference.py`.
 
-```sh
-python3 tests/motion_reference.py /path/to/elite-source.asm
-```
-
-Existing geometry/renderer fixture regeneration remains:
-
-```sh
-python3 tools/extract.py /path/to/elite-source.asm
-python3 tests/reference.py
-```
-
-`docs/A2-INTEGRATION.log` records the tests and timing. Integration exercises
-pause, damping completion, model/fleet changes, cached-lines versus framebuffer,
-uncapping, movement, complete screen restoration, poll cleanup and successful
-exit at both memory sizes. `docs/SCREENS.png` shows the native output.
+See `docs/A3-INTEGRATION.log`, `docs/A3-FINAL-SHELL.log`, `docs/TESTING.md`,
+`docs/FIDELITY.md` and `docs/SCREENS.png`. Attribution is in `NOTICE.md`.

@@ -11,10 +11,10 @@
 .globl __prog_name
 __Cstart: .data4 asm_main
 __stack: .data4 2048
-__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,50,0
+__prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,51,0
 .align 2
 asm_stats:
- .data4 0x45514132,0x36383030
+ .data4 0x45514133,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -26,15 +26,18 @@ asm_snapshot: .data4 0
 asm_uncapped: .data2 0
 asm_ship_debug: .data4 asm_ships
 asm_vector_debug: .data4 asm_vectors
+asm_params_debug: .data4 asm_params
+asm_params: .data1 0,0,0,0
 .align 2
-asm_fps_text: .ascii "FPS 00.0\0"
+asm_fps_text: .ascii "FPS 00.0  SPEED 00\0"
 .align 2
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
 .extern _models
 .extern _render_ship
-.extern _own_rotate
+.extern _move_ship
+.extern _motion_position
 .extern _motion_matrix
 .extern _live_matrix
 .globl _exit
@@ -128,7 +131,7 @@ asm_next_valid:
  lsl.w #2,d0
  lea _models,a0
  move.l 0(a0,d0.w),asm_ships
- bsr asm_reset_vectors
+ bsr asm_setup
 asm_next_done:
  move.w asm_row7,asm_old7
  moveq #4,d0
@@ -149,39 +152,42 @@ asm_check_fleet:
  move.w #12,asm_count
  bsr asm_setup
 asm_move:
- lea asm_ships,a0
+ ; Inspection controls feed the ORIGINAL ALPHA/BETA/DELTA inputs.
+ ; Original M% keyboard acceleration/damping is not yet connected.
+ clr.b asm_params
+ clr.b asm_params+1
  move.w asm_row1,d0
  btst #1,d0
  beq asm_right
- sub.w #10,4(a0)
+ move.b #8,asm_params
 asm_right:
  btst #4,d0
- beq asm_nearer
- add.w #10,4(a0)
-asm_nearer:
+ beq asm_pitch_up
+ move.b #136,asm_params
+asm_pitch_up:
  btst #2,d0
- beq asm_further
- sub.w #16,8(a0)
-asm_further:
+ beq asm_pitch_down
+ move.b #3,asm_params+1
+asm_pitch_down:
  btst #7,d0
- beq asm_bound
- add.w #16,8(a0)
-asm_bound:
- cmp.w #16,8(a0)
- bge asm_bound_far
- move.w #16,8(a0)
-asm_bound_far:
- cmp.w #30000,8(a0)
- ble asm_bound_left
- move.w #30000,8(a0)
-asm_bound_left:
- cmp.w #-30000,4(a0)
- bge asm_bound_right
- move.w #-30000,4(a0)
-asm_bound_right:
- cmp.w #30000,4(a0)
- ble asm_draw_begin
- move.w #30000,4(a0)
+ beq asm_throttle
+ move.b #131,asm_params+1
+asm_throttle:
+ moveq #4,d0
+ bsr asm_keyrow
+ btst #4,d0
+ beq asm_slow
+ cmp.b #40,asm_params+2
+ bhs asm_slow
+ addq.b #1,asm_params+2
+asm_slow:
+ moveq #2,d0
+ bsr asm_keyrow
+ btst #1,d0
+ beq asm_draw_begin
+ tst.b asm_params+2
+ beq asm_draw_begin
+ subq.b #1,asm_params+2
 asm_draw_begin:
  tst.w asm_paused
  bne asm_update_stats
@@ -195,11 +201,22 @@ asm_draw_loop:
  sub.w d7,d0
  mulu.w #34,d0
  adda.l d0,a0
- move.l a0,-(sp)
- jsr _own_rotate
- move.l (sp)+,a0
+ move.l a0,a4
+ move.l (a5),a0
+ move.w 22(a0),d0
+ move.b d0,asm_params+3
+ pea asm_params
+ move.l a4,-(sp)
+ jsr _move_ship
+ addq.l #8,sp
+ pea 4(a5)
+ move.l a4,-(sp)
+ jsr _motion_position
+ addq.l #8,sp
+ eor.w #1,d0
+ move.w d0,14(a5)
  pea asm_matrix
- move.l a0,-(sp)
+ move.l a4,-(sp)
  jsr _motion_matrix
  addq.l #8,sp
  move.l #asm_matrix,_live_matrix
@@ -265,6 +282,7 @@ asm_setup:
  lea asm_ships,a5
  moveq #11,d7
 asm_erase_all:
+ clr.w 14(a5)
  clr.l (a5)
  move.l a5,-(sp)
  pea 0x20000
@@ -308,7 +326,11 @@ asm_setup_done:
  bsr asm_reset_vectors
  rts
 asm_reset_vectors:
+ clr.b asm_params
+ clr.b asm_params+1
+ clr.b asm_params+2
  lea asm_vectors,a0
+ lea asm_ships,a1
  moveq #11,d0
 asm_reset_vector:
  moveq #33,d1
@@ -318,9 +340,37 @@ asm_zero_vector:
  move.b #0xe0,14(a0)
  move.b #0x60,18(a0)
  move.b #0x60,22(a0)
+ ; Copy scene coordinates into authoritative original INWK format.
+ moveq #0,d4
+ moveq #4,d5
+ moveq #2,d6
+asm_seed_coordinate:
+ move.w 0(a1,d5.w),d2
+ moveq #0,d3
+ tst.w d2
+ bpl asm_seed_positive
+ neg.w d2
+ move.w #128,d3
+asm_seed_positive:
+ move.b d2,0(a0,d4.w)
+ lsr.w #8,d2
+ move.b d2,1(a0,d4.w)
+ move.b d3,2(a0,d4.w)
+ addq.w #3,d4
+ addq.w #2,d5
+ dbra d6,asm_seed_coordinate
+ move.b #2,27(a0)
+ move.l (a1),d2
+ beq asm_seed_station_done
+ move.l d2,a3
+ tst.w 22(a3)
+ bne asm_seed_station_done
+ clr.b 27(a0)
+asm_seed_station_done:
  move.b #32,29(a0)
  move.b #16,30(a0)
  lea 34(a0),a0
+ lea 272(a1),a1
  dbra d0,asm_reset_vector
  rts
  ; Update a small status strip once per second; never clear the flight view.
@@ -353,6 +403,15 @@ fps_bounded:
  move.b d2,asm_fps_text+5
  add.b #48,d0
  move.b d0,asm_fps_text+4
+ moveq #0,d0
+ move.b asm_params+2,d0
+ divu.w #10,d0
+ move.l d0,d2
+ swap d2
+ add.b #48,d2
+ move.b d2,asm_fps_text+17
+ add.b #48,d0
+ move.b d0,asm_fps_text+16
  move.l #0x26200,a0
  move.w #255,d0
 fps_clear:
@@ -426,8 +485,8 @@ text_done:
  rts
 text_masks: .data2 0x80c0,0x2030,0x080c,0x0203
 label1: .ascii "ELITE / 68000 ASM TEST\0"
-label2: .ascii "N SHIP   1 SOLO   2 FLEET\0"
-label3: .ascii "ARROWS MOVE   SPACE PAUSE\0"
+label2: .ascii "N RESET  1 SOLO   2 FLEET\0"
+label3: .ascii "ARROWS FLY A/Z SPEED SPACE PAUSE\0"
 label4: .ascii "B UNCAP / CAP   ESC EXIT\0"
 .align 2
 asm_fleet_positions:

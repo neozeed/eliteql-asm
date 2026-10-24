@@ -1,38 +1,42 @@
-# Validation
+# A3 validation
 
-The final build completed through the recovered QDOS GCC driver, JAS and linker.
-ELITEASM contains the assembly shell and renderer. ELITEBEN/ELITETST use the
-separate C driver and the same renderer sources.
+The recovered GCC driver/JAS/linker builds all executables. ELITEASM uses only
+assembly application sources; C exists in the separate test/benchmark drivers.
 
-Native tests, QLBox R7 / JS ROM:
+`A3-INTEGRATION.log` contains the complete movement, renderer, keyboard,
+framebuffer, cleanup and benchmark run. Afterward, final diagnostic tests added
+explicit +/-30000 position bounds, signed zero, and hide/re-entry assertions;
+both ELITEFLT and ELITETST passed again. Only labels/speed-text formatting then
+changed in ELITEASM; `A3-FINAL-SHELL.log` records the final executable's repeated
+128/640 KB keyboard, framebuffer and cleanup passes. The performance code path
+was unchanged by these diagnostic/presentation edits.
 
-- 52 line fixtures: all octants, endpoint reversal, clipping, boundary pixels,
-  packed mask transitions, degenerate and rejected lines.
-- 244 renderer fixtures: all ten blueprints, multiple orientations, near/far
-  detail, field-of-view rejection and +/-30000 coordinate cases.
-- Every rendered fixture is checked against a separately implemented scalar
-  oracle, including projected-vertex count, cached-line count and framebuffer
-  hash. These check the A1 adaptation, not exact original 6502 output.
-- XOR reversal, moving/hiding ships, overlapping caches and patterned-background
-  restoration; guard bytes around the test framebuffer remain intact.
-- The real assembly application runs at both 128 KB and 640 KB, speed 1.
-  Keyboard input exercises pause, model selection, fleet/solo, uncapped mode,
-  movement and ESC. At a stable paused frame, an independent host rasterizer
-  reconstructs all twelve cached line lists and compares all 24,576 bytes of
-  the flight viewport to the actual QL screen.
-- ESC restores all 32,768 original screen bytes and the original poll-chain
-  head, then removes the job with status zero.
-- Renderer-only benchmarks cover 300 frames for one and twelve ships at speed 1.
+Two distinct instruction corpora test native routines against original 6502:
 
-Raw results are in NATIVE-TESTS.log. The screenshot sheet was visually inspected;
-the fleet is paused for a stable capture, so its FPS readout includes paused time.
+- Own rotation: 768 cases, 11,904 updates.
+- Complete MVEIT parts 3–8: 768 cases, 4,224 updates; random byte states,
+  every ALPHA byte, opposing BETA signs, normal scene states, repeated updates,
+  byte overflow, negative zero, speed clamps, and arbitrary acceleration bytes.
 
-Run `sh tests/run-qlbox.sh /path/to/qlbox-r7` from the project directory.
-The script uses a private temporary mount and never writes commander files.
-Generated data and fixtures can be reproduced with tools/extract.py and
-tests/reference.py, as described in the main README.
+The latter deliberately includes inputs outside the normal cockpit's rate
+range. The oracle runs the supplied source instructions and helper loops; it
+does not substitute the native port's formulas. Its implemented CPU subset has
+no decimal mode, interrupts or timing. P%+4 branches in these excerpts skip one
+two-byte instruction. MVT1-2 and MLTU2-2 resolve to the original immediately
+preceding two-byte instruction. No full 6502-machine equivalence is claimed.
 
-Physical 68008 QL execution and speed are not yet verified. QLBox's 68000 timing
-model does not reproduce real external-bus/ULA contention and IPC costs exactly.
-The full game, its eventual memory footprint, and original 6502 equivalence are
-outside the scope of this renderer milestone.
+Renderer tests retain 52 line/244 scene fixtures and use the A1 scalar renderer
+oracle, not original pixels. Cached line heaps are independently rasterized in
+the host integration harness and compared against all 24,576 viewport bytes.
+ESC restores all 32,768 screen bytes, restores the poll-chain head, and exits
+with status zero. INWK is unchanged while paused; pitch/roll counters reach
+zero; keyboard tests verify ALPHA/BETA signs, neutral release, and A/Z speed.
+
+Integration waits for actual damping completion with a bounded timeout rather
+than assuming that 32 updates fit a fixed number of emulator frames. The first
+A3 run exposed that old timing assumption as added motion reduced fleet FPS.
+
+The screenshot sheet shows actual native 128 KB output. The fleet is paused
+for stable capture; the FPS readout can therefore include paused time.
+Physical QL execution and timing are not verified. Main-loop/AI/TIDY/cockpit
+work and the finished game's memory footprint remain outside this milestone.

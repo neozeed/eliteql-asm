@@ -2,7 +2,7 @@
 
 A1 follows the original Electron LL9 rendering pipeline but is a semantic
 adaptation to 68000 word arithmetic, not a completed instruction translation.
-A2 adds MVEIT part 8, MVS5 and ADD; the complete main flight loop is still absent.
+A3 implements MVEIT parts 3–8, including MVS4, MVS5 and their arithmetic; the complete main flight loop is still absent.
 
 | Original stage | A1 treatment |
 | --- | --- |
@@ -30,7 +30,7 @@ The independent Python oracle checks this documented A1 adaptation. It is not
 an oracle obtained by running the original 6502 program. Passing these tests
 establishes consistency and bounds for A1, not original pixel-for-pixel identity.
 
-Not implemented: MVEIT parts 1–7 and 9, TIDY, player rotation, position updates, tactics, flight loop, combat, explosions,
+Not implemented: MVEIT parts 1–2 and 9, TIDY, planet movement (MV40), original keyboard response, tactics, flight loop, combat, explosions,
 laser beams, planet/sun drawing, scanner/dashboard, markets, commander saves,
 sound, hyperspace or docking. R3 commander files are not read or written.
 
@@ -40,13 +40,24 @@ Positions remain bounded to +/-30000. A non-null `_live_matrix` supplies nine
 native signed Q8 words for the current render call; null selects the legacy
 angle-table path. Matrix storage must remain valid through the synchronous call.
 
-A2 motion fidelity is tested separately by executing the bundled original 6502
-instruction excerpt in `tests/motion_reference.py`. Its 768 fixtures compare
-all 33 INWK bytes after one or multiple calls against `src/motion.s` on QDOS.
-The native matrix adapter is also checked for every fixture. No claim is made
-that the Python subset interpreter is a complete 6502 emulator.
+A3 movement fidelity is checked by `tests/flight_reference.py`, which executes
+the bundled original instructions for MVEIT parts 3–8, MVT1, MVT6, FMLTU,
+MLTU2, MVS4, MULT1, MAD, ADD and MVS5. Native 68000 multiplication replaces
+shift/add loops but retains their externally observable byte/sign/rounding
+behavior. All 33 state bytes match in the 768 tested cases. The original A2
+own-rotation corpus is also retained as an independent narrower regression.
 
-The demo seeds finite counters and stops when they damp to zero. The benchmark
-uses counters 127/127 and executes 300 updates without TIDY. This is sufficient
-to exercise this port boundary, not a substitute for the original periodic
-vector normalization needed by a complete flight loop.
+Input ALPHA/BETA bytes are supplied directly; deriving them from the original
+keyboard controls is not implemented. The demo's scene and control mapping are
+test scaffolding. MVEIT's TIDY/TACTICS/SCAN dispatch is not stubbed and claimed
+complete: those surrounding parts are explicitly absent.
+
+Original positions have 23 magnitude bits plus sign. The renderer adapter
+rejects magnitudes above 30000; the original position remains untouched and
+continues updating. A range rejection erases its old line cache, so a returning
+object can be redrawn without stale lines. This is a renderer interface limit,
+not a new game-world boundary.
+
+The simulation runs once per drawn frame. There is no invented delta-time
+physics, collision, respawn, AI, combat or save behavior. Without the original
+periodic TIDY, prolonged turns can accumulate vector drift; reset the scene.

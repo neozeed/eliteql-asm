@@ -7,7 +7,7 @@
 #include <string.h>
 long _stack=4096L;
 long _mneed=2048L;
-char _prog_name[]="EliteQL ASM A2";
+char _prog_name[]="EliteQL ASM A3";
 char *_endmsg="";
 typedef struct {
     const void *model;
@@ -29,6 +29,9 @@ static unsigned char vectors[12][34];
 static short matrix[9];
 extern short *live_matrix;
 extern void own_rotate(unsigned char *);
+extern void move_ship(unsigned char *,const unsigned char *);
+extern int motion_position(unsigned char *,short *);
+static unsigned char flight_params[4]={1,0,0,40};
 extern void motion_matrix(unsigned char *,short *);
 static void poll_clock(void) { ticks++; }
 static QL_LINK_t clock_link={0,poll_clock};
@@ -77,6 +80,14 @@ static int selftest(void) {
         if(hash_screen(screen)!=blank||o.count) { printf("FAIL erase %u\n",i);bad++; }
         memset(screen,0,32768);
     }
+    /* Out-of-range original positions erase cached lines without losing model. */
+    memset(&o,0,sizeof(o));o.model=models[4];o.z=640;o.angle=37;
+    render_ship(screen,&o);h=hash_screen(screen);
+    o.reserved=1;render_ship(screen,&o);
+    if(hash_screen(screen)!=blank||o.count||o.model!=models[4]){puts("FAIL range hide");bad++;}
+    o.reserved=0;render_ship(screen,&o);
+    if(hash_screen(screen)!=h){puts("FAIL range re-entry");bad++;}
+    o.model=0;render_ship(screen,&o);
     /* An overlapping object's erase must not destroy another object's pixels. */
     memset(&o,0,sizeof(o));memset(&p,0,sizeof(p));
     o.model=models[4];o.z=640;o.angle=37;
@@ -101,7 +112,7 @@ static int selftest(void) {
 static int bound(int v,int lo,int hi) { return v<lo?lo:v>hi?hi:v; }
 int main(int argc,char **argv) {
     unsigned frames=0,start,elapsed,deadline;
-    int i,n=1,model=4,angle=128,x=0,y=0,z=640,limit=0,bench=0,scene=0,motion=0;
+    int i,n=1,model=4,angle=128,x=0,y=0,z=640,limit=0,bench=0,scene=0,motion=0,flight=0;
     int row1,row7,old7=0,old1=0,paused=0,done=0;
     short mode=8,display=0;
     for(i=1;i<argc;i++) {
@@ -111,6 +122,7 @@ int main(int argc,char **argv) {
         if(!strcmp(argv[i],"--bench"))bench=1;
         else if(!strcmp(argv[i],"--scene"))scene=1;
         else if(!strcmp(argv[i],"--motion"))motion=1;
+        else if(!strcmp(argv[i],"--flight")){motion=1;flight=1;}
         else if(i+1<argc&&!strcmp(argv[i],"--frames"))limit=atoi(argv[++i]);
         else if(i+1<argc&&!strcmp(argv[i],"--fleet"))n=bound(atoi(argv[++i]),1,12);
         else if(i+1<argc&&!strcmp(argv[i],"--model"))model=bound(atoi(argv[++i]),0,9);
@@ -137,6 +149,9 @@ int main(int argc,char **argv) {
         ships[i].angle=(short)((angle+i*21)&255);
         vectors[i][14]=0xe0;vectors[i][18]=vectors[i][22]=0x60;
         vectors[i][29]=vectors[i][30]=127;
+        { int k;short *pos=&ships[i].x;
+          for(k=0;k<3;k++){int v=pos[k];vectors[i][3*k+2]=v<0?128:0;if(v<0)v=-v;vectors[i][3*k]=(unsigned char)v;vectors[i][3*k+1]=(unsigned char)(v>>8);}
+        }
     }
     start=ticks;deadline=start;
     while(!done) {
@@ -154,7 +169,14 @@ int main(int argc,char **argv) {
         }
         if(!paused||frames==0) {
             for(i=0;i<n;i++) {
-                if(motion){own_rotate(vectors[i]);motion_matrix(vectors[i],matrix);live_matrix=matrix;}
+                if(motion){
+                    if(flight){
+                        flight_params[3]=(unsigned char)((const short *)ships[i].model)[11];
+                        move_ship(vectors[i],flight_params);
+                        ships[i].reserved=(short)!motion_position(vectors[i],&ships[i].x);
+                    }else own_rotate(vectors[i]);
+                    motion_matrix(vectors[i],matrix);live_matrix=matrix;
+                }
                 render_ship((void *)0x20000L,&ships[i]);live_matrix=0;
             }
             frames++;
@@ -169,6 +191,6 @@ int main(int argc,char **argv) {
     }
     elapsed=ticks-start;
     finish();
-    if(!scene)printf("ASM A2 motion=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
+    if(!scene)printf("ASM A3 mode=%d: ships=%d frames=%u ticks=%u fps=%u.%u vertices=%u lines=%u\n",flight?2:motion,n,frames,elapsed,elapsed?frames*500/elapsed/10:0,elapsed?frames*500/elapsed%10:0,projected_total,line_total);
     return 0;
 }

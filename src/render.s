@@ -21,6 +21,8 @@ _render_ship:
  ; LL155: redraw old cached segments with XOR to remove this ship.
  bsr draw_cache
  clr.w 12(a5)
+ tst.w 14(a5)
+ bne render_return
  move.l (a5),d0
  beq render_return
  move.l d0,a4

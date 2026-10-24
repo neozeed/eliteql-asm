@@ -21,6 +21,7 @@ _models:
 model_0:
 .data2 10,15,7,20,15
 .data4 vertices_0,edges_0,faces_0
+.data2 37
 vertices_0:
 .data2 -32,0,36,31
 .data1 0,1,4,5
@@ -76,6 +77,7 @@ faces_0:
 model_1:
 .data2 15,20,7,23,19
 .data4 vertices_1,edges_1,faces_1
+.data2 32
 vertices_1:
 .data2 0,0,72,31
 .data1 1,2,3,4
@@ -146,6 +148,7 @@ faces_1:
 model_2:
 .data2 25,28,5,25,23
 .data4 vertices_2,edges_2,faces_2
+.data2 30
 vertices_2:
 .data2 0,0,64,31
 .data1 0,1,2,3
@@ -240,6 +243,7 @@ faces_2:
 model_3:
 .data2 11,26,13,40,21
 .data4 vertices_3,edges_3,faces_3
+.data2 20
 vertices_3:
 .data2 0,0,224,31
 .data1 0,1,2,3
@@ -320,6 +324,7 @@ faces_3:
 model_4:
 .data2 28,38,13,50,38
 .data4 vertices_4,edges_4,faces_4
+.data2 28
 vertices_4:
 .data2 32,0,76,31
 .data1 15,15,15,15
@@ -446,6 +451,7 @@ faces_4:
 model_5:
 .data2 16,28,14,120,21
 .data4 vertices_5,edges_5,faces_5
+.data2 0
 vertices_5:
 .data2 160,0,160,31
 .data1 0,1,2,6
@@ -540,6 +546,7 @@ faces_5:
 model_6:
 .data2 17,24,9,14,20
 .data4 vertices_6,edges_6,faces_6
+.data2 44
 vertices_6:
 .data2 0,0,68,31
 .data1 0,1,2,3
@@ -622,6 +629,7 @@ faces_6:
 model_7:
 .data2 9,21,14,50,16
 .data4 vertices_7,edges_7,faces_7
+.data2 30
 vertices_7:
 .data2 0,80,0,31
 .data1 15,15,15,15
@@ -695,6 +703,7 @@ faces_7:
 model_8:
 .data2 10,15,7,12,12
 .data4 vertices_8,edges_8,faces_8
+.data2 15
 vertices_8:
 .data2 24,16,0,31
 .data1 0,1,5,5
@@ -750,6 +759,7 @@ faces_8:
 model_9:
 .data2 4,6,4,8,6
 .data4 vertices_9,edges_9,faces_9
+.data2 8
 vertices_9:
 .data2 -7,0,36,31
 .data1 2,1,3,3

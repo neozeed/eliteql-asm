@@ -1,0 +1,2 @@
+PASS ASM native: ram=128 KB, frames=291, largest free block after startup=35328 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
+PASS ASM native: ram=640 KB, frames=291, largest free block after startup=550400 bytes; pause, model, fleet framebuffer, uncapped toggle, movement, screen restore, poll cleanup, exit
