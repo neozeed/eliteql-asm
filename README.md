@@ -1,14 +1,15 @@
-# EliteQL ASM A13 — player missile combat
+# EliteQL ASM A14 — escape pods and cockpit missile symbols
 
-A13 adds player arming, lock, launch, target-relative homing, enemy ECM and
-missile impacts. A12's inverted pitch controls are retained. A12 remains a
-separate baseline. This is the complete source and runnable build.
+A14 connects the original escape decision to pod creation and planet-direction
+steering, and adds the original dashboard missile symbols. A13's combat and
+A12's inverted pitch controls are retained. A13 remains a separate baseline.
+This is the complete source and runnable build.
 
 Launch `EXEC_W WIN1_ELITEASM` with the `host` directory mounted in QLBox.
 For example:
 
 ```
-bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a13\host
+bin\win64\qlbox.exe --ram 128 --speed 1 --mount eliteql-asm-a14\host
 ```
 
 ## Controls
@@ -55,7 +56,7 @@ missiles down. E starts a 32-count ECM cycle; each simulation update drains one
 energy and decrements the timer by two. ECM destroys active missiles. Pause
 freezes simulation, although E can arm the countdown while paused.
 
-This is still a flight/combat test scene. Escape-pod spawning/navigation,
+This is still a flight/combat test scene. Player escape-pod launch,
 station police, debris, rewards/rank, sound, docking, travel, markets and saves
 are not finished. The ECM lamp and incoming-missile text/sound are not connected.
 
@@ -85,7 +86,7 @@ documented in FIDELITY.md.
 ## Validation and build
 
 ELITEASM is entirely native assembly. C is used only for diagnostics/benchmarks.
-At 128 KB a BASIC EXEC_W launch leaves a largest free block of 14,848 bytes;
+At 128 KB a BASIC EXEC_W launch leaves a largest free block of 14,336 bytes;
 640 KB is also tested. Physical 68008 timing has not been measured.
 
 The new `ELITEMSL` diagnostic tests 65,536 ECM states and 1,024 sets of impact,
@@ -96,7 +97,7 @@ comparisons in `ELITETAC` do execute original 6502 instructions.
 Both live-job harnesses check launch, homing, E activation, countdown expiry,
 explosion, slot reuse, fatal impact and restart, together with the earlier combat,
 framebuffer, scanner, controls, keyboard and clean-exit regressions at 128/640 KB.
-Logs are in docs/A13-*.log. Older architecture/testing sections describe inherited
+Logs are in docs/A14-*.log. Older architecture/testing sections describe inherited
 milestones; the A13 notes in those documents specify changes and limits.
 
 Build with the recovered GCC 2.95.3 R2 signed-remainder-fix cross toolchain:
@@ -112,7 +113,7 @@ fixtures before building their tests. The test runner regenerates reference data
 but runs already-built jobs. QLBox sources, JS ROM and compiler are external;
 no compiler is needed to run ELITEASM. Attribution: NOTICE.md.
 
-## A13 target and lifetime behavior
+## Inherited target and lifetime behavior
 
 FRS1/ZINF initialization launches at y=-28, z=14 with forward nose, reversed
 side vector, twice player speed, two energy units and the target slot encoded
@@ -130,8 +131,8 @@ Fixed-slot lifetime handling clears locks and destroys missiles pursuing an
 object once that object's explosion starts. This prevents a recycled native
 slot from silently becoming a new target. It is a native pool adaptation,
 not the original compacting UNIV/FRIN implementation. Ship kill rewards/tally,
-sounds and original dashboard missile icon drawing remain outside this pass;
-the small text status uses the existing QL shell strip.
+sounds remain outside this pass. A14 adds original missile bitmap shapes in
+the cockpit alongside the small QL shell text status.
 
 `ELITETGT` covers 1,024 original TAS1/MVT3/TA19 cases, including signed zero
 and carry, plus 256 launch states. Friendly missile branch checks compare
@@ -140,3 +141,48 @@ proximity and ECM expectations; this is not a complete 6502 TA18 emulator.
 Live tests cover T/U/M, inventory, hits, explosion cleanup, a full pool and enemy
 ECM at 128/640 KB, including BASIC EXEC_W. The inherited enemy-missile,
 laser, controls, scanner, framebuffer and exit checks also pass.
+
+## A14 escape-pod path
+
+In scene 4, the original normal-ship TACTICS routine may choose SESCP when a
+ship's energy is very low. The ship's AI is disabled and a type-11 escape pod
+is created in the shared free-slot pool. Its position, orientation and speed
+come from its parent; SFS1/NWSHP initializes its damped roll, AI and blueprint
+energy. Pods appear on the scanner, move and turn, and can be targeted with
+lasers or missiles. They are not immune to combat. If the pool is full, creation
+fails after the original escape decision has disabled the parent AI.
+
+To see this naturally, weaken a Viper and stop firing before the final killing
+shot. Escape is the original random low-energy decision, not a scripted timer.
+N resets the encounter and removes pods as well as missiles and clouds.
+
+SPS1/SPS3 derives the planet direction from its original high coordinate bytes.
+TA15 applies the original pod steering and acceleration decisions. The scene
+now carries a separate planet navigation record, initially x=65536, y=0,
+z=262144. It follows player-relative MVEIT movement so pitching, rolling and
+flying change the reference direction. This is a test-scene reference only:
+there is no rendered planet, altitude model, docking destination or full universe
+initialization in this build.
+
+The source's escape-pod entry uses the pre-existing CNT scratch byte rather
+than calculating a new nose dot product. The native entry exposes CNT explicitly
+and the shell supplies the latest native tactics CNT. The 512 source cases
+exercise every CNT value. The original whole program reuses zero-page scratch
+outside tactics too, so this is not a claim that complete-game incidental scratch
+state has been recreated. No replacement steering formula is introduced.
+
+## A14 cockpit symbols and validation
+
+The four original MSBAR/MDIALS symbols are now drawn at their source dashboard
+locations: white for available, hollow when armed, T-shaped when locked, and
+black when spent. Original five-row bitmaps are converted to QL mode-4 pixels;
+unrelated QL colour bits are preserved. The existing text status remains useful
+for slot diagnostics. The compass is not connected yet.
+
+ELITENAV tests 512 original SPS1/SPS3/TA15 states, all 256 incoming CNT values,
+and 20 inventory/armed/locked full-frame bitmap cases with buffer guards. The
+bitmap tests independently convert the source table; they do not execute the
+original MSBAR instruction loop. Both live harnesses additionally check the
+escape decision, pod spawn, parent AI shutdown, planet-relative movement,
+scanner/viewport pixels and reset at 128 KB and 640 KB. Earlier missile,
+ECM, laser, inverted controls and clean-exit checks remain in the suite.

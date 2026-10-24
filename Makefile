@@ -1,6 +1,6 @@
 QCC ?= qdos-gcc
 PYTHON ?= python3
-SOURCES = src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s
+SOURCES = src/navigation.s src/tactics.s src/combat.s src/dials.s src/scanner.s src/dashboard.s src/controls.s src/main.c src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s
 .PHONY: all clean
 all: host/ELITEASM host/ELITEBEN host/ELITETST
 host/ELITEBEN: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
@@ -13,8 +13,8 @@ host/ELITETST: $(SOURCES) tests/fixtures.h tools/qlmeta.py Makefile
 	$(QCC) -DASM_DIAGNOSTICS -O2 -fno-omit-frame-pointer -Wall $(SOURCES) -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
-host/ELITEASM: src/shell.s src/target.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
-	$(QCC) src/shell.s src/target.s src/missile.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
+host/ELITEASM: src/shell.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s tools/qlmeta.py Makefile
+	$(QCC) src/shell.s src/target.s src/missile.s src/navigation.s src/tactics.s src/explosion.s src/combat.s src/controls.s src/dials.s src/scanner.s src/dashboard.s src/keyboard.s src/line.s src/render.s src/models.s src/motion.s src/flight.s src/tidy.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMOT
@@ -53,8 +53,8 @@ host/ELITECBT: tests/combat_test.c tests/combat_fixtures.h src/combat.s src/line
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITETAC
-host/ELITETAC: tests/tactics_test.c tests/tactics_fixtures.h src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
-	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/tactics_test.c src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
+host/ELITETAC: tests/tactics_test.c tests/tactics_fixtures.h src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/tactics_test.c src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEEXP
@@ -63,11 +63,16 @@ host/ELITEEXP: tests/explosion_test.c tests/explosion_fixtures.h src/explosion.s
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITEMSL
-host/ELITEMSL: tests/missile_test.c src/missile.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
-	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/missile_test.c src/missile.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
+host/ELITEMSL: tests/missile_test.c src/missile.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/missile_test.c src/missile.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
 	$(PYTHON) tools/qlmeta.py $@
 
 all: host/ELITETGT
-host/ELITETGT: tests/target_test.c tests/target_fixtures.h src/target.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
-	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/target_test.c src/target.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
+host/ELITETGT: tests/target_test.c tests/target_fixtures.h src/target.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/target_test.c src/target.s src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
+	$(PYTHON) tools/qlmeta.py $@
+
+all: host/ELITENAV
+host/ELITENAV: tests/navigation_test.c tests/navigation_fixtures.h src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s
+	$(QCC) -O2 -fno-omit-frame-pointer -Wall tests/navigation_test.c src/navigation.s src/tactics.s src/tidy.s src/combat.s src/motion.s src/line.s -o $@
 	$(PYTHON) tools/qlmeta.py $@

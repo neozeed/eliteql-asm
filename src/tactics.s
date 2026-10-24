@@ -5,6 +5,9 @@
 .globl _tactics_vector
 .globl _tactics_dot
 .globl _tactics_step
+.globl _pod_step
+.globl _tactics_cnt
+.extern _planet_vector
 .globl _tactics_due
 .globl _missile_steer
 .extern normalize_vector
@@ -127,6 +130,21 @@ _missile_steer:
  move.l 64(sp),a4
  move.l 68(sp),a5
  bra tactics_vectors
+ ; pod_step(inwk,planet,cnt): original SPS1 then TA15, explicit scratch CNT.
+_pod_step:
+ movem.l d2-d7/a2-a6,-(sp)
+ subq.l #8,sp
+ move.l sp,a6
+ move.l 56(sp),a2
+ move.l 64(sp),d0
+ move.b d0,3(a6)
+ move.l 60(sp),a0
+ move.l a6,-(sp)
+ move.l a0,-(sp)
+ jsr _planet_vector
+ addq.l #8,sp
+ lea pod_type,a3
+ bra tactics_steer
 _tactics_step:
  movem.l d2-d7/a2-a6,-(sp)
  subq.l #8,sp
@@ -160,6 +178,7 @@ tactics_vectors:
  moveq #10,d0
  bsr tactics_dot
  move.b d0,3(a6)
+ move.b d0,_tactics_cnt
  cmp.b #8,(a3)
  beq tactics_pursue
  ; TYPE CMP MSL immediately before DORND supplies clear carry for types1..6.
@@ -256,6 +275,7 @@ tactics_pursue:
  eor.b #128,2(a6)
  eor.b #128,3(a6)
 tactics_steer:
+ move.b 3(a6),_tactics_cnt
  moveq #16,d0
  bsr tactics_dot
  eor.b #128,d0
@@ -308,3 +328,7 @@ tactics_dot:
  lea 12(sp),sp
  lsr.w #8,d0
  rts
+
+.sect .data
+_tactics_cnt: .data1 0
+pod_type: .data1 11,0

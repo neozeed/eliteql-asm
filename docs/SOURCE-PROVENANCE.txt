@@ -57,3 +57,7 @@ ECBLB2, DENGY, MA16/MA69. Homing corpus starts at original TA21 with TYPE=8.
 A13 original-target.asm adds TAS1/MVT3 to the tactics excerpts.
 original-player-launch.asm contains FRS1/fq1/FRMIS. Player key/lock logic
 follows original MA4/MA20/MA25/MA26, with QL keyboard and pool adapters.
+
+A14 original-navigation.asm adds SPS1/SPS3 to the TACTICS excerpts.
+original-missile-icons.asm contains MSBAR and MDIALS. Child pod spawning
+uses the normal-parent SESCP/SFS1/NWSHP path already bundled at A11.

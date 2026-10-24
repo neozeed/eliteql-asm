@@ -1,0 +1,14 @@
+PASS live combat: ram=128 KB; F/pause, five-hit kill, original explosion lifetime/pixels, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS live tactics: ram=128 KB; encounter steering, scheduled enemy fire, exact shield/recharge state, DEATH freeze, 3 restart, solo reset
+PASS live missiles: ram=128 KB; launch, homing, E/ECM countdown, explosion, slot reuse, fatal impact, restart
+PASS player missiles: ram=128 KB; T lock, U disarm, M launch, inventory, target-relative impact, cloud cleanup, jam, enemy ECM
+PASS pods: ram=128 KB; original escape decision, spawn, parent AI disabled, navigation/movement, reset and missile icons
+PASS BASIC EXEC_W: suspended, printable burst consumed, keyboard queue empty
+PASS ASM native: ram=128 KB, frames=2395, largest free block after startup=14336 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+PASS live combat: ram=640 KB; F/pause, five-hit kill, original explosion lifetime/pixels, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS live tactics: ram=640 KB; encounter steering, scheduled enemy fire, exact shield/recharge state, DEATH freeze, 3 restart, solo reset
+PASS live missiles: ram=640 KB; launch, homing, E/ECM countdown, explosion, slot reuse, fatal impact, restart
+PASS player missiles: ram=640 KB; T lock, U disarm, M launch, inventory, target-relative impact, cloud cleanup, jam, enemy ECM
+PASS pods: ram=640 KB; original escape decision, spawn, parent AI disabled, navigation/movement, reset and missile icons
+PASS BASIC EXEC_W: suspended, printable burst consumed, keyboard queue empty
+PASS ASM native: ram=640 KB, frames=2395, largest free block after startup=529408 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit

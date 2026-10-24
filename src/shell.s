@@ -14,7 +14,7 @@ __stack: .data4 2048
 __prog_name: .data1 69,108,105,116,101,81,76,32,65,83,77,32,65,57,0
 .align 2
 asm_stats:
- .data4 0x45514233,0x36383030
+ .data4 0x45514234,0x36383030
 asm_frames: .data4 0
 asm_ticks: .data4 0
 asm_free: .data4 0
@@ -44,6 +44,11 @@ asm_ai_events_debug: .data4 asm_ai_events
 asm_ecm_debug: .data4 asm_ecm
 asm_launch_debug: .data4 asm_launches
 asm_player_debug: .data4 asm_player
+asm_planet_debug: .data4 asm_planet
+asm_pods_debug: .data4 asm_pods
+asm_planet: .space 36
+asm_pods: .data4 0
+asm_spawn_kind: .data2 6
 asm_player: .data1 4,0,255,0
 asm_mkeys: .data1 0,0,0,0
 asm_ecm: .data1 0,0
@@ -76,6 +81,9 @@ asm_msl_text: .ascii " M4 -\0"
 asm_poll: .data4 0,asm_clock
 asm_ipc: .data1 9,1,0,0,0,0,1,2
 .sect .text
+.extern _pod_step
+.extern _tactics_cnt
+.extern _missile_icons
 .extern _friendly_missile
 .extern _player_missile_init
 .extern _hostile_missile
@@ -309,6 +317,12 @@ asm_draw_begin:
  move.b asm_controls+4,asm_params
  move.b asm_controls+5,asm_params+1
  move.b asm_controls+12,asm_params+2
+ ; Test-scene planet follows original player-relative movement.
+ clr.b asm_params+3
+ pea asm_params
+ pea asm_planet
+ jsr _move_ship
+ addq.l #8,sp
  ; MA68/LASLI. With Electron sound absent, LASLI entry carry is explicit 0.
  clr.l -(sp)
  move.l #15,-(sp)
@@ -399,10 +413,22 @@ asm_no_tidy:
  tst.w asm_dead
  bne asm_ai_done
  move.l (a5),a0
+ cmp.w #11,28(a0)
+ beq asm_pod_ai
  cmp.w #8,28(a0)
  beq asm_ai_allowed
  cmp.w #6,28(a0)
  bhi asm_ai_done
+ bra asm_ai_allowed
+asm_pod_ai:
+ moveq #0,d0
+ move.b _tactics_cnt,d0
+ move.l d0,-(sp)
+ pea asm_planet
+ move.l a4,-(sp)
+ jsr _pod_step
+ lea 12(sp),sp
+ bra asm_ai_done
 asm_ai_allowed:
  move.w 28(a0),d0
  move.b d0,asm_ai_params
@@ -480,6 +506,13 @@ asm_ai_result:
  bsr asm_spawn_missile
  moveq #0,d0
 asm_ai_not_launch:
+ cmp.w #2,d0
+ bne asm_ai_not_escape
+ move.w #9,asm_spawn_kind
+ bsr asm_spawn_missile
+ move.w #6,asm_spawn_kind
+ moveq #0,d0
+asm_ai_not_escape:
  cmp.w #3,d0
  blo asm_ai_not_hit
  addq.l #1,asm_ai_events
@@ -755,6 +788,16 @@ asm_cloud_reset_loop:
 asm_cloud_zero:
  clr.l (a0)+
  dbra d0,asm_cloud_zero
+ clr.l asm_pods
+ move.w #6,asm_spawn_kind
+ clr.b _tactics_cnt
+ lea asm_planet,a0
+ moveq #35,d0
+asm_planet_zero:
+ clr.b 0(a0,d0.w)
+ dbra d0,asm_planet_zero
+ move.b #1,asm_planet+2
+ move.b #4,asm_planet+8
  move.b #4,asm_player
  clr.b asm_player+1
  move.b #255,asm_player+2
@@ -951,7 +994,9 @@ asm_spawn_find:
  bne asm_spawn_next
  ; An expired slot's line heap is already empty; retain its native cache header.
  lea _models,a0
- move.l 24(a0),(a3)
+ move.w asm_spawn_kind,d0
+ lsl.w #2,d0
+ move.l 0(a0,d0.w),(a3)
  tst.b asm_player+3
  beq asm_spawn_enemy
  moveq #0,d0
@@ -973,7 +1018,13 @@ asm_spawn_enemy:
 asm_spawn_initialized:
  clr.w 14(a3)
  clr.b 2(a6)
+ cmp.w #9,asm_spawn_kind
+ bne asm_count_missile
+ addq.l #1,asm_pods
+ bra asm_count_spawned
+asm_count_missile:
  addq.l #1,asm_launches
+asm_count_spawned:
  move.l a2,a0
  bra asm_spawn_end
 asm_spawn_next:
@@ -995,6 +1046,10 @@ asm_draw_dials:
  pea 0x20000
  jsr _dials_frame
  lea 16(sp),sp
+ pea asm_player
+ pea 0x20000
+ jsr _missile_icons
+ addq.l #8,sp
  rts
 asm_reset_vectors:
  clr.b asm_params

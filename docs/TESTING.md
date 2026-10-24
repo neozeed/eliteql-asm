@@ -1,3 +1,11 @@
+# A14 update
+
+README.md describes the new pod path, explicit CNT boundary, navigation-only
+planet and original missile symbols. Native navigation.s supplies SPS1/SPS3
+and MSBAR pixel conversion; tactics.s adds the pod entry at TA15. Stats magic
+is EQB4/6800, with planet pointer at114 and pod-count pointer at118.
+A14 logs are current; earlier sections below describe inherited milestones.
+
 # A13 update
 
 Current behavior and limits are documented in README.md. Native target.s
