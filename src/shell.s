@@ -371,6 +371,11 @@ flow_normal:
  bne asm_update_stats
  clr.w flow_release_gate
 flow_release_clear:
+ tst.w market_quantity_active
+ beq quantity_poll_done
+ bsr market_quantity_poll
+ bra asm_update_stats
+quantity_poll_done:
  tst.w _release_mode
  beq cheat_poll_done
  bsr cheat_poll
@@ -397,12 +402,27 @@ flow_not_escape:
  bra asm_update_stats
 flow_not_config:
  tst.w _release_mode
+ beq info_pause_done
+ moveq #0,d0
+ bsr asm_keyrow
+ and.w #32,d0
+ move.w release_pause_old,d1
+ eor.w d0,d1
+ move.w d0,release_pause_old
+ and.w d0,d1
+ beq info_pause_done
+ move.w #1,asm_paused
+ move.w #1,flow_held
+ bra asm_update_stats
+info_pause_done:
+ bsr market_prices_key
+ tst.w _release_mode
  beq flow_cargo_done
  bsr flow_cargo_keys
 flow_cargo_done:
  bsr asm_navigation_keys
  tst.w d0
- bne asm_update_stats
+ bne asm_draw_begin
  tst.w asm_docked
  beq asm_flight_keys
  bsr dock_status_keys
@@ -467,7 +487,7 @@ asm_warp_key_done:
  and.w d0,d1
  beq asm_page_key_done
  cmp.w #2,asm_page
- bne flow_page_toggle_0
+ blo flow_page_toggle_0
  move.w #1,asm_page
 flow_page_toggle_0:
  eor.w #1,asm_page
@@ -480,7 +500,7 @@ asm_page_close:
  bsr asm_restore_view
 asm_page_key_done:
  tst.w asm_page
- bne asm_update_stats
+ bne asm_draw_begin
  moveq #2,d0
  bsr asm_keyrow
  move.w d0,asm_row2
@@ -687,6 +707,9 @@ asm_ecm_key_done:
  sne asm_fire_key
  bra asm_draw_begin
 release_flight_keys:
+ bsr release_primary_keys
+ bra asm_draw_begin
+release_primary_keys:
  ; Electron KYTB primary keys; unshifted comma/period/slash work too.
  ; Existing arrow pitch/roll values are aliases, OR with these held keys.
  moveq #7,d0
@@ -733,8 +756,10 @@ release_fire:
  moveq #3,d0
  bsr asm_keyrow
  btst #4,d0
- beq asm_draw_begin
+ beq release_primary_done
  move.b #255,asm_fire_key
+release_primary_done:
+ rts
 asm_draw_begin:
  tst.w quit_active
  bne asm_update_stats
@@ -742,12 +767,31 @@ asm_draw_begin:
  bne asm_update_stats
  tst.w flow_state
  bne asm_wait
- tst.w asm_nav
- bne asm_update_stats
  tst.w asm_docked
  bne asm_update_stats
+ clr.w asm_hidden
+ tst.w asm_nav
+ bne info_hidden
  tst.w asm_page
- bne asm_update_stats
+ beq info_ready
+info_hidden:
+ tst.w _release_mode
+ beq asm_update_stats
+ move.w #1,asm_hidden
+ ; The cleared page has no laser pixels; LASLI may replace its coordinates.
+ clr.b asm_laser+9
+ ; Secondary flight commands must not leak from the preceding space view.
+ clr.b asm_fire_key
+ clr.w asm_bomb_held
+ clr.w asm_mkeys
+ clr.b asm_mkeys+2
+ clr.l asm_keys
+ clr.w asm_keys+4
+ moveq #1,d0
+ bsr asm_keyrow
+ move.w d0,asm_row1
+ bsr release_primary_keys
+info_ready:
  tst.w asm_dead
  bne asm_update_stats
  tst.w asm_paused
@@ -800,6 +844,8 @@ planet_tidy_done:
  jsr _rotate_body
  addq.l #8,sp
 planet_rotation_done:
+ tst.w asm_hidden
+ bne planet_draw_done
  tst.w asm_world
  beq planet_draw_done
  moveq #0,d0
@@ -845,6 +891,8 @@ laser_sound_ready:
  lea 20(sp),sp
  tst.l d0
  beq asm_fire_drawn
+ tst.w asm_hidden
+ bne asm_fire_drawn
  pea asm_laser
  pea 0x20000
  jsr _laser_xor
@@ -887,6 +935,8 @@ uni_slot_ready:
  jsr _commander_tally
  addq.l #4,sp
 asm_bomb_ship_done:
+ tst.w asm_hidden
+ bne asm_pending_done
  btst #7,31(a4)
  beq asm_pending_done
  btst #5,31(a4)
@@ -1093,6 +1143,8 @@ asm_ai_no_ouch:
  bne asm_ai_done
  move.w #1,asm_dead
 asm_ai_done:
+ tst.w asm_hidden
+ bne asm_ai_alive
  btst #7,31(a4)
  beq asm_ai_alive
  pea asm_laser+5
@@ -1125,6 +1177,8 @@ asm_ai_alive:
  bne asm_dock_commit
  move.b 31(a4),d0
  and.b #160,d0
+ bne asm_no_hit
+ tst.w asm_hidden
  bne asm_no_hit
  bsr asm_view_ship
  tst.b asm_player+1
@@ -1202,6 +1256,9 @@ asm_hit_survived:
  lea 12(sp),sp
 asm_no_hit:
 asm_render_current:
+ ; MA26 -> MA15 skips LL9 and DOEXP on information screens.
+ tst.w asm_hidden
+ bne asm_cloud_done
  bsr asm_view_ship
  pea asm_matrix
  pea asm_view_inwk
@@ -1312,8 +1369,11 @@ asm_laser_end:
  pea asm_equipment+2
  jsr _bomb_tick
  addq.l #4,sp
+ tst.w asm_hidden
+ bne info_no_stars
  moveq #1,d0
  bsr asm_dust_run
+info_no_stars:
  moveq #0,d2
  move.b asm_commander+7,d2
  pea asm_commander
@@ -1342,6 +1402,11 @@ asm_no_encounter_tick:
  addq.l #1,asm_frames
  bra asm_update_stats
 asm_dock_commit:
+ clr.w asm_page
+ clr.w asm_nav
+ clr.w asm_chart
+ clr.w asm_shop
+ clr.w asm_hidden
  moveq #8,d0
  bsr asm_tunnel
  clr.b asm_player+1
@@ -1470,15 +1535,19 @@ asm_keyrow:
 asm_erase_laser:
  tst.b asm_laser+9
  beq asm_erase_laser_done
+ tst.w asm_hidden
+ bne info_laser_clear
  pea asm_laser
  pea 0x20000
  jsr _laser_xor
  addq.l #8,sp
+info_laser_clear:
  clr.b asm_laser+9
  clr.b asm_laser+2
 asm_erase_laser_done:
  rts
 asm_setup:
+ clr.w asm_hidden
  clr.w uni_active
  clr.l _encounter_pool
  tst.w asm_dust_valid
@@ -2467,6 +2536,11 @@ dock_transaction:
  beq dock_trade_args
  moveq #1,d0
 dock_trade_args:
+ tst.w d0
+ bne dock_trade_legacy
+ tst.w _release_mode
+ bne market_quantity_start
+dock_trade_legacy:
  move.l d0,-(sp)
  moveq #0,d0
  move.w asm_market_selection,d0
@@ -2648,10 +2722,17 @@ market_unit_done:
  addq.w #1,asm_page_item
  cmp.w #17,asm_page_item
  blo market_page_loop
+ tst.w market_quantity_active
+ bne market_skip_help
  lea asm_market_help,a4
+ tst.w asm_docked
+ bne market_help_ready
+ lea market_prices_help,a4
+market_help_ready:
  move.w #172,d6
  moveq #16,d7
  bsr asm_text_at
+market_skip_help:
  move.w asm_market_result,d0
  lsl.w #2,d0
  lea asm_market_messages,a0
@@ -2667,8 +2748,14 @@ asm_clear_view_loop:
  dbra d0,asm_clear_view_loop
  rts
 asm_restore_view:
+ clr.w asm_hidden
  tst.w asm_dust_valid
- beq dust_restore_done
+ bne info_restore_old_stars
+ moveq #0,d0
+ bsr asm_dust_run
+ move.w #1,asm_dust_valid
+ bra dust_restore_done
+info_restore_old_stars:
  moveq #3,d0
  bsr asm_dust_run
 dust_restore_done:
@@ -2735,6 +2822,8 @@ asm_decimal_loop:
  movem.l (sp)+,d2-d5
  rts
 asm_commander_page:
+ cmp.w #3,asm_page
+ beq asm_market_page
  tst.w _release_mode
  beq flow_cargo_page
  cmp.w #2,asm_page
@@ -3115,7 +3204,7 @@ asm_loss_text: .ascii "                DESTROYED\0"
 .align 2
 
 .sect .data
-asm_market_title: .ascii "DOCKED / LOCAL MARKET / ECONOMY "
+asm_market_title: .ascii "LOCAL MARKET / ECONOMY "
 asm_market_economy: .ascii "5\0"
 asm_market_header: .ascii " ITEM         PRICE STOCK HOLD\0"
 asm_market_line: .ascii "              "
@@ -3123,7 +3212,7 @@ asm_price_digits: .ascii "000.0 "
 asm_stock_digits: .ascii "000 "
 asm_held_digits: .ascii "000 "
 asm_market_unit: .ascii "T \0"
-asm_market_help: .ascii "UP/DN  B BUY1  S SELLALL  L LAUNCH\0"
+asm_market_help: .ascii "UP/DN  B BUY QTY  S SELLALL  L LAUNCH\0"
 .align 2
 asm_market_messages: .data4 market_ok,market_stock,market_hold,market_cash
 market_ok: .ascii "READY\0"
@@ -3406,9 +3495,17 @@ nav_not_consumed:
  moveq #0,d0
  rts
 asm_arrival:
+ move.w asm_page,info_arrival_page
+ move.w asm_nav,info_arrival_nav
+ move.w asm_chart,info_arrival_chart
+ move.w asm_local_chart,info_arrival_local
+ move.w asm_hidden,info_arrival_hidden
  move.w #1,asm_arriving
+ tst.w asm_hidden
+ bne info_arrival_no_tunnel
  moveq #4,d0
  bsr asm_tunnel
+info_arrival_no_tunnel:
  moveq #0,d0
  move.b asm_commander+6,d0
  cmp.b #2,asm_travel+13
@@ -3417,7 +3514,9 @@ asm_arrival:
 solar_keep_carry:
  move.w d0,asm_solar_legal
  move.w #1,asm_arriving
- ; GVL's DORND boundary uses explicit carry0; sound RNG is not reproduced.
+ ; TT18 -> hyp1 -> TT111 -> TT24 returns C=0: the final productivity
+ ; shift never overflows for any valid system. hyp1's copies preserve C.
+ ; LL164/NOISE/HFS2 do not call DORND in this Electron source.
  clr.l -(sp)
  pea asm_laser+5
  jsr _elite_random
@@ -3456,11 +3555,18 @@ arrival_keep_rng:
 arrival_restore_rng:
  move.b (a0)+,(a1)+
  dbra d1,arrival_restore_rng
+ ; NWSTARS skips random star creation while QQ11 is nonzero.
+ tst.w info_arrival_hidden
+ bne info_arrival_no_stars
  ; RES2/SOLAR's restored RNG must be consumed by the real new star field.
  moveq #3,d0
  bsr asm_dust_run
  moveq #0,d0
  bsr asm_dust_run
+ bra info_arrival_market
+info_arrival_no_stars:
+ clr.w asm_dust_valid
+info_arrival_market:
  moveq #0,d0
  move.b asm_travel+14,d0
  move.l d0,-(sp)
@@ -3469,6 +3575,25 @@ arrival_restore_rng:
  pea asm_market
  jsr _market_init
  lea 12(sp),sp
+ tst.w info_arrival_hidden
+ beq asm_update_stats
+ move.w info_arrival_hidden,asm_hidden
+ move.w info_arrival_page,asm_page
+ move.w info_arrival_nav,asm_nav
+ move.w info_arrival_chart,asm_chart
+ move.w info_arrival_local,asm_local_chart
+ bsr asm_clear_view
+ tst.w asm_nav
+ beq info_arrival_status
+ tst.w asm_chart
+ beq info_arrival_data
+ bsr asm_chart_page
+ bra asm_update_stats
+info_arrival_data:
+ bsr asm_nav_page
+ bra asm_update_stats
+info_arrival_status:
+ bsr asm_commander_page
  bra asm_update_stats
 asm_nav_page:
  bra presentation_system
@@ -5620,7 +5745,7 @@ flow_death_frame:
  tst.w flow_death_count
  bne flow_death_animate
  cmp.w #32,flow_key
- bne asm_wait
+ bne flow_death_animate
  bsr flow_title_load
  bra asm_wait
 flow_death_animate:
@@ -5692,11 +5817,14 @@ flow_death_ship_next:
  bsr asm_text_at
  ; MA23 saturating LASCT-4, then D2 DEC. From50 exactly10 updates.
  subq.b #1,asm_mcnt
+ tst.w flow_death_count
+ beq flow_death_prompt
  subq.w #5,flow_death_count
  bne asm_wait
- ; Requested QL presentation change: hold the final frame. A key held
- ; through the animation cannot dismiss it; release before fresh Space.
+ ; Keep the original death-scene update running while waiting. Gate only
+ ; the transition, never re-arm the held-key latch on subsequent frames.
  move.w #1,flow_held
+flow_death_prompt:
  lea flow_death_continue,a4
  moveq #112,d6
  bsr asm_text
@@ -6069,6 +6197,8 @@ uni_remove_current:
 uni_unlock_done:
  ; KILLSHP only aborts an equal player lock. It does NOT decrement MSTG
  ; for a later lock; retain that original behavior rather than fixing it.
+ tst.w asm_hidden
+ bne uni_no_erase
  move.l a5,-(sp)
  pea 0x20000
  jsr _render_cache
@@ -6081,6 +6211,7 @@ uni_unlock_done:
  pea 0x20000
  jsr _cloud_xor
  lea 12(sp),sp
+uni_no_erase:
  moveq #0,d0
  move.w uni_removed,d0
  addq.w #1,d0
@@ -6330,6 +6461,7 @@ cheat_drive:
 ; Esc from any normal menu returns to the station bay or cockpit.
 ; Release gating prevents the held key reaching the outer exit/restart action.
 menu_escape:
+ clr.w market_quantity_active
  clr.w cheat_active
  clr.w flow_state
  clr.w asm_nav
@@ -6409,4 +6541,126 @@ quit_consumed:
  rts
 quit_idle:
  moveq #0,d0
+ rts
+
+; RC6 information-screen adapters. Mechanics remain in the same flight loop.
+.sect .data
+.align 2
+asm_hidden: .data2 0
+info_arrival_page: .data2 0
+info_arrival_nav: .data2 0
+info_arrival_chart: .data2 0
+info_arrival_local: .data2 0
+info_arrival_hidden: .data2 0
+market_prices_old: .data2 0
+market_quantity_active: .data2 0
+market_quantity_value: .data2 0
+market_quantity_digits: .data2 0
+market_prices_help: .ascii "8/ESC COCKPIT - PRICES ONLY IN FLIGHT\0"
+market_quantity_text: .ascii "QUANTITY? "
+market_quantity_number: .ascii "000  ENTER BUY / ESC CANCEL\0"
+.align 2
+.sect .text
+market_prices_key:
+ tst.w _release_mode
+ beq market_prices_done
+ tst.w asm_docked
+ bne market_prices_done
+ moveq #6,d0
+ bsr asm_keyrow
+ and.w #1,d0
+ move.w market_prices_old,d1
+ eor.w d0,d1
+ move.w d0,market_prices_old
+ and.w d0,d1
+ beq market_prices_done
+ clr.w asm_nav
+ cmp.w #3,asm_page
+ beq market_prices_close
+ move.w #3,asm_page
+ bsr asm_clear_view
+ bsr asm_market_page
+ rts
+market_prices_close:
+ clr.w asm_page
+ bsr asm_clear_view
+ bsr asm_restore_view
+market_prices_done:
+ rts
+market_quantity_start:
+ clr.w market_quantity_value
+ clr.w market_quantity_digits
+ move.w #1,market_quantity_active
+ move.w #1,flow_held
+ clr.w asm_market_result
+ bra market_quantity_paint
+market_quantity_poll:
+ bsr flow_read_key
+ cmp.w #-1,d0
+ beq market_quantity_done
+ cmp.w #27,d0
+ beq market_quantity_cancel
+ cmp.w #48,d0
+ blo market_quantity_commit
+ cmp.w #57,d0
+ bhi market_quantity_cancel
+ sub.w #48,d0
+ move.w market_quantity_value,d1
+ cmp.w #26,d1
+ bhs market_quantity_stock
+ mulu.w #10,d1
+ add.w d0,d1
+ and.w #255,d1
+ move.w d1,market_quantity_value
+ move.w asm_market_selection,d0
+ lea asm_market+17,a0
+ cmp.b 0(a0,d0.w),d1
+ bhi market_quantity_stock
+ addq.w #1,market_quantity_digits
+ cmp.w #12,market_quantity_digits
+ bhs market_quantity_commit
+ bra market_quantity_paint
+market_quantity_commit:
+ moveq #0,d0
+ move.w market_quantity_value,d0
+ move.l d0,-(sp)
+ moveq #0,d0
+ move.w asm_market_selection,d0
+ move.l d0,-(sp)
+ pea asm_market
+ pea asm_cargo
+ pea asm_commander
+ jsr _market_buy
+ lea 20(sp),sp
+ move.w d0,asm_market_result
+ tst.w d0
+ beq market_quantity_cancel
+ bra market_quantity_retry
+market_quantity_stock:
+ move.w #1,asm_market_result
+market_quantity_retry:
+ clr.w market_quantity_value
+ clr.w market_quantity_digits
+ moveq #32,d0
+ bsr asm_sound_event
+ bra market_quantity_paint
+market_quantity_cancel:
+ clr.w market_quantity_active
+ move.w #1,flow_release_gate
+ move.w #1,flow_held
+ bsr asm_clear_view
+ bsr asm_market_page
+ rts
+market_quantity_paint:
+ bsr asm_clear_view
+ bsr asm_market_page
+ moveq #0,d0
+ move.w market_quantity_value,d0
+ moveq #3,d1
+ lea market_quantity_number,a0
+ bsr asm_decimal
+ lea market_quantity_text,a4
+ move.w #172,d6
+ bsr asm_text
+market_quantity_done:
  rts

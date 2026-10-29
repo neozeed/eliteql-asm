@@ -104,3 +104,31 @@ All production direct-Escape exit paths are removed, including both titles and
 the second flight key scan. Bare-cockpit Esc stays in game; paused Esc no longer
 restarts the commander. Menus retain RC5a's root return. Legacy ELITEDEV diagnostic
 exit shortcuts are unchanged. This is a deliberate user-requested QL UI policy.
+
+
+## RC6 live information screens, quantity trading and animated death wait
+
+M%/TT100 continues behind information pages. The native shell now advances the
+same movement/tactics/energy/encounter loop, skips LL9/DOEXP at MA26->MA15,
+skips STARS, and suppresses target acquisition and laser hit testing. DOKEY's
+primary keys remain live; LASLI's energy/temperature/RNG work still occurs for
+fire, while LASLI2's drawing is suppressed. Secondary flight actions do not
+leak across screen changes. F5, cheat and quit remain explicit modal holds.
+Native chart arrow aliases are used for chart selection, not simultaneous pitch.
+Arrival on an information page suppresses the tunnel/new star field, restores
+the page, and defers new dust creation until the cockpit is entered.
+
+TT167 is exposed on flight key8 without any purchase or sale path. Docked B
+opens an ASCII quantity prompt; TT224 stock/tnpr/16-bit GCASH/LCASH checks are
+atomic. Native row selection and Esc cancellation remain QL interface choices.
+
+The requested death extension now runs the existing canister movement, TIDY,
+explosion and dust updates beyond the initial ten updates. The count saturates
+at zero; the fresh-key latch is armed once, so held Space does not restart.
+
+Correction to the old arrival comment: LL164/NOISE/HFS2 do not consume DORND.
+TT24's final productivity shift returns carry0 for all 256 relevant seed-bit
+combinations, tested from both incoming carries. hyp1 preserves that carry
+through its final copies; GVL's explicit zero is therefore justified. Other
+shared-RNG qualifications, including the first death-scene text boundary,
+remain. This is not an exhaustive whole-game execution equivalence claim.

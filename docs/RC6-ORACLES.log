@@ -1,0 +1,2 @@
+PASS quantity oracle: 1024 source tnpr/LCASH cases, zero/full/byte-wrap/16-bit-price boundaries
+PASS GVL carry: 512 executed TT24 combinations, all return C=0; maximum productivity 56320

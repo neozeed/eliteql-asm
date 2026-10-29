@@ -1,5 +1,5 @@
 ; Original QQ23/var/GVL/TT151, TT219 purchase and TT210 whole-stock sale.
-; Market =17 price/4 bytes +17 AVL bytes. Native UI purchases one unit per key.
+; Market =17 price/4 bytes +17 AVL bytes. Production UI accepts a quantity; legacy trade remains for DEV.
 .sect .text
 .globl _market_init
 _market_init:
@@ -143,3 +143,42 @@ market_table:
 .data1 171,162,55,31
 .data1 45,193,250,15
 .data1 53,15,192,7
+
+; TT224/tnpr/GCASH/LCASH: one atomic transaction for an entered quantity.
+; Same ABI as trade, with quantity replacing sell. GCASH is a 16-bit product.
+.sect .text
+.globl _market_buy
+_market_buy:
+ movem.l d2-d7/a2-a4,-(sp)
+ move.l 40(sp),a2
+ move.l 44(sp),a3
+ move.l 48(sp),a4
+ move.l 52(sp),d7
+ move.l 56(sp),d5
+ cmp.l #17,d7
+ bhs trade_stock
+ cmp.l #255,d5
+ bhi trade_stock
+ cmp.b 17(a4,d7.w),d5
+ bhi trade_stock
+ moveq #0,d0
+ move.b _ship_fit,d0
+ move.l d0,-(sp)
+ move.l d5,-(sp)
+ move.l d7,-(sp)
+ move.l a3,-(sp)
+ jsr _cargo_room
+ lea 16(sp),sp
+ tst.l d0
+ beq trade_capacity
+ moveq #0,d6
+ move.b 0(a4,d7.w),d6
+ mulu.w d5,d6
+ lsl.w #2,d6
+ and.l #65535,d6
+ cmp.l (a2),d6
+ bhi trade_cash
+ sub.l d6,(a2)
+ add.b d5,0(a3,d7.w)
+ sub.b d5,17(a4,d7.w)
+ bra trade_success

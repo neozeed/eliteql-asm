@@ -2,8 +2,8 @@
 
 <img width="1024" height="544" alt="ql-elite" src="https://github.com/user-attachments/assets/1dd69050-a571-4b13-898a-e6ca0aec76d8" />
 
-**Player guide, controls and project notes for EliteQL 1.0 RC5b**  
-Documentation revision: 24 October 2026
+**Player guide, controls and project notes for EliteQL 1.0 RC6**  
+Documentation revision: 28 October 2026
 
 EliteQL is a native 68000-family assembly adaptation of **Acorn Electron Elite**, targeting QDOS on the Sinclair QL. The aim is to bring the Electron game's actual mechanics to the QL: its flight arithmetic, tactics, trading, travel, encounters and limitations, with a QL display, keyboard and file interface.
 
@@ -51,7 +51,7 @@ Your starting commander is **Jameson**, docked at **Lave**, with:
 | Laser | Front pulse laser |
 | Purchased upgrades | None |
 
-Press **6** to switch from status to the market. **Up/Down** selects a commodity, **B** buys one unit and **S** sells your entire holding of the selected commodity. **L** launches from the bay/market or equipment screen. From status or cargo, use **Esc** to return to the bay first.
+Press **6** to switch from status to the market. **Up/Down** selects a commodity, **B** asks for a quantity (type digits, then Enter) and **S** sells your entire holding of the selected commodity. **L** launches from the bay/market or equipment screen. From status or cargo, use **Esc** to return to the bay first.
 
 For a low-pressure introduction, you can use **0** to open the optional cheat menu and fit a docking computer. Cheats are optional; normal startup is not pre-equipped.
 
@@ -88,7 +88,7 @@ Begin on the commander status page. Check cash, fuel, legal status and equipment
 
 The market shows price, station stock and your holding. Prices are shown in credits, including decimal fractions. Pay attention to the commodity's unit: tonne, kilogram and gram goods do not all use cargo capacity in the same way.
 
-Buy a modest quantity with **B**, leaving money for fuel. Buying fails without charging you if stock, hold space or cash is insufficient. **S sells all of the selected commodity**, not one unit.
+Buy a modest quantity with **B**, type the number of units and press **Enter**, leaving money for fuel. **Esc** cancels the quantity prompt. A rejected purchase leaves the prompt open for another quantity. Buying fails without charging you if stock, hold space or cash is insufficient. **S sells all of the selected commodity**, not one unit.
 
 A reasonable beginner's trading approach is to compare economies: agricultural and industrial systems often provide complementary goods. Treat this as trading guidance, not a guaranteed profitable route. Read the actual prices and do not assume every journey makes money.
 
@@ -170,7 +170,7 @@ Attacking the station can make it hostile and provoke police launches. The docki
 
 ## Complete production controls
 
-Keys are context-sensitive. These tables describe **ELITEASM RC5b**, not the development executable.
+Keys are context-sensitive. These tables describe **ELITEASM RC6**, not the development executable.
 
 ### Global, menus and quitting
 
@@ -189,7 +189,7 @@ Keys are context-sensitive. These tables describe **ELITEASM RC5b**, not the dev
 
 Holding Esc cannot fall through from closing a menu into an exit action. A Y held before opening the quit prompt cannot confirm it. Quitting does **not** automatically save your commander.
 
-Normal information pages and the cheat/quit prompts stop simulation while open. F5 is the flight pause control; Space is never pause in the production game.
+**Information pages do not pause flight.** Ships, tactics, movement, encounters, energy and hyperspace continue behind status, cargo, navigation and market prices. Primary flight keys remain live; laser firing can consume energy and heat the weapon but cannot hit ships from an information page, matching the Electron MA26/LASLI2 distinction. Ship/explosion drawing and missile locking are skipped until you return. Use **F5** to pause, including while reading a page. Cheat and quit prompts remain modal and hold the simulation. Space is never pause in the production game.
 
 ### Flight and weapons
 
@@ -228,10 +228,11 @@ Shift is optional for comma, period and slash. Arrow pitch follows traditional f
 | Docked status/market | 6 | Switch between status and market |
 | Normal play | 7 | Cargo inventory; use 6 or Esc to leave |
 | Bay/market | Up / Down | Select commodity |
-| Market | B | Buy one unit of selected commodity |
+| Market | B | Enter purchase quantity; digits then Enter, Esc cancels |
 | Market | S | Sell all held units of selected commodity |
 | Bay/market or equipment | L | Launch |
 | Bay/market | 8 | Open equipment |
+| In flight | 8 | View current system market prices; 8 or Esc returns to cockpit |
 | Equipment | Up / Down | Select equipment item |
 | Equipment | F1–F4 | Choose front/rear/left/right laser fitting |
 | Equipment | B | Buy selected item for the selected fitting, where applicable |
@@ -326,7 +327,7 @@ The current native format is **EQA2**; the loader retains support for the older 
 
 Missing, corrupt or truncated loads are rejected without replacing the live commander or the last successful saved/loaded state. Loading is a deliberate rollback to that file: unsaved purchases, cash and other progress are not preserved.
 
-After death, the four-canister GAME OVER sequence runs and then holds its last frame until a **fresh Space** press. Holding Space during the animation does not skip it. This hold is a requested QL presentation change; the Electron original returned on a timer.
+After death, the four-canister GAME OVER scene **keeps animating while it waits** for a **fresh Space** press. The initial ten-update sequence must finish first. Holding Space through that sequence does not skip it: release Space, then press it again. Other keys do not restart the game. Debris, explosions and stars continue through the existing native update routines; the timer stops at zero instead of wrapping. This indefinite wait is a requested QL presentation change; the Electron original returned on a timer.
 
 At the subsequent load question, **N restores the last successful save/load held in memory**. It does not give you a fresh reward or keep unsaved progress. With no such state in the current run, it restores default Jameson. On a newly started program, choose Y to load an existing disk file; N does not search the disk for your last commander automatically.
 
@@ -355,11 +356,11 @@ This is not a new Electron rule, and no fidelity claim includes it. It is a conv
 
 The target is a QDOS Sinclair QL using the **68008-compatible 68000 instruction set**. The design does not depend on a 68020 or floating-point hardware.
 
-| Item | RC5b status |
+| Item | RC6 status |
 | --- | --- |
 | Production executable | `host/ELITEASM` |
-| Executable size | 62,878 bytes |
-| Declared QDOS data space | 9,220 bytes |
+| Executable size | 64,114 bytes |
+| Declared QDOS data space | 9,116 bytes |
 | QLBox configurations tested | 128KB and 640KB |
 | Normal pacing | Target of ten simulation updates per second |
 | Real physical QL performance | Not established by the supplied automated results |
@@ -449,11 +450,21 @@ The QL speaker can approximate the intended effects, but it cannot make the
 Electron ULA and the QL sound hardware the same device. Event selection, priority
 and lifetime are separate questions from exact waveform reproduction.
 
+### Information screens are part of the flight loop
+
+RC6 closes an integration difference: the previous QL shell suspended flight on information pages. The Electron TT102 dispatch and M% loop continue simulation there. MA26 bypasses missile/laser hit testing and LL9 drawing, while STARS also skips its update. This means an explosion's visual progression can wait while a page is open even though ships and tactics continue. The port preserves that distinction rather than simulating an invisible full renderer or granting an automatic pause.
+
+The in-flight **8** page is read-only market information (TT167); docked **B** now accepts an atomic quantity purchase (TT224, gnum, tnpr, GCASH and LCASH). The native selected-row interface remains a QL adaptation; it does not force the Electron's sequential walk through every commodity. Selling still clears the whole selected holding without replenishing station stock.
+
+### A checked hyperspace RNG boundary
+
+The arrival audit corrected an overly broad earlier qualification about “sound RNG.” In this Electron source, LL164, NOISE and the tunnel routines do not call DORND. Before GVL samples the market fluctuation, hyp1 calls TT111 and TT24. Executing TT24 for all 256 combinations of relevant economy/government/tech seed bits, from both incoming carries, returns carry clear in all 512 cases. The existing explicit zero carry at that particular boundary is justified. This is a bounded proof, not proof that every text, sound and frame-order boundary throughout the game is identical.
+
 ### My assessment of this version
 
 The port is beyond a wireframe demonstration: it supports an actual commander journey through trading, travel, combat, docking, saving and recovery. The source comparisons provide stronger evidence than visual resemblance alone, and the live reports established that the evolving game was playable.
 
-I would still describe RC5b as a release candidate. The most valuable next evidence is extended play on the intended hardware, especially crowded combat, repeated arrivals/docking, equipment loss, missile targets being removed and repeated save/load cycles. A clean scripted test corpus cannot prove every ordering combination or physical-machine timing behavior.
+I would still describe RC6 as a release candidate. The most valuable next evidence is extended play on the intended hardware, especially crowded combat, repeated arrivals/docking, equipment loss, missile targets being removed and repeated save/load cycles. A clean scripted test corpus cannot prove every ordering combination or physical-machine timing behavior.
 
 The ten-update target is appropriate to the project, but it should remain a measured behavior rather than a slogan. Native assembly helped make the design practical; correctness still depends on the exact arithmetic, data flow and scheduling.
 
@@ -473,7 +484,7 @@ Examples of concrete coverage include:
 | Escape/quit | Menu return, long holds, title/cockpit safety, preheld-Y rejection, cancel restoration and confirmed exit |
 | Memory configurations | Actual BASIC EXEC_W production runs at 128KB and 640KB |
 
-Historical releases also retain extensive arithmetic, renderer, controls, scanner, tactics, market, travel, sound and other fixtures. **Historical logs are not relabelled as new runs.** RC5b's UI change reran the production suite; it did not rerun every unchanged isolated arithmetic corpus.
+Historical releases also retain extensive arithmetic, renderer, controls, scanner, tactics, market, travel, sound and other fixtures. **Historical logs are not relabelled as new runs.** RC6 adds source-derived quantity fixtures and live-page/death checks, and reruns the production and development integration suites plus the packaged native routine tests. See `docs/RC6-RESULTS.md` for the exact run scope.
 
 Remaining qualifications are explicit:
 
@@ -482,7 +493,7 @@ Remaining qualifications are explicit:
 - Native QL clipping, rasterization, font, input mappings, pacing and file format differ from Electron hardware.
 - Speaker output is an approximation; cycle-accurate sound identity is not established.
 - Physical QL timing, hardware-specific behavior and long-duration play are not established by QLBox results alone.
-- Intentional QL extras—cheats, confirmed quit and the held GAME OVER frame—are not presented as original Electron mechanics.
+- Intentional QL extras—cheats, confirmed quit and the indefinite animated GAME OVER wait—are not presented as original Electron mechanics.
 
 Source-derived tests can demonstrate a routine's behavior at a documented boundary. They cannot honestly produce a universal “100% identical” certificate for an entire game.
 
@@ -500,6 +511,8 @@ make host/ELITEASM QCC=/absolute/path/to/qdos-gcc
 make QCC=/absolute/path/to/qdos-gcc
 
 # Retained module and development integration suites:
+python3 tests/quantity_reference.py
+python3 tests/arrival_carry_reference.py
 SKIP_REFERENCES=1 sh tests/run-qlbox.sh /absolute/path/to/qlbox-r9
 sh tests/run-basic.sh /absolute/path/to/qlbox-r9
 
@@ -527,14 +540,14 @@ sh tests/run-release.sh /absolute/path/to/qlbox-r9
 
 Some C and older rendering sources remain because the diagnostics use them. Their presence does not mean the production game runs a C simulation loop.
 
-Read the **latest** release results first: `docs/RC5b-RESULTS.md`, then RC5a/RC5 for UI changes and RC4 for universe ordering. Older notes preserve the history and may describe issues subsequently fixed.
+Read the **latest** release results first: `docs/RC6-RESULTS.md`, then RC5b/RC5a/RC5 for UI changes and RC4 for universe ordering. Older notes preserve the history and may describe issues subsequently fixed.
 
 ## Troubleshooting
 
 | Symptom | Check |
 | --- | --- |
 | Space pauses, or number keys create test scenes | You probably launched ELITEDEV or an older executable. Production Space accelerates. |
-| Esc immediately drops to BASIC | Verify the installed binary is RC5b. Earlier releases retained cockpit exit paths. |
+| Esc immediately drops to BASIC | Verify the installed binary is RC6. Earlier releases retained cockpit exit paths. |
 | The job will not run after copying to a QL disk | Check QDOS executable type/data-space metadata, not just the filename and bytes. |
 | BASIC reacts to flight keys | Confirm EXEC_W and the current build. Keyboard ownership is part of the tested job integration. |
 | Laser will not fire in rear/side view | Check that a laser is fitted to that view, and that it is not overheated. |
@@ -544,7 +557,9 @@ Read the **latest** release results first: `docs/RC5b-RESULTS.md`, then RC5a/RC5
 | G does nothing | Normal hyperspace does not supply a galactic drive. Buy or explicitly cheat one in. |
 | An equipment purchase fails | Read the message: cash, technology, already fitted or capacity can block it. |
 | Save/load keys trade cargo instead | Open equipment with 8 first; market S is Sell All. |
-| GAME OVER does not dismiss | Wait for the animation, release Space and press it again. Other keys do not dismiss it. |
+| GAME OVER keeps moving and does not dismiss | Wait for the initial animation, release Space and press it again. The moving wait is intentional; other keys do not dismiss it. |
+| Attacked while reading a page | Information pages leave flight live, as in the Electron. Press F5 for an actual pause. |
+| B does not immediately buy cargo | Enter the quantity and press Enter. Trading is available only while docked. |
 | A menu appears to stop the universe | Information/modal pages intentionally suspend simulation. Exit the page to continue. |
 | 128KB startup cannot preserve the screen | Try a simpler BASIC screen or more RAM; compressed backup capacity is finite. |
 

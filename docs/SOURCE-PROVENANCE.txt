@@ -167,3 +167,12 @@ Production IPC mapping uses KYTB's < > X S Space ? A primary controls and retain
 arrow/F/Z aliases. QL F5 is the pause/resume adapter for Electron COPY/DELETE;
 Escape exit and K escape capsule are explicit QDOS integration choices.
 No movement, pitch inversion, damping or weapon arithmetic is changed.
+
+RC6 uses the supplied complete Electron elite-source.asm (SHA256
+93c2aa0adcfcb86d82c23ed703f5167fc4ee2236802c6db564ad40b3b4274caf):
+M%/MA26/MA15/STARS/DOKEY/DK2/LASLI2/TT102/TT167 for live information screens;
+TT219/TT224/gnum/tnpr/GCASH/LCASH for quantity purchases; TT18/hyp1/TT111/TT24/
+GVL and LL164/NOISE/HFS2 for the checked arrival carry boundary. The existing
+original-market.asm and original-presentation.asm excerpts drive the added
+quantity_reference.py and arrival_carry_reference.py oracles. Extended death
+waiting is requested QL presentation, reusing original-derived update modules.

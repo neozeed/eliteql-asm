@@ -1,0 +1,114 @@
+/tmp/tmp.UAV9B8ITM1/ELITEASM: 64098 bytes, QDOS data space 9118
+/tmp/tmp.UAV9B8ITM1/ELITEBEN: 43150 bytes, QDOS data space 4518
+/tmp/tmp.UAV9B8ITM1/ELITETST: 53652 bytes, QDOS data space 4422
+/tmp/tmp.UAV9B8ITM1/ELITEMOT: 70402 bytes, QDOS data space 652
+/tmp/tmp.UAV9B8ITM1/ELITEFLT: 73616 bytes, QDOS data space 638
+/tmp/tmp.UAV9B8ITM1/ELITETDY: 54050 bytes, QDOS data space 712
+/tmp/tmp.UAV9B8ITM1/ELITECTL: 102510 bytes, QDOS data space 530
+/tmp/tmp.UAV9B8ITM1/ELITESCN: 46704 bytes, QDOS data space 33560
+/tmp/tmp.UAV9B8ITM1/ELITEDIL: 59706 bytes, QDOS data space 33458
+/tmp/tmp.UAV9B8ITM1/ELITECBT: 313970 bytes, QDOS data space 32412
+/tmp/tmp.UAV9B8ITM1/ELITETAC: 291418 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITEEXP: 54694 bytes, QDOS data space 33594
+/tmp/tmp.UAV9B8ITM1/ELITEMSL: 20632 bytes, QDOS data space 834
+/tmp/tmp.UAV9B8ITM1/ELITETGT: 152708 bytes, QDOS data space 300
+/tmp/tmp.UAV9B8ITM1/ELITENAV: 78112 bytes, QDOS data space 66130
+/tmp/tmp.UAV9B8ITM1/ELITECRG: 230816 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITECMD: 214276 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITEEQP: 150806 bytes, QDOS data space 328
+/tmp/tmp.UAV9B8ITM1/ELITECMP: 26472 bytes, QDOS data space 33576
+/tmp/tmp.UAV9B8ITM1/ELITEPLN: 95266 bytes, QDOS data space 568
+/tmp/tmp.UAV9B8ITM1/ELITEMKT: 377280 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITEDCK: 98084 bytes, QDOS data space 534
+/tmp/tmp.UAV9B8ITM1/ELITETRV: 89782 bytes, QDOS data space 474
+/tmp/tmp.UAV9B8ITM1/ELITESHP: 19742 bytes, QDOS data space 828
+/tmp/tmp.UAV9B8ITM1/ELITEUNI: 25614 bytes, QDOS data space 936
+/tmp/tmp.UAV9B8ITM1/ELITEENC: 503398 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITESTA: 459120 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITEPV: 115150 bytes, QDOS data space 578
+/tmp/tmp.UAV9B8ITM1/ELITEVW: 508182 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITEFIT: 98218 bytes, QDOS data space 514
+/tmp/tmp.UAV9B8ITM1/ELITEDST: 215156 bytes, QDOS data space 180
+/tmp/tmp.UAV9B8ITM1/ELITEFID: 89870 bytes, QDOS data space 131628
+/tmp/tmp.UAV9B8ITM1/ELITEPRE: 115580 bytes, QDOS data space 486
+/tmp/tmp.UAV9B8ITM1/ELITEUL: 282982 bytes, QDOS data space 100
+/tmp/tmp.UAV9B8ITM1/ELITEUP: 94278 bytes, QDOS data space 550
+/tmp/tmp.UAV9B8ITM1/ELITEASM: 64098 bytes, QDOS data space 9118
+Original encounters with heap admission: PASS (256 cases, 0 failures)
+Original universe list: PASS (4096 NWSHP/KILLSHP operations,2560 KS2 target cases,0 failures)
+Original presentation: PASS (2048 TT24/population/productivity/radius;4096 TT182 positions;0 failures)
+ELITEDST original 6502 stardust: PASS (768 cases, 0 failures)
+ELITEFID: PASS (0 failures): 65536 TT123 deltas, 1024 TT111 selections, RLE limits/roundtrips, 2560 original sound priorities, 256 SFXL states, envelope/repeat/expiry
+Original commander: PASS (65536 ranks, 4096 bounty/tally/countdown states, 0 failures)
+Original equipment: PASS (2048 OUCH, 4096 bomb targets, 512 key states, 256 expiry states, 0 failures)
+Original compass: PASS (512 projection/pixel/XOR/guard cases, 0 failures)
+Original planet: PASS (1024 MV40/MULT3/MVT3/MV45 cases and trajectories, 0 failures)
+Original market: PASS (2048 economy/fluctuation markets, 2048 transactions/BAD, 1024 quantity purchases, 0 failures)
+Original docking: PASS (2048 ISDK/proximity/vector/failure states, 0 failures)
+Original travel: PASS (2048 systems, 2048 distances, countdown, fuel, preservation, all eight galaxy transitions; 0 failures)
+Source-derived equipment transactions: PASS (3072 cases, 0 failures)
+SOLAR/ZINF/SOS1: PASS (4096 seed/legal/tech cases, 0 failures)
+Original encounters: PASS (2048 TT100/MTT/Ze/RNG cases, 0 failures)
+Original station/WARP: PASS (4096 station cases, 1769 eligible; 2048 planet jumps; 1024 full WARP cases; 768 orientation cases; launch, 0 failures)
+Original planet view/altitude: PASS (2048 projection,4096 altitude cases,0 failures)
+Original views/station police: PASS (2048 transforms, 4096 police cases, 1075 launches, 0 failures)
+Original laser fittings/computer: PASS (2592 et3/et4/MCASH, 4096 MA64 cases, 0 failures)
+Original cargo: PASS (2048 tnpr, 1024 scoop/boundary, 512 debris/tumble cases, 0 failures)
+Navigation/icons: PASS (512 original pod states; 20 full-frame icon/guard cases; 0 failures)
+Original target-relative steering: PASS (1024 source cases, 256 launch states, 0 failures)
+Missile boundaries: PASS (65536 ECM states, 1024 impact/ECM/spawn cases, 0 failures)
+Original tactics: PASS (512 vectors, 1536 dots, 1536 tactics + 1024 missile homing, 3072 scheduling cases, 0 failures)
+Events none/missile/escape/hit/cargo/death: 2089/65/22/345/9/30
+Original explosion: PASS (2048 DOEXP, 256 particles/pixels/XOR/bounds, 0 failures)
+Original combat: PASS (8192 source cases, 2048 thermal updates, XOR/bounds, 0 failures)
+Original DIALS/recharge: PASS (512 pixels, 2048 states, 1024 trajectory updates, 0 failures)
+Original SCAN: PASS (512 geometry/pixel/XOR cases, 256 flags, 0 failures)
+Original player controls: PASS (2048 cases, 1024 sequential updates, 0 failures)
+Original TIDY: PASS (512 direct, 24 trajectories, 0 failures)
+Original MVEIT parts 3-8: PASS (768 cases, 0 failures)
+Original 6502 motion: PASS (768 cases, 0 failures)
+EliteQL ASM selftest: PASS (0 failures; 52 line / 244 renderer fixtures)
+PASS live combat: ram=128 KB; F/pause, five-hit kill, original explosion lifetime/pixels, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS live tactics: ram=128 KB; encounter steering, scheduled enemy fire, exact shield/recharge state, DEATH freeze, 3 restart, solo reset
+PASS live missiles: ram=128 KB; launch, homing, E/ECM countdown, explosion, slot reuse, fatal impact, restart
+PASS player missiles: ram=128 KB; T lock, U disarm, M launch, inventory, target-relative impact, cloud cleanup, jam, enemy ECM
+PASS pods: ram=128 KB; original escape decision, spawn, parent AI disabled, navigation/movement, reset and missile icons
+PASS salvage: ram=128 KB; laser debris, tumble, scoop, inventory, full hold, collision damage, reset
+PASS commander: ram=128 KB; laser tally, delayed bounty, no duplicate payment, police FIST, all cargo units, modal freeze, exact view restore, reset
+PASS equipment/navigation: ram=128 KB; front/rear compass pixels, bomb key/countdown/tally/station immunity, cargo/ECM/scoop/bomb/unit destruction, disabled ECM/bomb/scooping, reset
+PASS local loop: ram=128 KB; real approach/dock, freeze, buy/sell, cash/hold rejection, market persistence, equipment/ammo preservation, BAD launch, redock, slow dent, fast crash, restart
+PASS travel: ram=128 KB; Lave selection, frozen page, original countdown/pause, arrival/fuel/legal decay, commander preservation, destination market/dock/refuel, galaxy two/one-use drive, view restore
+PASS equipment/save: ram=128 KB; missile cap, hold upgrade, beam trade-in, bomb/unit/galactic replacements, QDOS save/load, preservation, live beam, corrupt/truncated rejection, escape recovery, load after reset
+PASS ambient encounters: ram=128 KB; state-preserving deep space, original trader/asteroid/canister/cop/pirate/hunter spawn paths, renderer/scanner, FAROF release
+PASS fittings/computer: ram=128 KB; purchase/tech/duplicate/trade-in per mount, EQA2 save, invalid/truncated rejection, EQA1 import, launch preservation, four-view pulse/beam kills, C fitted/friendly/safe-zone/pause/modal gates and immediate dock
+PASS views/station tactics: ram=128 KB; four cameras, cache erase, modal/pause, unarmed side/rear, missile locks, explosion view changes, rear planet, friendly station, provocation, police cap3, safe-zone aggression and hostile docking denial
+PASS original world: ram=128 KB; empty arrival/deep space, J jump/pause/mass lock, planet rotation, source station spawn/no duplicate, approach/dock, original launch, station mass lock/FAROF/KS4 placeholder
+PASS planet view/altitude: ram=128 KB; visible circle, clipping, behind erase, modal restore, low altitude, collision death/reset
+Active native flight: ram=128 KB, 50 updates / 250 50-Hz ticks (dust+sound enabled)
+fidelity: sound start
+fidelity: chart start
+PASS A27 fidelity: ram=128 KB; stardust/pause/modal parity, live IPC/envelope silence, source chart/cursor/nearest/home, launch tunnel frozen simulation, ENERGY LOW
+PASS ASM native: ram=128 KB, frames=5167, largest free block after startup=12288 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+PASS live combat: ram=640 KB; F/pause, five-hit kill, original explosion lifetime/pixels, scanner removal, miss, station immunity/hostility, sustained-fire heat limit, frozen pulse, reset XOR pixels
+PASS live tactics: ram=640 KB; encounter steering, scheduled enemy fire, exact shield/recharge state, DEATH freeze, 3 restart, solo reset
+PASS live missiles: ram=640 KB; launch, homing, E/ECM countdown, explosion, slot reuse, fatal impact, restart
+PASS player missiles: ram=640 KB; T lock, U disarm, M launch, inventory, target-relative impact, cloud cleanup, jam, enemy ECM
+PASS pods: ram=640 KB; original escape decision, spawn, parent AI disabled, navigation/movement, reset and missile icons
+PASS salvage: ram=640 KB; laser debris, tumble, scoop, inventory, full hold, collision damage, reset
+PASS commander: ram=640 KB; laser tally, delayed bounty, no duplicate payment, police FIST, all cargo units, modal freeze, exact view restore, reset
+PASS equipment/navigation: ram=640 KB; front/rear compass pixels, bomb key/countdown/tally/station immunity, cargo/ECM/scoop/bomb/unit destruction, disabled ECM/bomb/scooping, reset
+PASS local loop: ram=640 KB; real approach/dock, freeze, buy/sell, cash/hold rejection, market persistence, equipment/ammo preservation, BAD launch, redock, slow dent, fast crash, restart
+PASS travel: ram=640 KB; Lave selection, frozen page, original countdown/pause, arrival/fuel/legal decay, commander preservation, destination market/dock/refuel, galaxy two/one-use drive, view restore
+PASS equipment/save: ram=640 KB; missile cap, hold upgrade, beam trade-in, bomb/unit/galactic replacements, QDOS save/load, preservation, live beam, corrupt/truncated rejection, escape recovery, load after reset
+PASS ambient encounters: ram=640 KB; state-preserving deep space, original trader/asteroid/canister/cop/pirate/hunter spawn paths, renderer/scanner, FAROF release
+PASS fittings/computer: ram=640 KB; purchase/tech/duplicate/trade-in per mount, EQA2 save, invalid/truncated rejection, EQA1 import, launch preservation, four-view pulse/beam kills, C fitted/friendly/safe-zone/pause/modal gates and immediate dock
+PASS views/station tactics: ram=640 KB; four cameras, cache erase, modal/pause, unarmed side/rear, missile locks, explosion view changes, rear planet, friendly station, provocation, police cap3, safe-zone aggression and hostile docking denial
+PASS original world: ram=640 KB; empty arrival/deep space, J jump/pause/mass lock, planet rotation, source station spawn/no duplicate, approach/dock, original launch, station mass lock/FAROF/KS4 placeholder
+PASS planet view/altitude: ram=640 KB; visible circle, clipping, behind erase, modal restore, low altitude, collision death/reset
+Active native flight: ram=640 KB, 50 updates / 250 50-Hz ticks (dust+sound enabled)
+fidelity: sound start
+fidelity: chart start
+PASS A27 fidelity: ram=640 KB; stardust/pause/modal parity, live IPC/envelope silence, source chart/cursor/nearest/home, launch tunnel frozen simulation, ENERGY LOW
+PASS ASM native: ram=640 KB, frames=5167, largest free block after startup=527360 bytes; pause, model, fleet framebuffer, uncapped toggle, original gauges/recharge/cooling/countdown, scanner pixels/artwork/hide/erase, original control response, damping, speed clamps, held-key exit, screen restore, poll cleanup, exit
+ASM A9 mode=2: ships=1 frames=300 ticks=282 fps=53.1 vertices=3690 lines=4637
+ASM A9 mode=2: ships=12 frames=300 ticks=1821 fps=8.2 vertices=29990 lines=39974
