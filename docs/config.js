@@ -4,6 +4,6 @@
 const preset = window.QLBOX_PRESET || 'frontier8';
 window.QLBOX_CONFIG = {
   zip: preset + '.zip',
-  title: preset === 'elite' ? 'Frontier 0 · four-colour QL' : 'Frontier 8 · eight-colour QL',
+  title: preset === 'elite' ? 'Elite - Electron ported to the Sinclair QL' : 'Frontier 8 · eight-colour QL',
   rom: 'minerva', ram: 1024, speed: 1, timing: 'fast', run: ''
 };
